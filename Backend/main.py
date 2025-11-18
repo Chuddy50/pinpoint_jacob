@@ -10,3 +10,5 @@ supabaseKey = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(supabaseURL, supabaseKey)
 
 app = FastAPI()
+
+# Starting auth stuff here
