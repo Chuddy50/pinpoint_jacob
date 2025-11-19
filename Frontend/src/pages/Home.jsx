@@ -3,7 +3,9 @@ import CompanyList from "../components/CompanyList";
 
 export default function Home() {
   return (
-    <div className="flex bg-background w-screen h-screen bg-white">
+    
+    // color of background 
+    <div className="flex w-screen min-h-screen bg-[#F7F7F7]">
       <NavBar/>
      <CompanyList/>
     </div>
