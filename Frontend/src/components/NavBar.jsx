@@ -1,77 +1,37 @@
-import { useLocation, NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import logo from "../assets/pinpoint.png";
 
-export default function NavBar() {
-  let location = useLocation();
+const links = [
+  { to: "/", label: "Home" },
+  { to: "/profile", label: "Profile" },
+  { to: "/filter", label: "Filter" },
+  { to: "/prototype", label: "Prototype" },
+  { to: "/consultant", label: "Consulting" },
+  { to: "/messages", label: "Messages" },
+];
 
-  let baseLinkClass =
-    " mx-4 hover:text-gray-800 px-4 py-4 transition relative flex justify-center text-xl font-inter font-light text-gray-400";
-  let activeLinkClass = "bg-blue-100 rounded-xl";
-  let inActiveLinkClass = "bg-rehover:bg-gray-200 ";
+export default function NavBar() {
+  const baseLinkClass =
+    "flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-gray-500 hover:bg-[#E6EEFF] transition";
 
   return (
-    <nav
-      className="flex flex-col h-full w-[12vw] rounded-xl gap-10 
-                    bg-white shadow-[0px_0px_11px_5px_rgba(0,_0,_0,_0.1)]
-                    content-center justify-items-center py-5 md:pt-10"
-    >
-      <img src={logo} alt="logo" className="w-3/4 self-center " />
-
-      <NavLink
-        to="/"
-        className={({ isActive }) =>
-          `${baseLinkClass}
-                ${isActive ? activeLinkClass : inActiveLinkClass}`
-        }
-      >
-        Home
-      </NavLink>
-      <NavLink
-        to="/profile"
-        className={({ isActive }) =>
-          `${baseLinkClass}
-   ${isActive ? activeLinkClass : inActiveLinkClass}`
-        }
-      >
-        Profile
-      </NavLink>
-
-      <NavLink
-        to="/filter"
-        className={({ isActive }) =>
-          `${baseLinkClass}
-   ${isActive ? activeLinkClass : inActiveLinkClass}`
-        }
-      >
-        Filter
-      </NavLink>
-      <NavLink
-        to="/prototype"
-        className={({ isActive }) =>
-          `${baseLinkClass}
-   ${isActive ? activeLinkClass : inActiveLinkClass}`
-        }
-      >
-        Prototype
-      </NavLink>
-      <NavLink
-        to="/consultant"
-        className={({ isActive }) =>
-          `${baseLinkClass}
-   ${isActive ? activeLinkClass : inActiveLinkClass}`
-        }
-      >
-        Consulting
-      </NavLink>
-      <NavLink
-        to="/messages"
-        className={({ isActive }) =>
-          `${baseLinkClass}
-   ${isActive ? activeLinkClass : inActiveLinkClass}`
-        }
-      >
-        Messages
-      </NavLink>
+    <nav className="h-full rounded-3xl bg-white border border-gray-200 shadow-sm p-6 flex flex-col gap-4">
+      <img src={logo} alt="logo" className="w-32 mb-6 self-center" />
+      <div className="flex flex-col gap-2">
+        {links.map(({ to, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `${baseLinkClass} ${
+                isActive ? "bg-[#E4ECFF] text-[#1D4ED8]" : ""
+              }`
+            }
+          >
+            {label}
+          </NavLink>
+        ))}
+      </div>
     </nav>
   );
 }

@@ -47,6 +47,13 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
+.manufacturer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2.5rem;
+  width: 100%;
+}
 button:hover {
   border-color: #646cff;
     background-color: #e6e6e6;

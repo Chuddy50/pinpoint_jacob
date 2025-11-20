@@ -9,9 +9,7 @@ export default function ManufacturerCard({ name, location, rating }) {
                         overflow-hidden hover:shadow-[0_6px_14px_rgba(0,0,0,0.08)]
                         transition-shadow cursor-pointer">
       {/* For now we have no images, but this is where images would go.*/}
-      <div className="w-full h-40 bg-[#EDEDED] flex items-center justify-center text-sm text-gray-500">
-        Images Placeholder
-      </div>
+
 
       <div className="p-5 space-y-3">
         {/*This is where ratings are added */}
@@ -19,6 +17,9 @@ export default function ManufacturerCard({ name, location, rating }) {
           {"★".repeat(Math.floor(rating))}
           {"☆".repeat(5 - Math.floor(rating))}
         </div>
+              <div className="w-full h-40 bg-[#EDEDED] flex items-center justify-center text-sm text-gray-500">
+        Images Placeholder
+      </div>
 
 
         {/* Manufacturer Name and Location */}
