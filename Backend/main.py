@@ -36,6 +36,9 @@ Main PinPoint sign up endpoint
 @app.post("/pinpoint/signup")
 async def userSignup(credentials: dict):
     try:
+
+        print("started sign up fun")
+
         #1 Create user in Supabase Auth table
         auth_result = supabase.auth.sign_up({
             "email": credentials['email'],
@@ -43,6 +46,8 @@ async def userSignup(credentials: dict):
         })
 
         user_id = auth_result.user.id
+
+        print("added to supbase auth, now adding to our 'users' table")
 
         #2 Insert into our custom users table
         supabase.table("users").insert({
@@ -52,6 +57,8 @@ async def userSignup(credentials: dict):
             "role": "",
             "preferences": {}
         }).execute()
+
+        print("executed query")
 
         return {"success": True, "user_id": user_id}
     except Exception as e:
