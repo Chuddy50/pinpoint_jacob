@@ -36,6 +36,9 @@ Main PinPoint sign up endpoint
 @app.post("/pinpoint/signup")
 async def userSignup(credentials: dict):
     try:
+
+        print("started sign up fun")
+
         #1 Create user in Supabase Auth table
         auth_result = supabase.auth.sign_up({
             "email": credentials['email'],
@@ -44,16 +47,26 @@ async def userSignup(credentials: dict):
 
         user_id = auth_result.user.id
 
-        #2 Insert into our custom users table
+        print("added to supbase auth, now adding to our 'users' table")
+
+        # URL to the basic pfp stored in supabase file storage bucket
+        default_pfp = 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/profile_pics/basicPfp.jpg'
+
+        #2 Insert into our custom users table, assigned basic pfp on sign up
         supabase.table("users").insert({
             "user_id": user_id,
             "name": "",
-            "profile_pic_url": "",
+            "profile_pic_url": default_pfp,
             "role": "",
             "preferences": {}
         }).execute()
 
-        return {"success": True, "user_id": user_id}
+        print("executed query")
+
+        return {"success": True, 
+                "user_id": user_id, 
+                "pfp_url": default_pfp, 
+                'email': credentials['email']}
     except Exception as e:
         return {"success": False, "error": str(e)}
     
