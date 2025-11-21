@@ -70,6 +70,34 @@ async def userSignup(credentials: dict):
     except Exception as e:
         return {"success": False, "error": str(e)}
     
+
+@app.post('pinpoint/login')
+async def userLogin(credentials : dict):
+    try:
+        print("startng a login attempt")
+
+        # Log the user in with inputted email + pw
+        login_result = supabase.auth.sign_in_with_password({
+            "email" : credentials['email'],
+            "password": credentials['password']
+        })
+
+        user_id = login_result.user.id
+
+        #Grab their saved pfp
+        saved_pfp_url = supabase.tables("users").select("profile_pic_url").eq("user_id", user_id).execute()
+
+        # If here, login successful
+        return {
+            "success": True,
+            "user_id": user_id,
+            "pfp_url": saved_pfp_url,
+            "email": credentials['email']
+        }
+
+    except Exception as e:
+        return {"success": False, "error": "Login error: " + str(e)}
+    
 '''
 fastAPI endpoint to allow a signed in user to update their profile pic
 This puts the new profile picture into the storage, creates a url w/ their unique
