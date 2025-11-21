@@ -36,9 +36,6 @@ Main PinPoint sign up endpoint
 @app.post("/pinpoint/signup")
 async def userSignup(credentials: dict):
     try:
-
-        print("started sign up fun")
-
         #1 Create user in Supabase Auth table
         auth_result = supabase.auth.sign_up({
             "email": credentials['email'],
@@ -47,56 +44,18 @@ async def userSignup(credentials: dict):
 
         user_id = auth_result.user.id
 
-        print("added to supbase auth, now adding to our 'users' table")
-
-        # URL to the basic pfp stored in supabase file storage bucket
-        default_pfp = 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/profile_pics/basicPfp.jpg'
-
-        #2 Insert into our custom users table, assigned basic pfp on sign up
+        #2 Insert into our custom users table
         supabase.table("users").insert({
             "user_id": user_id,
             "name": "",
-            "profile_pic_url": default_pfp,
+            "profile_pic_url": "",
             "role": "",
             "preferences": {}
         }).execute()
 
-        print("executed query")
-
-        return {"success": True, 
-                "user_id": user_id, 
-                "pfp_url": default_pfp, 
-                'email': credentials['email']}
+        return {"success": True, "user_id": user_id}
     except Exception as e:
         return {"success": False, "error": str(e)}
-    
-
-@app.post('pinpoint/login')
-async def userLogin(credentials : dict):
-    try:
-        print("startng a login attempt")
-
-        # Log the user in with inputted email + pw
-        login_result = supabase.auth.sign_in_with_password({
-            "email" : credentials['email'],
-            "password": credentials['password']
-        })
-
-        user_id = login_result.user.id
-
-        #Grab their saved pfp
-        saved_pfp_url = supabase.tables("users").select("profile_pic_url").eq("user_id", user_id).execute()
-
-        # If here, login successful
-        return {
-            "success": True,
-            "user_id": user_id,
-            "pfp_url": saved_pfp_url,
-            "email": credentials['email']
-        }
-
-    except Exception as e:
-        return {"success": False, "error": "Login error: " + str(e)}
     
 '''
 fastAPI endpoint to allow a signed in user to update their profile pic
