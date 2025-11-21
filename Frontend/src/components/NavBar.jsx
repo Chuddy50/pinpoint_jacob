@@ -8,6 +8,7 @@ const links = [
   { to: "/prototype", label: "Prototype" },
   { to: "/consultant", label: "Consulting" },
   { to: "/messages", label: "Messages" },
+  { to: "/ratings", label: "Ratings"},
 ];
 
 export default function NavBar() {
