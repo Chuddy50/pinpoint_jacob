@@ -79,7 +79,7 @@ async def userSignup(credentials: dict):
         return {"success": False, "error": str(e)}
     
 
-@app.post('pinpoint/login')
+@app.post('/pinpoint/login')
 async def userLogin(credentials : dict):
     try:
         print("startng a login attempt")
@@ -93,7 +93,8 @@ async def userLogin(credentials : dict):
         user_id = login_result.user.id
 
         #Grab their saved pfp
-        saved_pfp_url = supabase.tables("users").select("profile_pic_url").eq("user_id", user_id).execute()
+        result = supabase.table("users").select("profile_pic_url").eq("user_id", user_id).execute()
+        saved_pfp_url = result.data[0]['profile_pic_url']
 
         # If here, login successful
         return {
