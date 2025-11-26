@@ -1,10 +1,10 @@
 # Backend
 
-// Create virtual environment
-python -m venv .venv
+## to run this 
 
-// Activate virtual environment
-.venv\scripts\activate
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 // Install dependencies in virtual environment
 pip install -r requirements.txt
