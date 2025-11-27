@@ -21,6 +21,28 @@ export default function Profile() {
     }
   }
 
+  async function logoutUser(e) {
+    e.preventDefault()
+
+    try{
+
+      const result = await fetch("http://127.0.0.1:8000/pinpoint/logout", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"}
+      })
+
+      const data = await result.json()
+
+      if(data.success) {
+        setUserData(null)
+      } else {
+        console.error("logout error: ", data.error)
+      }
+
+    } catch (error) {
+      console.error("logout error: ", error)
+    }
+  }
 
 
   //starting function to update the pfp, but need to implement auth state first to
@@ -98,7 +120,7 @@ export default function Profile() {
             />
 
             <button 
-              onClick={() => setUserData(null)}
+              onClick={logoutUser}
               className="mt-6 w-full bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition"
             >
               Log Out
