@@ -1,10 +1,49 @@
 // Profile.jsx
-import { useState } from "react";
+import { useState, useRef } from "react";
 import NavBar from "../components/NavBar";
 import LoginForm from "../components/LoginForm";
 
 export default function Profile() {
   const [userData, setUserData] = useState(null);
+
+  const [selectedFile, setSelectedFile] = useState(null)
+  const fileInputRef = useRef(null)
+
+  function handleUpdatePfpBtnClicked(){
+    fileInputRef.current.click()
+  }
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      console.log("Selected file:", file);
+    }
+  }
+
+
+
+  //starting function to update the pfp, but need to implement auth state first to
+  // know user id
+  /*
+  async function updatePfp(e) {
+    e.preventDefault()
+
+    try{
+
+      const res = await fetch("http://127.0.0.1:8000/pinpoint/updatePFP/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+    } catch (error) {
+
+    }
+
+  }*/
 
   return (
     <div className="flex w-screen min-h-screen bg-[#F7F7F7]">
@@ -41,6 +80,22 @@ export default function Profile() {
                 <p className="text-sm text-gray-500 font-mono">{userData.user_id}</p>
               </div>
             </div>
+
+            <button
+              onClick = {handleUpdatePfpBtnClicked}
+              className="mt-6 w-full bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition"
+            >
+              Update Profile Picture
+            </button>
+
+            {/*hidden file input for selecting a new pfp*/}
+            <input 
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              accept="image/jpeg,image/png,image/webp"
+              style={{ display: 'none' }}
+            />
 
             <button 
               onClick={() => setUserData(null)}

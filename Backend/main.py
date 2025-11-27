@@ -134,7 +134,7 @@ async def userUpdateProfilePic(user_id: str, file: UploadFile = File(...)):
 
     #3 Make storage path
 
-    extension = file.filename.split(".")[-1].lower() #gets extension, like ong, jpeg, etc
+    extension = file.filename.split(".")[-1].lower() #gets extension, like png, jpeg, etc
     path = f"profile_pics/{user_id}.{extension}"
 
     #4 Upload to supabase storage
