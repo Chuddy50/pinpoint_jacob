@@ -115,7 +115,6 @@ user ID, and then updates OUR users table to have the correct url in that column
 @param 'user_id' : The user_id of the person trying to upload a new pfp
 @param 'file' : The file the user is trying to make their new pfp
    - Syntax: expect a required uploaded file, UploadFile gives us access to filename, type, and stream access
-
 '''
 @app.post("/pinpoint/updatePFP/{user_id}")
 async def userUpdateProfilePic(user_id: str, file: UploadFile = File(...)):
