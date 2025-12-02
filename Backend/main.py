@@ -5,6 +5,7 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 from groq import Groq
 import os
+from datetime import datetime
 
 load_dotenv()
 supabaseURL = os.getenv("SUPABASE_URL")
@@ -211,3 +212,26 @@ async def consultant_chat(payload: dict):
         return {"reply": reply}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Groq error: {e}")
+
+
+@app.post("/reviews")
+async def create_review(review : dict):
+    try:
+        response = supabase.table("reviews").insert({
+            "manufacturer_id": review['manufacturer_id'],
+            "user_id": review['user_id'],
+            "rating": review['rating'],
+            "review":  review['review'],
+            "created_at": datetime.now()
+        }).execute()
+
+        return {
+            "success": True,
+            "message": "Review sucessfully added"
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Error submitting review in API layer"
+        }
