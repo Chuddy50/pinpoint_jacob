@@ -79,7 +79,7 @@ async def userSignup(credentials: dict):
         return {"success": False, "error": str(e)}
     
 
-@app.post('pinpoint/login')
+@app.post('/pinpoint/login')
 async def userLogin(credentials : dict):
     try:
         print("startng a login attempt")
@@ -93,7 +93,8 @@ async def userLogin(credentials : dict):
         user_id = login_result.user.id
 
         #Grab their saved pfp
-        saved_pfp_url = supabase.tables("users").select("profile_pic_url").eq("user_id", user_id).execute()
+        result = supabase.table("users").select("profile_pic_url").eq("user_id", user_id).execute()
+        saved_pfp_url = result.data[0]['profile_pic_url']
 
         # If here, login successful
         return {
@@ -114,7 +115,6 @@ user ID, and then updates OUR users table to have the correct url in that column
 @param 'user_id' : The user_id of the person trying to upload a new pfp
 @param 'file' : The file the user is trying to make their new pfp
    - Syntax: expect a required uploaded file, UploadFile gives us access to filename, type, and stream access
-
 '''
 @app.post("/pinpoint/updatePFP/{user_id}")
 async def userUpdateProfilePic(user_id: str, file: UploadFile = File(...)):
@@ -133,7 +133,7 @@ async def userUpdateProfilePic(user_id: str, file: UploadFile = File(...)):
 
     #3 Make storage path
 
-    extension = file.filename.split(".")[-1].lower() #gets extension, like ong, jpeg, etc
+    extension = file.filename.split(".")[-1].lower() #gets extension, like png, jpeg, etc
     path = f"profile_pics/{user_id}.{extension}"
 
     #4 Upload to supabase storage

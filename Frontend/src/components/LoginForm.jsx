@@ -5,7 +5,7 @@ export default function LoginForm({ onSubmit }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
 
-  async function handleSubmit(e) {
+  async function userSignup(e) {
     e.preventDefault();
     setError(null);
 
@@ -13,7 +13,7 @@ export default function LoginForm({ onSubmit }) {
       const res = await fetch("http://127.0.0.1:8000/pinpoint/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password })
       });
 
       const data = await res.json();
@@ -24,16 +24,37 @@ export default function LoginForm({ onSubmit }) {
         setError(data.error || "Signup failed");
       }
     } catch (err) {
-      setError("Network error - is the server running?");
+      setError("Network error");
+    }
+  }
+
+  async function userLogin(e){
+    e.preventDefault()
+    setError(null)
+
+    try{
+      const result = await fetch("http://127.0.0.1:8000/pinpoint/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await result.json()
+
+      if (data.success) {
+        onSubmit?.(data); 
+      } else {
+        setError(data.error || "Signup failed");
+      }
+
+    } catch (err) {
+      setError("Network error")
     }
   }
 
   return (
     <div className="max-w-sm mx-auto p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-4 border rounded-xl p-4 bg-white shadow-lg"
-      >
+      <form className="flex flex-col gap-4 border rounded-xl p-4 bg-white shadow-lg">
         <h2 className="text-xl font-semibold text-center">Sign Up</h2>
 
         {error && (
@@ -65,11 +86,21 @@ export default function LoginForm({ onSubmit }) {
         </div>
 
         <button
-          type="submit"
+          type="button"
+          onClick={userSignup}
           className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition"
         >
           Sign Up
         </button>
+
+        <button
+          type="button"
+          onClick={userLogin}
+          className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition"
+        >
+          Login
+        </button>
+
       </form>
     </div>
   );
