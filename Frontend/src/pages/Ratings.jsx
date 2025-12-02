@@ -47,10 +47,7 @@ function Ratings() {
                     //manufacturer page we will query for their id, then use it here
                     manufacturer_id: 1,
                     rating: rating,
-                    review: review,
-                    //once again, dummy userID until we figure out
-                    //local storage to keep userID stored during session
-                    user_id: 1
+                    review: review
                 })
             });
 
