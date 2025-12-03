@@ -236,3 +236,37 @@ async def create_review(review : dict):
             "success": False,
             "message": f"Error submitting review in API layer. Error: {e}"
         }
+
+
+@app.get("/manufacturers")
+async def list_manufacturers():
+    """
+    Fetch manufacturers with an average rating (if reviews exist).
+    """
+    try:
+        manufacturers_response = supabase.table("manufacturers").select(
+            "manufacturer_id,name,location,address,phone,email,contactee,description,price_range"
+        ).execute()
+        manufacturers = manufacturers_response.data or []
+
+        reviews_response = supabase.table("reviews").select("manufacturer_id,rating").execute()
+        rating_map = {}
+        for review in reviews_response.data or []:
+            manufacturer_id = review.get("manufacturer_id")
+            rating = review.get("rating")
+            if manufacturer_id is None or rating is None:
+                continue
+            bucket = rating_map.setdefault(manufacturer_id, {"sum": 0.0, "count": 0})
+            bucket["sum"] += float(rating)
+            bucket["count"] += 1
+
+        for manufacturer in manufacturers:
+            stats = rating_map.get(manufacturer.get("manufacturer_id"))
+            if stats and stats["count"]:
+                manufacturer["rating"] = round(stats["sum"] / stats["count"], 1)
+            else:
+                manufacturer["rating"] = None
+
+        return manufacturers
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch manufacturers: {e}")
