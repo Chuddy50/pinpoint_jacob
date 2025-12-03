@@ -55,7 +55,7 @@ export default function LoginForm({ onSubmit }) {
   return (
     <div className="max-w-sm mx-auto p-4">
       <form className="flex flex-col gap-4 border rounded-xl p-4 bg-white shadow-lg">
-        <h2 className="text-xl font-semibold text-center">Sign Up</h2>
+        <h2 className="text-xl font-semibold text-center">Sign In</h2>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
