@@ -65,9 +65,9 @@ export default function Consultant() {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-white">
+    <div className="flex min-h-screen w-full bg-white p-6 gap-6">
       {/* Nav bar stuff  */}
-      <aside className="w-64 border-r border-gray-100 p-4">
+      <aside className="w-72">
         <NavBar />
       </aside>
 

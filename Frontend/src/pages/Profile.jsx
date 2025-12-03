@@ -68,8 +68,10 @@ export default function Profile() {
   }*/
 
   return (
-    <div className="flex w-screen min-h-screen bg-[#F7F7F7]">
-      <NavBar/>
+    <div className="flex w-screen min-h-screen bg-[#F7F7F7] p-6 gap-6">
+      <aside className="w-72">
+        <NavBar />
+      </aside>
       
       <div className="flex-1 p-8">
         {userData ? (
