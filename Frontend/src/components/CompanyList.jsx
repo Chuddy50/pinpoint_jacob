@@ -1,34 +1,64 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ManufacturerCard from "./ManufacturerCard";
 
-const manufacturers = [
-  { name: "ABC Manufacturing", location: "Salt Lake City, UT", rating: 4.5 },
-  { name: "Summit Precision", location: "Provo, UT", rating: 4.2 },
-  { name: "AeroFab", location: "Ogden, UT", rating: 5.0 },
-  { name: "ZX Manufacturing", location: "Logan, UT", rating: 3.5 },
-  { name: "Blue Ridge CNC", location: "Denver, CO", rating: 4.0 },
-  { name: "Allied Works", location: "Boise, ID", rating: 3.8 },
-];
+const sortModes = ["alphabetical", "rating-desc", "rating-asc"];
 
 export default function CompanyList() {
-  const sortModes = ["alphabetical", "rating-desc", "rating-asc"];
   const [sortMode, setSortMode] = useState(sortModes[0]);
-
-  const sortedManufacturers = useMemo(() => {
-    const list = [...manufacturers];
-    if (sortMode === "rating-desc") {
-      return list.sort((a, b) => b.rating - a.rating);
-    }
-    if (sortMode === "rating-asc") {
-      return list.sort((a, b) => a.rating - b.rating);
-    }
-    return list.sort((a, b) => a.name.localeCompare(b.name));
-  }, [sortMode]);
+  const [manufacturers, setManufacturers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // this function changes the sort mode from the select dropdown
   function handleSortChange(event) {
     setSortMode(event.target.value);
   }
+
+  // this function fetches manufacturers from the backend
+  useEffect(() => {
+    let isActive = true;
+    async function fetchManufacturers() {
+      setLoading(true);
+      try {
+        const response = await fetch("http://localhost:8000/manufacturers");
+        if (!response.ok) {
+          throw new Error("Failed to fetch manufacturers");
+        }
+        const data = await response.json();
+        if (isActive) {
+          setManufacturers(data);
+          setError("");
+        }
+      } catch (err) {
+        if (isActive) {
+          setError("Unable to load manufacturers right now.");
+        }
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    }
+    fetchManufacturers();
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const sortedManufacturers = useMemo(() => {
+    const list = [...manufacturers];
+    if (sortMode === "rating-desc") {
+      return list.sort(
+        (a, b) => (Number(b.rating ?? 0) || 0) - (Number(a.rating ?? 0) || 0)
+      );
+    }
+    if (sortMode === "rating-asc") {
+      return list.sort(
+        (a, b) => (Number(a.rating ?? 0) || 0) - (Number(b.rating ?? 0) || 0)
+      );
+    }
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [manufacturers, sortMode]);
 
   const sortLabel =
     sortMode === "alphabetical"
@@ -61,9 +91,19 @@ export default function CompanyList() {
           </label>
         </div>
       </header>
+
+      {loading && (
+        <div className="text-sm text-gray-500">Loading manufacturers...</div>
+      )}
+      {error && <div className="text-sm text-red-500">{error}</div>}
+
       <div className="manufacturer-grid">
         {sortedManufacturers.map((m) => (
-          <ManufacturerCard key={m.name} {...m} />
+          <ManufacturerCard
+            key={m.manufacturer_id || m.name}
+            {...m}
+            rating={m.rating ?? 0}
+          />
         ))}
       </div>
     </section>

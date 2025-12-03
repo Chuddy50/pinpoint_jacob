@@ -1,35 +1,59 @@
 import NavBar from "../components/NavBar";
-import { useState } from "react";
-
-//dummy manufacturers to choose from for now, eventaully this will be apart of the
-// manufacturers profile and wont do this, just for demo purposes
-const manufacturers = [
-  "ABC Manufacturing", 
-  "Summit Precision", 
-  "AeroFab", 
-  "ZX Manufacturing", 
-  "Blue Ridge CNC", 
-  "Allied Works",
-];
+import { useEffect, useState } from "react";
 
 
 function Ratings() {
     const [rating, setRating] = useState(0);
     const [review, setReview] = useState("");
 
-    const [selectedManufacturer, setSelectedManufacturer] = useState("");
+    const [manufacturers, setManufacturers] = useState([]);
+    const [selectedManufacturerId, setSelectedManufacturerId] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
     //for error message, type = success/error
     const [message, setMessage] = useState({text: "", type: ""});
 
+    // this function fetches manufacturers for the dropdown
+    useEffect(() => {
+        let isActive = true;
+        async function fetchManufacturers() {
+            setLoading(true);
+            try {
+                const res = await fetch("http://localhost:8000/manufacturers");
+                if (!res.ok) {
+                    throw new Error("Failed to fetch manufacturers");
+                }
+                const data = await res.json();
+                if (isActive) {
+                    setManufacturers(data);
+                    setLoadError("");
+                }
+            } catch (err) {
+                if (isActive) {
+                    setLoadError("Unable to load manufacturers.");
+                }
+            } finally {
+                if (isActive) {
+                    setLoading(false);
+                }
+            }
+        }
+        fetchManufacturers();
+        return () => {
+            isActive = false;
+        };
+    }, []);
+
+    // this function submits a review
     const submitReview = async () => {
 
         console.log("Rating:", rating);
         console.log("Review:", review);
         setMessage({ text: "", type: "" });
 
-        if(!selectedManufacturer || rating == 0 || !review.trim()){
+        if(!selectedManufacturerId || rating === 0 || !review.trim()){
             setMessage({text:"Please fill out all fields", type:"error"})
             return
         }
@@ -43,9 +67,7 @@ function Ratings() {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
-                    //dummy manufacturer_id for now, once we built into a
-                    //manufacturer page we will query for their id, then use it here
-                    manufacturer_id: 1,
+                    manufacturer_id: Number(selectedManufacturerId),
                     rating: rating,
                     review: review
                 })
@@ -53,8 +75,8 @@ function Ratings() {
 
             const data = await response.json()
 
-            if(!data.sucess){
-                setMessage({text:data.message, type:"error"});
+            if(!data.success){
+                setMessage({text:data.message || "Failed to submit review", type:"error"});
                 setIsSubmitting(false);
                 return;
             }
@@ -62,7 +84,7 @@ function Ratings() {
             setMessage({text:"Review successfully submitted", type:"success"})
             setRating(0);
             setReview("");
-            setSelectedManufacturer("");
+            setSelectedManufacturerId("");
 
         } catch(error) {
             console.error("Error submitting review: ", error)
@@ -96,17 +118,24 @@ function Ratings() {
                 <div className="mb-4">
                     <label className="block mb-2 font-semibold">Select Manufacturer</label>
                     <select
-                        value={selectedManufacturer}
-                        onChange={(e) => setSelectedManufacturer(e.target.value)}
+                        value={selectedManufacturerId}
+                        onChange={(e) => setSelectedManufacturerId(e.target.value)}
                         className="w-full p-2 border rounded"
+                        disabled={loading || !!loadError}
                     >
-                        <option value="">Choose a manufacturer...</option>
-                        {manufacturers.map((name, index) => (
-                            <option key={index} value={name}>
-                                {name}
-                            </option>
-                        ))}
+                        <option value="">
+                            {loading ? "Loading..." : loadError ? "Unable to load manufacturers" : "Choose a manufacturer..."}
+                        </option>
+                        {!loading && !loadError &&
+                            manufacturers.map((m) => (
+                                <option key={m.manufacturer_id} value={m.manufacturer_id}>
+                                    {m.name || "Unnamed"}
+                                </option>
+                            ))}
                     </select>
+                    {loadError && (
+                        <p className="mt-2 text-sm text-red-600">{loadError}</p>
+                    )}
                 </div>
 
 
