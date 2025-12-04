@@ -4,10 +4,10 @@ import logo from "../assets/pinpoint.png";
 const links = [
   { to: "/", label: "Home" },
   { to: "/profile", label: "Profile" },
-  { to: "/filter", label: "Filter" },
+  //{ to: "/filter", label: "Filter" },
   { to: "/prototype", label: "Prototype" },
   { to: "/consultant", label: "Consulting" },
-  { to: "/messages", label: "Messages" },
+ // { to: "/messages", label: "Messages" },
   { to: "/ratings", label: "Ratings"},
 ];
 
