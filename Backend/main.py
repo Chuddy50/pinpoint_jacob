@@ -71,6 +71,9 @@ async def userSignup(credentials: dict):
 
         print("executed query")
 
+        
+        supabase.auth.sign_out()
+
         return {"success": True, 
                 "user_id": user_id, 
                 "pfp_url": default_pfp, 
@@ -95,6 +98,8 @@ async def userLogin(credentials : dict):
         #Grab their saved pfp
         result = supabase.table("users").select("profile_pic_url").eq("user_id", user_id).execute()
         saved_pfp_url = result.data[0]['profile_pic_url']
+
+        supabase.auth.sign_out()
 
         # If here, login successful
         return {

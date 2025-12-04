@@ -10,17 +10,17 @@ import Ratings from "./pages/Ratings";
 export default function App() {
   return (
     <BrowserRouter>
-      <main className="min-h-screen bg-slate-50 text-slate-900">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/filter" element={<Filter />} />
-          <Route path="/prototype" element={<Prototype />} />
-          <Route path="/consultant" element={<Consultant />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/ratings" element={<Ratings />} />
-        </Routes>
-      </main>
+        <main className="min-h-screen bg-slate-50 text-slate-900">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/filter" element={<Filter />} />
+            <Route path="/prototype" element={<Prototype />} />
+            <Route path="/consultant" element={<Consultant />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/ratings" element={<Ratings />} />
+          </Routes>
+        </main>
     </BrowserRouter>
   );
 }
