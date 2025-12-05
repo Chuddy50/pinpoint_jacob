@@ -6,6 +6,7 @@ import Prototype from "./pages/Prototype";
 import Consultant from "./pages/Consultant";
 import Messages from "./pages/Messages";
 import Ratings from "./pages/Ratings";
+import ManufacturerProfile from "./pages/ManufacturerProfile";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/consultant" element={<Consultant />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/ratings" element={<Ratings />} />
+            <Route path="/manufacturers/:id" element={<ManufacturerProfile />} />
           </Routes>
         </main>
     </BrowserRouter>
