@@ -29,7 +29,7 @@ def scrape_data():
         print(f"Found {count} list items")
 
 
-        for i in range(10):
+        for i in range(count):
             # Enter factory information screen
             button = items.nth(i).locator('button[data-post-preview-toggle]')
             button.click()
@@ -55,12 +55,23 @@ def scrape_data():
             company_info = parse_first_column(first_col)
             contact_info = parse_second_column(second_col)
             locations = parse_third_column(third_col)
-            description = parse_description(main_info.locator("> div"))
-            services = parse_services(main_info.locator("> div + div"))
-            product_minimums = parse_product_minimums(main_info.locator(" > div + div + div"))
-            products = parse_products(main_info.locator("> div + div + div + div"))
-            categories = parse_categories(main_info.locator("> div + div + div + div + div"))
-            price_points = parse_price_points(main_info.locator("> div + div + div + div + div + div"))
+
+            # description is still first (no header)
+            description = parse_description(main_info.locator("> div").first)
+
+            # find sections by header
+            services_section = get_section_by_header(main_info, "Services")
+            minimums_section = get_section_by_header(main_info, "Production Minimums")
+            products_section = get_section_by_header(main_info, "Products")
+            categories_section = get_section_by_header(main_info, "Categories")
+            price_section = get_section_by_header(main_info, "Price Points")
+
+            # parse each section or return defaults if section doesn't exist
+            services = parse_services(services_section) if services_section else []
+            product_minimums = parse_product_minimums(minimums_section) if minimums_section else []
+            products = parse_products(products_section) if products_section else {}
+            categories = parse_categories(categories_section) if categories_section else []
+            price_points = parse_price_points(price_section) if price_section else []
         
             data = {"Name": name,
                     "Company Info": company_info,
@@ -154,10 +165,14 @@ def parse_description(content):
         return None
 
 
-def parse_services(content):
+def parse_services(section):
+
+    if not section:
+        return []
+
     try:
         services = []
-        list_items = content.locator("ul").first.locator("li").all()
+        list_items = section.locator("ul").first.locator("li").all()
         for item in list_items:
             services.append(item.text_content())
         return services
@@ -166,10 +181,14 @@ def parse_services(content):
         return []
 
 
-def parse_product_minimums(content):
+def parse_product_minimums(section):
+
+    if not section:
+        return []
+
     try:
         minimums = []
-        list_of_minimums = content.locator("> div > div + div > ul ").first.locator("li").all()
+        list_of_minimums = section.locator("ul").first.locator("li").all()
         
         for item in list_of_minimums:
             minimums.append(item.text_content())
@@ -179,12 +198,16 @@ def parse_product_minimums(content):
         return []
 
 
-def parse_products(content):
-    results = {}
+def parse_products(section):
+
+    if not section:
+        return {}
     
     try:
-        all_data = content.locator("> div > div + div").first
+        all_data = content.locator("> div + div").first
         upper_categories = all_data.locator("div.underline").all()
+
+        results = {}
 
         for upper in upper_categories:
             try:
@@ -231,14 +254,15 @@ def parse_products(content):
                 
     except Exception as e:
         print(f"  Warning: Could not parse products section - {e}")
+        return {}
         
     return results
 
 
-def parse_categories(content):
+def parse_categories(section):
     try:
         categories = []
-        list_of_categories = content.locator("> div > div + div > ul ").first.locator("li").all()
+        list_of_categories = section.locator("ul").first.locator("li").all()
         
         for item in list_of_categories:
             categories.append(item.text_content())
@@ -248,16 +272,42 @@ def parse_categories(content):
         return []
 
 
-def parse_price_points(content):
+def parse_price_points(section):
+
+    if not section:
+        return []
+
     try:
         price_points = []
-        list_of_prices = content.locator("> div > div + div > ul ").first.locator("li").all()
+        list_of_prices = section.locator("ul ").first.locator("li").all()
         for item in list_of_prices:
             price_points.append(item.text_content())
         return price_points
     except Exception as e:
         print(f"  Warning: Could not parse price points - {e}")
         return []
+
+
+def get_section_by_header(manufacturer_page, header_text):
+    try:
+        sections = manufacturer_page.locator("div.border-t.border-grey-200").all()
+        
+        for section in sections:
+            header_span = section.locator("span.font-bold").first
+            if header_span:
+                section_title = header_span.text_content().strip()
+
+                if header_text.lower() in section_title.lower():
+                    return section.locator("div.col-span-12.md\\:col-span-6").nth(1)
+        
+        print(f"could NOT find seciton: {header_text}")
+        return None
+    
+    except Exception as e:
+        print(f"  Warning: Could not find section '{header_text}' - {e}")
+        return None
+        
+
 
 def test():
     data = {

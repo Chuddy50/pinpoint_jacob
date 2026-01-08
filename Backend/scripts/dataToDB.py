@@ -350,7 +350,7 @@ def main():
     # load json data
     manufacturers = load_manufacturers_json('all_manufacturers.json')
 
-    NUM_TO_PROCESS = 3
+    NUM_TO_PROCESS = 10
 
     success_count = 0
     fail_count = 0
