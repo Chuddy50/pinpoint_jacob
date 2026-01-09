@@ -3,6 +3,17 @@ import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
+import logging
+
+# configure logging
+logging.basicConfig(
+    filename='process_log.txt',  # log file name
+    filemode='w',                # 'w' = overwrite each run, 'a' = append
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.INFO           # log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+)
+
+
 #make supabase client so we can add to the db 
 load_dotenv()
 supabaseURL = os.getenv("SUPABASE_URL")
@@ -21,6 +32,7 @@ def load_manufacturers_json(path):
 ''' insert functions for basic info below '''
 
 def insert_manufacturer(manufacturer_data):
+
         manufacturer = {
             'name': manufacturer_data['Name'],
             'address': manufacturer_data['Company Info'].get('Address'),
@@ -34,7 +46,7 @@ def insert_manufacturer(manufacturer_data):
         result = supabase.table('manufacturers').insert(manufacturer).execute()
         manufacturer_id = result.data[0]['manufacturer_id']
 
-        print(f'inserted into manufacturers table: {manufacturer_data['Name']} (ID: {manufacturer_id})')
+        logging.info(f'inserted into manufacturers table: {manufacturer_data['Name']} (ID: {manufacturer_id})')
 
         return manufacturer_id
 
@@ -50,12 +62,12 @@ def insert_service(manufacturer_data):
         result = supabase.table('services').select('service_name').eq('service_name', service).execute()
 
         if result.data:
-            print(f'not inserting into services table: {service} is already in the table')
+            logging.info(f'not inserting into services table: {service} is already in the table')
             continue
         else:
             insert_response = supabase.table('services').insert({'service_name': service}).execute()
             service_id = insert_response.data[0]['service_id']
-            print(f'inserted into services table: {service}, (ID: {service_id})')
+            logging.info(f'inserted into services table: {service}, (ID: {service_id})')
 
 
 
@@ -70,12 +82,12 @@ def insert_category(manufacturer_data):
         result =  supabase.table('categories').select('category_name').eq('category_name', category).execute()
 
         if result.data:
-            print(f'not inserting into categories table: {category} is already in the table')
+            logging.info(f'not inserting into categories table: {category} is already in the table')
             continue
         else:
             insert_response = supabase.table('categories').insert({'category_name': category}).execute()
             category_id = insert_response.data[0]['category_id']
-            print(f'inserted into categories table: {category}, (ID: {category_id})')
+            logging.info(f'inserted into categories table: {category}, (ID: {category_id})')
 
 
 
@@ -90,12 +102,12 @@ def insert_prices(manufacturer_data):
         result = supabase.table('prices').select('price_level').eq('price_level', price).execute()
 
         if result.data:
-            print(f'not inserting into prices table: {price} is already in the table')
+            logging.info(f'not inserting into prices table: {price} is already in the table')
             continue
         else:
             insert_response = supabase.table('prices').insert({'price_level': price}).execute()
             price_id = insert_response.data[0]['price_id']
-            print(f'inserted into prices table: {price}, (ID: {price_id})')
+            logging.info(f'inserted into prices table: {price}, (ID: {price_id})')
 
 
 def insert_minimums(manufacturer_data):
@@ -110,13 +122,13 @@ def insert_minimums(manufacturer_data):
 
         #if in the table, continue to next, no need to add it 
         if result.data:
-            print(f'not inserting into prod min table: {minimum} is already in the table')
+            logging.info(f'not inserting into prod min table: {minimum} is already in the table')
             continue
         # if not in the table, add it
         else:
             insert_response = supabase.table('minimums').insert({'minimum_range': minimum}).execute()
             product_minimum_id = insert_response.data[0]['minimum_id']
-            print(f'inserted into prod min table: {minimum}, (ID: {product_minimum_id})')
+            logging.info(f'inserted into prod min table: {minimum}, (ID: {product_minimum_id})')
 
 
 def insert_product_categories(manufacturer_data):
@@ -128,9 +140,9 @@ def insert_product_categories(manufacturer_data):
         
         if not result.data:
             insert_response = supabase.table('product_categories').insert({'category_name' : category_name}).execute()
-            print(f'inserted in prod categories table: {category_name} (ID: {insert_response.data[0]['product_category_id']})')
+            logging.info(f'inserted in prod categories table: {category_name} (ID: {insert_response.data[0]['product_category_id']})')
         else:
-            print(f'prod category already exists" {category_name}')
+            logging.info(f"prod category already exists: {category_name}")
 
         
         #check for nested categories
@@ -142,9 +154,9 @@ def insert_product_categories(manufacturer_data):
                     
                     if not nested_result.data:
                         nested_insert = supabase.table('product_categories').insert({'category_name': nested_category_name}).execute()
-                        print(f'inserted into prod categories: {nested_category_name} (ID: {nested_insert.data[0]['product_category_id']})')
+                        logging.info(f'inserted into prod categories: {nested_category_name} (ID: {nested_insert.data[0]['product_category_id']})')
                     else:
-                        print(f'prod category already exists: {nested_category_name}')
+                        logging.info(f'prod category already exists: {nested_category_name}')
 
 
 
@@ -165,9 +177,9 @@ def insert_product_types(manufacturer_data):
                         'product_type_name': product,
                         'product_category_id': category_id
                     }).execute()
-                    print(f'inserted product_type: {product} under category: {category_name}')
+                    logging.info(f'inserted product_type: {product} under category: {category_name}')
                 else:
-                    print(f'product_type already exists: {product}')
+                    logging.info(f'product_type already exists: {product}')
                     
             elif isinstance(product, dict):
                 # nested structure like {"Neckwear": ["Ties"]}
@@ -184,9 +196,9 @@ def insert_product_types(manufacturer_data):
                                 'product_type_name': nested_type,
                                 'product_category_id': nested_category_id
                             }).execute()
-                            print(f'inserted product_type: {nested_type} under category: {nested_category_name}')
+                            logging.info(f'inserted product_type: {nested_type} under category: {nested_category_name}')
                         else:
-                            print(f'product_type already exists: {nested_type}')
+                            logging.info(f'product_type already exists: {nested_type}')
             
 
 
@@ -209,9 +221,9 @@ def insert_manufacturer_services(manufacturer_id, manufacturer_data):
                 'manufacturer_id': manufacturer_id,
                 'service_id': service_id
             }).execute()
-            print(f'linked manufacturer {manufacturer_id} to service: {service_name}')
+            logging.info(f'linked manufacturer {manufacturer_id} to service: {service_name}')
         else:
-            print(f'manufacturer {manufacturer_id} already linked to service: {service_name}')
+            logging.info(f'manufacturer {manufacturer_id} already linked to service: {service_name}')
 
 
 def insert_manufacturer_categories(manufacturer_id, manufacturer_data):
@@ -230,9 +242,9 @@ def insert_manufacturer_categories(manufacturer_id, manufacturer_data):
                 'manufacturer_id': manufacturer_id,
                 'category_id': category_id
             }).execute()
-            print(f'linked manufacturer {manufacturer_id} to category: {category_name}')
+            logging.info(f'linked manufacturer {manufacturer_id} to category: {category_name}')
         else:
-            print(f'manufacturer {manufacturer_id} already linked to category: {category_name}')
+            logging.info(f'manufacturer {manufacturer_id} already linked to category: {category_name}')
 
 
 def insert_manufacturer_prices(manufacturer_id, manufacturer_data):
@@ -251,9 +263,9 @@ def insert_manufacturer_prices(manufacturer_id, manufacturer_data):
                 'manufacturer_id': manufacturer_id,
                 'price_id': price_id
             }).execute()
-            print(f'linked manufacturer {manufacturer_id} to price: {price_level}')
+            logging.info(f'linked manufacturer {manufacturer_id} to price: {price_level}')
         else:
-            print(f'manufacturer {manufacturer_id} already linked to price: {price_level}') 
+            logging.info(f'manufacturer {manufacturer_id} already linked to price: {price_level}') 
 
 
 def insert_manufacturer_minimums(manufacturer_id, manufacturer_data):
@@ -272,9 +284,9 @@ def insert_manufacturer_minimums(manufacturer_id, manufacturer_data):
                 'manufacturer_id': manufacturer_id,
                 'minimum_id': minimum_id
             }).execute()
-            print(f'linked manufacturer {manufacturer_id} to minimum: {minimum_range}')
+            logging.info(f'linked manufacturer {manufacturer_id} to minimum: {minimum_range}')
         else:
-            print(f'manufacturer {manufacturer_id} already linked to minimum: {minimum_range}')
+            logging.info(f'manufacturer {manufacturer_id} already linked to minimum: {minimum_range}')
 
 
 
@@ -296,9 +308,9 @@ def insert_manufacturer_products(manufacturer_id, manufacturer_data):
                         'manufacturer_id': manufacturer_id,
                         'product_type_id': product_type_id
                     }).execute()
-                    print(f'linked manufacturer {manufacturer_id} to product: {product}')
+                    logging.info(f'linked manufacturer {manufacturer_id} to product: {product}')
                 else:
-                    print(f'manufacturer {manufacturer_id} already linked to product: {product}')
+                    logging.info(f'manufacturer {manufacturer_id} already linked to product: {product}')
                     
             elif isinstance(product, dict):
                 # nested products like {"Neckwear": ["Ties"]}
@@ -315,9 +327,9 @@ def insert_manufacturer_products(manufacturer_id, manufacturer_data):
                                 'manufacturer_id': manufacturer_id,
                                 'product_type_id': nested_product_type_id
                             }).execute()
-                            print(f'linked manufacturer {manufacturer_id} to product: {nested_type}')
+                            logging.info(f'linked manufacturer {manufacturer_id} to product: {nested_type}')
                         else:
-                            print(f'manufacturer {manufacturer_id} already linked to product: {nested_type}')
+                            logging.info(f'manufacturer {manufacturer_id} already linked to product: {nested_type}')
 
 
 ''' Helper function below '''
@@ -338,11 +350,13 @@ def process_manufacturer(manufacturer_data, index):
         insert_manufacturer_minimums(manufacturer_id, manufacturer_data)
         insert_manufacturer_products(manufacturer_id, manufacturer_data)
         
+        logging.info(f"Successfully processed: {manufacturer_data['Name']}")
         print(f"Successfully processed: {manufacturer_data['Name']}")
         return True
         
     except Exception as e:
-        print(f"Error processing {manufacturer_data.get('Name', 'Unknown')}: {str(e)}")
+        logging.info(f"Error processing {manufacturer_data.get('Name', 'Unknown')}: {str(e)}")
+        print(f"Error processed: {manufacturer_data['Name']}: {str(e)}")
         return False
 
 
@@ -350,12 +364,12 @@ def main():
     # load json data
     manufacturers = load_manufacturers_json('all_manufacturers.json')
 
-    NUM_TO_PROCESS = 10
+    #NUM_TO_PROCESS = 10
 
     success_count = 0
     fail_count = 0
 
-    for i, manufacturer in enumerate(manufacturers[:NUM_TO_PROCESS], 1):
+    for i, manufacturer in enumerate(manufacturers, 1):
         if process_manufacturer(manufacturer, i):
             success_count += 1
         else:
@@ -364,6 +378,10 @@ def main():
     print(f"SUMMARY:")
     print(f"Successful: {success_count}")
     print(f"Failed: {fail_count}")
+
+    logging.info(f"SUMMARY:")
+    logging.info(f"Successful: {success_count}")
+    logging.info(f"Failed: {fail_count}")
 
 
 

@@ -17,17 +17,16 @@ def scrape_data():
 
         page.wait_for_load_state("networkidle")
 
-        # Get all <li> inside the data-post-directory-posts container
         items = page.locator('[data-post-directory-posts] li')
 
         count = items.count()
         print(f"Found {count} list items")
 
-        for i in range(10):  # Change to count for full run
-            # Re-query items to avoid stale locator
+        for i in range(count):  # change to count for full run
+            # requery items to avoid stale locator
             items = page.locator('[data-post-directory-posts] li')
             
-            # Enter factory information screen
+            # enter factory information screen
             button = items.nth(i).locator('button[data-post-preview-toggle]')
             button.click()
             page.locator("div[data-post-content]").wait_for(state="visible", timeout=5000)
@@ -43,22 +42,22 @@ def scrape_data():
             second_col = company_information.nth(1)
             third_col = company_information.nth(2)
 
-            # Parse company info section (unchanged)
+            # parse company info section 
             company_info = parse_first_column(first_col)
             contact_info = parse_second_column(second_col)
             locations = parse_third_column(third_col)
             
-            # Parse description from rich-text section
+            # parse description from rich-text section
             description = parse_description(factory_page)
             
-            # Parse sections by header name
+            # parse sections by header name
             services_section = get_section_by_header(factory_page, "Services")
             minimums_section = get_section_by_header(factory_page, "Production Minimums")
             products_section = get_section_by_header(factory_page, "Products")
             categories_section = get_section_by_header(factory_page, "Categories")
             price_section = get_section_by_header(factory_page, "Price")
             
-            # Parse each section (or return defaults if section doesn't exist)
+            # parse each section or return defaults if section doesn't exist
             services = parse_services(services_section) if services_section else []
             product_minimums = parse_product_minimums(minimums_section) if minimums_section else []
             products = parse_products(products_section) if products_section else {}
@@ -92,11 +91,11 @@ def scrape_data():
 def get_section_by_header(factory_page, header_text):
     """Find a section by its header text and return the content div"""
     try:
-        # Get all sections with border-t class
+        # get all sections with border-t class
         sections = factory_page.locator("div.border-t.border-grey-200").all()
         
         for section in sections:
-            # Find the header span
+            # find the header span
             header_spans = section.locator("span.font-bold").all()
             for header_span in header_spans:
                 section_title = header_span.text_content().strip()
