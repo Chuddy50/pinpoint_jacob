@@ -223,8 +223,7 @@ async def create_review(review : dict):
     try:
         response = supabase.table("reviews").insert({
             "manufacturer_id": review['manufacturer_id'],
-            #TODO: Change line below after demo day
-            "user_id": '666e8e2c-09ae-45d9-968a-9a08c262629d', #uuid of user existing already in db, wont be hardcoded really
+            "user_id": review['user_id'],
             "rating": review['rating'],
             "review":  review['review'],
             #supabase automatically will make the created_at col bc of the

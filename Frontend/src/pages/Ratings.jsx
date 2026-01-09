@@ -1,8 +1,11 @@
 import NavBar from "../components/NavBar";
+import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from "react";
 
 
 function Ratings() {
+    const { user } = useAuth()
+
     const [rating, setRating] = useState(0);
     const [review, setReview] = useState("");
 
@@ -53,6 +56,12 @@ function Ratings() {
         console.log("Review:", review);
         setMessage({ text: "", type: "" });
 
+        // check if user is logged in
+        if (!user) {
+            setMessage({text:"Please log in to leave a review", type:"error"})
+            return
+        }
+
         if(!selectedManufacturerId || rating === 0 || !review.trim()){
             setMessage({text:"Please fill out all fields", type:"error"})
             return
@@ -68,6 +77,7 @@ function Ratings() {
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
                     manufacturer_id: Number(selectedManufacturerId),
+                    user_id: user.user_id,
                     rating: rating,
                     review: review
                 })
@@ -111,6 +121,12 @@ function Ratings() {
                             : "bg-red-50 border-red-300 text-red-800"
                     }`}>
                         {message.text}
+                    </div>
+                )}
+
+                {!user && (
+                    <div className="p-4 mb-4 bg-yellow-50 border border-yellow-300 rounded">
+                        <p className="text-yellow-800">Please log in to leave a review</p>
                     </div>
                 )}
 
