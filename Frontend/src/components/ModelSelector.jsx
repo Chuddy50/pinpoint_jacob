@@ -1,11 +1,11 @@
 import React from 'react';
 
 const models = [
-    {id: 'short tshirt', name: 'Short Sleeved T-Shirt'},
-    {id: 'long tshirt', name: 'Long Sleeeved T-Shirt'},
+    {id: 'short_tshirt', name: 'Short Sleeved T-Shirt'},
+    {id: 'long_tshirt', name: 'Long Sleeeved T-Shirt'},
     {id: 'pants', name: 'Pants'},
     {id: 'hoodie', name: 'Hoodie'},
-    {id: 'hat', name: 'Bucket Hat'}
+    {id: 'bucket_hat', name: 'Bucket Hat'}
 ];
 
 const ModelSelector = ({ onSelect }) => {

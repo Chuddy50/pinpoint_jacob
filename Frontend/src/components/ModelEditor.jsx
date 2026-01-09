@@ -5,6 +5,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const ModelEditor = ({ modelType, onBack }) => {
+
+  console.log("ModelEditor render w/ modelType: ", modelType)
+
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
@@ -14,7 +17,12 @@ const ModelEditor = ({ modelType, onBack }) => {
 
   // Initialize Three.js scene
   useEffect(() => {
+
+    console.log("use effect firing")
+
     if (!containerRef.current) return;
+
+    const container = containerRef.current;
 
     // Scene
     const scene = new THREE.Scene();
@@ -72,7 +80,9 @@ const ModelEditor = ({ modelType, onBack }) => {
     return () => {
       window.removeEventListener('resize', handleResize);
       renderer.dispose();
-      containerRef.current?.removeChild(renderer.domElement);
+      if (container && renderer.domElement){
+        container.removeChild(renderer.domElement);
+      }
     };
   }, []);
 
@@ -84,6 +94,8 @@ const ModelEditor = ({ modelType, onBack }) => {
     if (modelRef.current) {
       sceneRef.current.remove(modelRef.current);
     }
+
+    console.log("trying to load the model now: ", modelType)
 
     // Load new model
     const loader = new GLTFLoader();
