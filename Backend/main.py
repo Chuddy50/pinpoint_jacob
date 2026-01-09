@@ -249,8 +249,11 @@ async def list_manufacturers():
     Fetch manufacturers with an average rating (if reviews exist).
     """
     try:
+
+        #print("starting to grab manufacturers")
+
         manufacturers_response = supabase.table("manufacturers").select(
-            "manufacturer_id,name,location,address,phone,email,contactee,description,price_range"
+            "manufacturer_id,name,location,address,phone,email,contactee,description"
         ).execute()
         manufacturers = manufacturers_response.data or []
 
@@ -273,5 +276,7 @@ async def list_manufacturers():
                 manufacturer["rating"] = None
 
         return manufacturers
+
     except Exception as e:
+        print(f"Error grabbing manufacturers - {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch manufacturers: {e}")
