@@ -78,11 +78,26 @@ const ModelEditor = ({ modelType, onBack }) => {
 
     // Cleanup
     return () => {
-      window.removeEventListener('resize', handleResize);
-      renderer.dispose();
-      if (container && renderer.domElement){
-        container.removeChild(renderer.domElement);
-      }
+        window.removeEventListener('resize', handleResize);
+        
+        // Dispose scene contents
+        scene.traverse((object) => {
+          if (object.geometry) object.geometry.dispose();
+          if (object.material) {
+            if (Array.isArray(object.material)) {
+              object.material.forEach(mat => mat.dispose());
+            } else {
+              object.material.dispose();
+            }
+          }
+        });
+        
+        controls.dispose();
+        renderer.dispose();
+        
+        if (container && renderer.domElement) {
+          container.removeChild(renderer.domElement);
+        }
     };
   }, []);
 
