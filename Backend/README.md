@@ -4,6 +4,7 @@
 
 cd backend
 pip install -r requirements.txt
+source venv/bin/activate
 uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 // Install dependencies in virtual environment
