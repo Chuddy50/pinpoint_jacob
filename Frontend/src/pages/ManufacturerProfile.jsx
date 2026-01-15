@@ -98,9 +98,18 @@ export default function ManufacturerProfile() {
         {!loading && !error && manufacturer && (
           <div className="space-y-6">
             <div className="flex flex-col gap-2">
-              <h1 className="text-3xl font-semibold text-gray-900">
-                {manufacturer.name || "Untitled manufacturer"}
-              </h1>
+              <div className="flex items-center justify-between gap-4">
+                <h1 className="text-3xl font-semibold text-gray-900">
+                  {manufacturer.name || "Untitled manufacturer"}
+                </h1>
+
+                <button
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition"
+                  onClick={() => navigate(`/ratings/${manufacturer.manufacturer_id}`)}
+                >
+                  Add Rating
+                </button>
+              </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <span className="flex items-center gap-1 text-[#FFC043] text-lg">
                   {"★".repeat(
