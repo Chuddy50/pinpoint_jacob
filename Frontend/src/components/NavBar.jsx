@@ -20,7 +20,7 @@ export default function NavBar() {
     "flex items-center gap-2 rounded-xl px-4 py-3 md:text-2xl text-neutral-400 font-inter hover:bg-[#E3E9FF] transition";
 
   return (
-    <nav className="h-full rounded-3xl bg-white border border-gray-200 shadow-sm p-6 flex flex-col gap-4">
+    <nav className="min-h-screen rounded-3xl bg-white border border-gray-200 shadow-sm p-6 flex flex-col gap-4">
       <img src={logo} alt="logo" className="w-32 mb-6 self-center" />
       <div className="flex flex-col gap-2">
         {links.map(({ to, label, icon }) => (
