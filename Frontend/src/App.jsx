@@ -22,7 +22,7 @@ export default function App() {
               <Route path="/prototype" element={<Prototype />} />
               <Route path="/consultant" element={<Consultant />} />
               <Route path="/messages" element={<Messages />} />
-              <Route path="/ratings" element={<Ratings />} />
+              <Route path="/ratings/:id" element={<Ratings />} />
               <Route path="/manufacturers/:id" element={<ManufacturerProfile />} />
             </Routes>
           </main>
