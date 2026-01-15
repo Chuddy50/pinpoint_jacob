@@ -1,11 +1,15 @@
 import { NavLink } from "react-router-dom";
 import logo from "../assets/pinpoint.png";
+import homeIcon from "../assets/home.svg";
+import profileIcon from "../assets/profileIcon.svg";
+import protoIcon from "../assets/protoIcon.svg";
+
 
 const links = [
-  { to: "/", label: "Home" },
-  { to: "/profile", label: "Profile" },
+  { to: "/", label: "Home", icon: homeIcon },
+  { to: "/profile", label: "Profile", icon: protoIcon},
   // { to: "/filter", label: "Filter" },
-  { to: "/prototype", label: "Prototype" },
+  { to: "/prototype", label: "Prototype", icon: profileIcon },
   { to: "/consultant", label: "Consulting" },
   // { to: "/messages", label: "Messages" },
   // { to: "/ratings", label: "Ratings"},
@@ -19,16 +23,15 @@ export default function NavBar() {
     <nav className="h-full rounded-3xl bg-white border border-gray-200 shadow-sm p-6 flex flex-col gap-4">
       <img src={logo} alt="logo" className="w-32 mb-6 self-center" />
       <div className="flex flex-col gap-2">
-        {links.map(({ to, label }) => (
+        {links.map(({ to, label, icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              `${baseLinkClass} ${
-                isActive ? "bg-[#E4ECFF]" : ""
-              }`
+              `${baseLinkClass} ${isActive ? "bg-[#E4ECFF]" : ""}`
             }
           >
+            <img src={icon} className=" fill-gray-300 size-2 md:size-7" />
             {label}
           </NavLink>
         ))}
