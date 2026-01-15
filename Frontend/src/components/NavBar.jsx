@@ -13,7 +13,7 @@ const links = [
 
 export default function NavBar() {
   const baseLinkClass =
-    "flex items-center gap-2 rounded-xl px-4 py-3 md:text-2xl text-neutral-400 hover:bg-[#E3E9FF] transition";
+    "flex items-center gap-2 rounded-xl px-4 py-3 md:text-2xl text-neutral-400 font-inter hover:bg-[#E3E9FF] transition";
 
   return (
     <nav className="h-full rounded-3xl bg-white border border-gray-200 shadow-sm p-6 flex flex-col gap-4">
@@ -25,7 +25,7 @@ export default function NavBar() {
             to={to}
             className={({ isActive }) =>
               `${baseLinkClass} ${
-                isActive ? "bg-[#E4ECFF] text-[#1D4ED8]" : ""
+                isActive ? "bg-[#E4ECFF]" : ""
               }`
             }
           >
