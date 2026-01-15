@@ -5,9 +5,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const ModelEditor = ({ modelType, onBack }) => {
-  // refs to persist Three.js objects across renders
+  // refs to persist threeJS objects across renders
 
-  // DOM element that holds the canvas
+  // div element that holds the canvas
   const containerRef = useRef(null);  
   // three.js scene
   const sceneRef = useRef(null); 
@@ -20,9 +20,9 @@ const ModelEditor = ({ modelType, onBack }) => {
   // animation loop ID for cleanup
   const animationIdRef = useRef(null);
 
-  // initialize Three.js scene, camera, renderer
+  // initialize threeJS scene, camera, renderer. 
   const initThree = (container) => {
-    // create scene with dark background
+    // create scene with light gray background
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0);
     sceneRef.current = scene;
@@ -36,32 +36,35 @@ const ModelEditor = ({ modelType, onBack }) => {
     );
 
     // position camera away from origin
+    // TODO: maybe wanna mess with this to determine the best angle ???
     camera.position.set(0, 1.2, 3);
     cameraRef.current = camera;
 
-    // create webgl renderer
+    // create renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(container.clientWidth, container.clientHeight);
-     // add canvas to dom
+     // add canvas to div element where it will be displayed
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // setup orbit controls for rotating / zooming with mouse
+    // setup orbit controls for rotating and zooming with mouse / trackpad
     const controls = new OrbitControls(camera, renderer.domElement);
-    // smooth camera movement
+    // enableDamping = smooth camera movement, dampingFactor = momentum
     controls.enableDamping = true;  
     controls.dampingFactor = 0.07;
     controlsRef.current = controls;
   };
 
-  // add lighting to the scene
+  // add lighting to the scene ( 2 lights, one ambient, and one directional)
   const setupLights = () => {
-    // ambient light for overall illumination
+    // ambient light = no shadows and lights it all equally.
+    // TODO: maybe we could use different lighting? for alpha phase this should be fine
+    //         but as we add more 3d models and update this functionality this could be something to change
     const ambient = new THREE.AmbientLight(0xffffff, 0.7);
     sceneRef.current.add(ambient);
     
-    // directional light for shadows and definition
+    // directional light - this creates the shadows
     const directional = new THREE.DirectionalLight(0xffffff, 0.8);
     directional.position.set(5, 10, 7);
     sceneRef.current.add(directional);
@@ -70,16 +73,20 @@ const ModelEditor = ({ modelType, onBack }) => {
   // load the 3d model from file
   const loadModel = (modelPath) => {
     //console.log('Loading:', modelPath);
-    const loader = new GLTFLoader();
+    const loader = new GLTFLoader();  //gltf loader loads .glb and .gltf files
     loader.load(
       modelPath, 
       (gltf) => {
+
+        // get the scene from the loaded 3d model
         const model = gltf.scene;
         
         // autoscale model to fit in view
-        const bbox = new THREE.Box3().setFromObject(model);
-        const size = bbox.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
+        // - create bounding box around whole 3d model, use the size of that to determine the size of the 3d model
+        // - determine if that is the scale we want and if not scale it to the desired size
+        const boundingbox = new THREE.Box3().setFromObject(model);  
+        const size = boundingbox.getSize(new THREE.Vector3());  
+        const maxDim = Math.max(size.x, size.y, size.z);     
         const scale = maxDim > 0 ? (1.8 / maxDim) : 1.0;
         model.scale.set(scale, scale, scale);
         
