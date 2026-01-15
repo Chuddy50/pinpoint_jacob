@@ -2,9 +2,11 @@
 import { useState, useRef } from "react";
 import NavBar from "../components/NavBar";
 import LoginForm from "../components/LoginForm";
+import { useAuth } from "../contexts/AuthContext"
+
 
 export default function Profile() {
-  const [userData, setUserData] = useState(null);
+  const { user, login, logout } = useAuth()
 
   const [selectedFile, setSelectedFile] = useState(null)
   const fileInputRef = useRef(null)
@@ -21,6 +23,10 @@ export default function Profile() {
     }
   }
 
+  function handleLoginSuccess(data){
+    login(data)
+  }
+
   async function logoutUser(e) {
     e.preventDefault()
 
@@ -34,7 +40,7 @@ export default function Profile() {
       const data = await result.json()
 
       if(data.success) {
-        setUserData(null)
+        logout()
       } else {
         console.error("logout error: ", data.error)
       }
@@ -74,7 +80,7 @@ export default function Profile() {
       </aside>
       
       <div className="flex-1 p-8">
-        {userData ? (
+        {user ? (
           // Show user profile after successful login
           <div className="">
             {/* Profile Header Section */}
@@ -82,7 +88,7 @@ export default function Profile() {
               <div className="flex items-center gap-6">
                 <div className="flex flex-col items-center gap-2">
                   <img 
-                    src={userData.pfp_url} 
+                    src={user.pfp_url} 
                     alt="Profile"
                     className="w-24 h-24 rounded-full object-cover border border-blue-500"
                   />
@@ -96,8 +102,8 @@ export default function Profile() {
                 </div>
                 
                 <div>
-                  <h1 className="text-3xl font-bold mb-1">Welcome, {userData.username || 'User'}</h1>
-                  <p className="text-sm text-gray-500">{userData.email}</p>
+                  <h1 className="text-3xl font-bold mb-1">Welcome, {user.username || 'User'}</h1>
+                  <p className="text-sm text-gray-500">{user.email}</p>
                 </div>
               </div>
 
@@ -118,7 +124,7 @@ export default function Profile() {
                 <label className="block text-sm font-medium text-gray-600 mb-1">
                   User ID
                 </label>
-                <p className="text-sm text-gray-500 font-mono">{userData.user_id}</p>
+                <p className="text-sm text-gray-500 font-mono">{user.user_id}</p>
               </div>
             </div>
 
@@ -133,7 +139,7 @@ export default function Profile() {
           </div>
         ) : (
           // Show login form if no user data
-          <LoginForm onSubmit={setUserData} />
+          <LoginForm onSubmit={handleLoginSuccess} />
         )}
       </div>
     </div>
