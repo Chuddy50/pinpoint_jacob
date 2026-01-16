@@ -2,16 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import ManufacturerCard from "./ManufacturerCard";
 
 const sortModes = ["alphabetical", "rating-desc", "rating-asc"];
+const PAGE_SIZE = 18;
 
 export default function CompanyList() {
   const [sortMode, setSortMode] = useState(sortModes[0]);
   const [manufacturers, setManufacturers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // this function changes the sort mode from the select dropdown
   function handleSortChange(event) {
     setSortMode(event.target.value);
+    setCurrentPage(1);
   }
 
   // this function fetches manufacturers from the backend
@@ -60,6 +63,46 @@ export default function CompanyList() {
     return list.sort((a, b) => a.name.localeCompare(b.name));
   }, [manufacturers, sortMode]);
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedManufacturers.length / PAGE_SIZE)
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const pagedManufacturers = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return sortedManufacturers.slice(start, start + PAGE_SIZE);
+  }, [sortedManufacturers, currentPage]);
+
+  const paginationItems = useMemo(() => {
+    const items = [];
+    if (totalPages <= 6) {
+      for (let page = 1; page <= totalPages; page += 1) {
+        items.push(page);
+      }
+      return items;
+    }
+    items.push(1);
+    if (currentPage > 3) {
+      items.push("ellipsis");
+    }
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    for (let page = start; page <= end; page += 1) {
+      items.push(page);
+    }
+    if (currentPage < totalPages - 2) {
+      items.push("ellipsis");
+    }
+    items.push(totalPages);
+    return items;
+  }, [currentPage, totalPages]);
+
   const sortLabel =
     sortMode === "alphabetical"
       ? "Alphabetical (A→Z)"
@@ -90,6 +133,9 @@ export default function CompanyList() {
             </select>
           </label>
         </div>
+        <p className="mt-3 text-sm text-gray-500">
+          Page {currentPage} of {totalPages}
+        </p>
       </header>
 
       {loading && (
@@ -98,7 +144,7 @@ export default function CompanyList() {
       {error && <div className="text-sm text-red-500">{error}</div>}
 
       <div className="manufacturer-grid">
-        {sortedManufacturers.map((m) => (
+        {pagedManufacturers.map((m) => (
           <ManufacturerCard
             key={m.manufacturer_id || m.name}
             {...m}
@@ -106,6 +152,31 @@ export default function CompanyList() {
           />
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <nav className="flex items-center justify-center gap-2 pt-6">
+          {paginationItems.map((item, index) =>
+            item === "ellipsis" ? (
+              <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
+                …
+              </span>
+            ) : (
+              <button
+                key={`page-${item}`}
+                type="button"
+                onClick={() => setCurrentPage(item)}
+                className={`min-w-[36px] rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  item === currentPage
+                    ? "bg-gray-900 text-white"
+                    : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-100"
+                }`}
+              >
+                {item}
+              </button>
+            )
+          )}
+        </nav>
+      )}
     </section>
   );
 }
