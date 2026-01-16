@@ -111,13 +111,13 @@ export default function CompanyList() {
       : "Rating (Low→High)";
 
   return (
-    <section className="flex-1 px-10 py-12 space-y-8">
-      <header className="mb-10">
+    <section className="flex-1 px-2 py-4 space-y-6 md:px-10 md:py-12 md:space-y-8">
+      <header className="mb-6 md:mb-10">
         <p className="text-xs uppercase tracking-[0.35em] text-gray-400">
           PinPoint
         </p>
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-4xl font-light text-gray-900">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <h1 className="text-3xl font-light text-gray-900 md:text-4xl">
             Browse manufacturers
           </h1>
           <label className="flex items-center gap-2 text-sm text-[#2A2A2A]">

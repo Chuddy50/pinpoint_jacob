@@ -65,14 +65,14 @@ export default function Consultant() {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-white p-6 gap-6">
+    <div className="flex min-h-screen w-full flex-col bg-white p-4 gap-4 md:flex-row md:p-6 md:gap-6">
       {/* Nav bar stuff  */}
-      <aside className="w-72">
+      <aside className="w-full md:w-72">
         <NavBar />
       </aside>
 
       {/* Main chat stuff   */}
-      <section className="flex-1 p-6 flex flex-col gap-4">
+      <section className="flex-1 p-4 flex flex-col gap-4 md:p-6">
 
         {/* Page Header */}
         <header>

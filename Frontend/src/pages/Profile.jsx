@@ -74,12 +74,12 @@ export default function Profile() {
   }*/
 
   return (
-    <div className="flex w-screen min-h-screen bg-[#F7F7F7] p-6 gap-6">
-      <aside className="w-72">
+    <div className="flex w-screen min-h-screen bg-[#F7F7F7] p-6 gap-6 max-md:flex-col max-md:p-4 max-md:gap-4">
+      <aside className="w-72 max-md:w-full">
         <NavBar />
       </aside>
       
-      <div className="flex-1 p-8">
+      <div className="flex-1 p-8 max-md:p-4">
         {user ? (
           // Show user profile after successful login
           <div className="">
