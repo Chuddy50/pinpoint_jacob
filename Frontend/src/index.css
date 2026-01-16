@@ -56,6 +56,20 @@ button {
   gap: 2.5rem;
   width: 100%;
 }
+
+@media (max-width: 1024px) {
+  .manufacturer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .manufacturer-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+}
 button:hover {
   border-color: #646cff;
     background-color: #e6e6e6;
