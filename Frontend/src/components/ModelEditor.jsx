@@ -215,11 +215,19 @@ const ModelEditor = ({ modelType, onBack }) => {
   }, [modelType]);
 
 
+  const handleSave = () => {
+    
+  }
+
+
   // return the layout for the threeJS div + controls for customization
   return (
     <div>
-      {/* back button */}
-      <button onClick={onBack}>Back</button>
+      {/* back + save button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px' }}>
+        <button onClick={onBack}>Back</button>
+        <button onClick={handleSave}>Save Design</button>
+      </div>
 
       {/* container div where three.js canvas will be inserted */}
       <div ref={containerRef} style={{ width: '100%', height: '80vh' }} />
