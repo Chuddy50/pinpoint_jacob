@@ -3,8 +3,16 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'; // used for saving 3d models
+import { useAuth } from "../contexts/AuthContext"
 
 const ModelEditor = ({ modelType, onBack }) => {
+
+  const { user } = useAuth();
+
+  // track the currently used material so when we save, we can store what they have selected for that model
+  const [currentMaterial, setCurrentMaterial] = React.useState('cotton');
+
   // refs to persist threeJS objects across renders
 
   // div element that holds the canvas
@@ -137,6 +145,10 @@ const ModelEditor = ({ modelType, onBack }) => {
 
   // function changes the roughness and metalness properties to simulate different fabrics
   const changeMaterial = (materialType) => {
+
+    //update currently stored material
+    setCurrentMaterial(materialType)
+
     if (!sceneRef.current) return;
 
     // to simulate fabric types, change:
@@ -215,9 +227,44 @@ const ModelEditor = ({ modelType, onBack }) => {
   }, [modelType]);
 
 
-  const handleSave = () => {
-    
-  }
+  const handleSave = async () => {
+    const designName = prompt("Enter a name for this design:")
+    if(!designName) return;
+
+    //export the current scene as a .glb file
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      sceneRef.current,
+      async(gltf) => {
+        //convert to blob
+        const blob = new Blob([gltf], { type: 'model/gltf-binary' });
+
+        const formData = new FormData();
+        formData.append('file', blob, `${designName}.glb`);
+        formData.append('name', designName);
+        formData.append('material', currentMaterial);
+
+
+        try {
+          const response = await fetch(`http://localhost:8000/designs/save/${user.user_id}`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (response.ok) {
+            alert('Design saved successfully')
+          } else {
+            alert('Failed to save design')
+          }
+
+        } catch (error) {
+          alert('Error saving design: ' + error)
+          console.log('Error saving design: ', error)
+        }
+      },
+      { binary: true }
+    );
+  };
 
 
   // return the layout for the threeJS div + controls for customization
@@ -263,7 +310,7 @@ const ModelEditor = ({ modelType, onBack }) => {
         {/* material type */}
         <div>
           <label>Material Type:</label>
-          <select onChange={(e) => changeMaterial(e.target.value)} defaultValue='cotton'>
+          <select onChange={(e) => changeMaterial(e.target.value)} value={currentMaterial}>
             <option value='cotton'>Cotton</option>
             <option value='denim'>Denim</option>
             <option value='polyester'>Polyester</option>

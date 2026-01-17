@@ -5,6 +5,8 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 from groq import Groq
 import os
+from datetime import datetime, timezone
+from uuid import uuid4
 
 load_dotenv()
 supabaseURL = os.getenv("SUPABASE_URL")
@@ -332,3 +334,48 @@ async def get_manufacturer(manufacturer_id: str):
             "message": f"Error grabbing manufacturer in API layer. Error: {str(e)}"
         }
     
+
+@app.post("/designs/save/{user_id}")
+async def save_design(
+    user_id: str,
+    file: UploadFile = File(...),
+    name: str = File(...),
+    material: str = File(...)
+):
+    try:
+
+        # generate a random design id here, rather than auto incremening
+        # - so we can use it in the file_path
+        design_id = str(uuid4())
+
+        file_path = f"{user_id}/{design_id}.glb"
+        file_content = await file.read()
+
+        supabase.storage.from_("3d-models").upload(
+            file_path,
+            file_content,
+            {"content-type": "model/gltf-binary"}
+        )
+
+        public_url = supabase.storage.from_("3d-models").get_public_url(file_path)
+
+        response = supabase.table('saved_designs').insert({
+            'design_id': design_id,
+            'user_id': user_id,
+            'name': name,
+            'model_url': public_url,
+            'material_used': material,
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }).execute()
+
+        return {
+            'success': True, 
+            'design_id': design_id
+        }
+
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
