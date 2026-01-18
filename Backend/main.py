@@ -343,7 +343,6 @@ async def save_design(
     material: str = Form(...)
 ):
     try:
-
         # generate a random design id here, rather than auto incremening
         # - so we can use it in the file_path
         design_id = str(uuid4())
@@ -385,3 +384,12 @@ async def save_design(
             "success": False,
             "error": str(e)
         }
+    
+
+@app.get("/designs/saved_designs/{user_id}")
+async def get_user_saved_designs(user_id: str):
+    response = supabase.table('saved_designs').select('*').eq('user_id', user_id).execute()
+
+    return {
+        'designs': response.data
+    }
