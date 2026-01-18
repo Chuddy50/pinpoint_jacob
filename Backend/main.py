@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import UploadFile, File
 from supabase import create_client, Client
@@ -339,8 +339,8 @@ async def get_manufacturer(manufacturer_id: str):
 async def save_design(
     user_id: str,
     file: UploadFile = File(...),
-    name: str = File(...),
-    material: str = File(...)
+    name: str = Form(...),
+    material: str = Form(...)
 ):
     try:
 
@@ -359,7 +359,9 @@ async def save_design(
 
         public_url = supabase.storage.from_("3d-models").get_public_url(file_path)
 
-        response = supabase.table('saved_designs').insert({
+        #print(f"added to the supabase storage w/ url {public_url}. now trying to add everything to the db")
+
+        dbResponse = supabase.table('saved_designs').insert({
             'design_id': design_id,
             'user_id': user_id,
             'name': name,
@@ -368,6 +370,9 @@ async def save_design(
             'created_at': datetime.now(timezone.utc).isoformat()
         }).execute()
 
+
+        #print(f"DB response data: {dbResponse.data}")
+
         return {
             'success': True, 
             'design_id': design_id
@@ -375,6 +380,7 @@ async def save_design(
 
 
     except Exception as e:
+        print(f"Error in save_design: {str(e)}")
         return {
             "success": False,
             "error": str(e)
