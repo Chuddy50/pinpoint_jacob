@@ -7,11 +7,31 @@ const ModelSelector = ({ onSelect }) => {
     const { user } = useAuth()
     
     const models = [
-        {id: 'short_tshirt', name: 'Short Sleeved T-Shirt'},
-        {id: 'long_tshirt', name: 'Long Sleeeved T-Shirt'},
-        {id: 'pants', name: 'Pants'},
-        {id: 'hoodie', name: 'Hoodie'},
-        {id: 'bucket_hat', name: 'Bucket Hat'}
+        {
+          id: 'short_tshirt', 
+          name: 'Short Sleeved T-Shirt',
+          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/short_tshirt.glb'
+        },
+        {
+          id: 'long_tshirt', 
+          name: 'Long Sleeeved T-Shirt',
+          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/long_tshirt.glb'
+        },
+        {
+          id: 'pants', 
+          name: 'Pants',
+          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/pants.glb'
+        },
+        {
+          id: 'hoodie', 
+          name: 'Hoodie',
+          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/hoodie.glb'
+        },
+        {
+          id: 'bucket_hat', 
+          name: 'Bucket Hat',
+          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/bucket_hat.glb'
+        }
     ];
     
     
@@ -41,11 +61,10 @@ const ModelSelector = ({ onSelect }) => {
             <div>
               {savedDesigns.map((design) => (
                 <button
-                  key={design.id}
-                  onClick={() => onSelect(design.model_type, design.file_url)}
+                  key={design.design_id}
+                  onClick={() => onSelect(design.model_url, design.material_used)}
                 >
-                  <p>{design.design_name}</p>
-                  <p>{design.model_type}</p>
+                  <p>{design.name}</p>
                   <p>{new Date(design.created_at).toLocaleDateString()}</p>
                 </button>
               ))}
@@ -59,7 +78,7 @@ const ModelSelector = ({ onSelect }) => {
           {models.map((model) => (
             <button
               key={model.id}
-              onClick={() => onSelect(model.id)}
+              onClick={() => onSelect(model.url, 'cotton')}
             >
               <p>{model.name}</p>
             </button>

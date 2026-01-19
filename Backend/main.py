@@ -7,6 +7,7 @@ from groq import Groq
 import os
 from datetime import datetime, timezone
 from uuid import uuid4
+import json
 
 load_dotenv()
 supabaseURL = os.getenv("SUPABASE_URL")
@@ -356,7 +357,7 @@ async def save_design(
             {"content-type": "model/gltf-binary"}
         )
 
-        public_url = supabase.storage.from_("3d-models").get_public_url(file_path)
+        public_url = supabase.storage.from_("3d-models").get_public_url(file_path).public_url
 
         #print(f"added to the supabase storage w/ url {public_url}. now trying to add everything to the db")
 
@@ -389,6 +390,8 @@ async def save_design(
 @app.get("/designs/saved_designs/{user_id}")
 async def get_user_saved_designs(user_id: str):
     response = supabase.table('saved_designs').select('*').eq('user_id', user_id).execute()
+
+    print(json.dumps(response.data, indent=2))
 
     return {
         'designs': response.data

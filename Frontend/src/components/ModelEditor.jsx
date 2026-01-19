@@ -6,15 +6,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'; // used for saving 3d models
 import { useAuth } from "../contexts/AuthContext"
 
-const ModelEditor = ({ modelType, onBack }) => {
+const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
   const { user } = useAuth();
 
   // track the currently used material so when we save, we can store what they have selected for that model
-  const [currentMaterial, setCurrentMaterial] = React.useState('cotton');
+  const [currentMaterial, setCurrentMaterial] = React.useState(initialMaterial);
 
   // refs to persist threeJS objects across renders
-
   // div element that holds the canvas
   const containerRef = useRef(null);  
   // three.js scene
@@ -79,11 +78,11 @@ const ModelEditor = ({ modelType, onBack }) => {
   };
 
   // load the 3d model from file
-  const loadModel = (modelPath) => {
+  const loadModel = (url) => {
     //console.log('Loading:', modelPath);
     const loader = new GLTFLoader();  //gltf loader loads .glb and .gltf files
     loader.load(
-      modelPath, 
+      url, 
       (gltf) => {
 
         // get the scene from the loaded 3d model
@@ -109,6 +108,11 @@ const ModelEditor = ({ modelType, onBack }) => {
         
         sceneRef.current.add(model);
         //console.log('Model added to scene');
+
+        if(initialMaterial !== 'cotton') {
+          changeMaterial(initialMaterial)
+        }
+
       },
       undefined,
       (error) => {
@@ -208,7 +212,7 @@ const ModelEditor = ({ modelType, onBack }) => {
     // initialize three.js environment
     initThree(container);
     setupLights();
-    loadModel(`/models/${modelType}.glb`);
+    loadModel(modelUrl);
     animate();
 
     // cleanup when component unmounts or modelType changes
@@ -224,7 +228,7 @@ const ModelEditor = ({ modelType, onBack }) => {
         container.removeChild(rendererRef.current.domElement);
       }
     };
-  }, [modelType]);
+  }, [modelUrl]);
 
 
   const handleSave = async () => {
