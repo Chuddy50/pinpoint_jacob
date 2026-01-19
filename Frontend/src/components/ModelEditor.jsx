@@ -79,11 +79,15 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
   // load the 3d model from file
   const loadModel = (url) => {
-    //console.log('Loading:', modelPath);
+    console.log('Loading url:', url);
+    console.log('URL type: ', typeof url);
+
     const loader = new GLTFLoader();  //gltf loader loads .glb and .gltf files
     loader.load(
       url, 
       (gltf) => {
+
+        console.log("Model loaded successfully: ", url);
 
         // get the scene from the loaded 3d model
         const model = gltf.scene;
@@ -114,9 +118,12 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
         }
 
       },
-      undefined,
+      (progress) => {
+        console.log("Loading progress: ", (progress.loaded / progress.total * 100).toFixed(2) + '%');
+      },
       (error) => {
-        console.error('Error loading model:', error);
+        console.log('Error loading model:', url);
+        console.log('Error details: ', error);
       }
     );
   };

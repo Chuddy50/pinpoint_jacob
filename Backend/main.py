@@ -357,11 +357,9 @@ async def save_design(
             {"content-type": "model/gltf-binary"}
         )
 
-        public_url = supabase.storage.from_("3d-models").get_public_url(file_path).public_url
+        public_url = supabase.storage.from_("3d-models").get_public_url(file_path)
 
-        #print(f"added to the supabase storage w/ url {public_url}. now trying to add everything to the db")
-
-        dbResponse = supabase.table('saved_designs').insert({
+        supabase.table('saved_designs').insert({
             'design_id': design_id,
             'user_id': user_id,
             'name': name,
@@ -391,7 +389,12 @@ async def save_design(
 async def get_user_saved_designs(user_id: str):
     response = supabase.table('saved_designs').select('*').eq('user_id', user_id).execute()
 
-    print(json.dumps(response.data, indent=2))
+    '''
+    for design in response.data:
+        print(f"model_url type: {type(design['model_url'])}")
+        print(f"model_url value: {design['model_url']}")
+    '''
+
 
     return {
         'designs': response.data
