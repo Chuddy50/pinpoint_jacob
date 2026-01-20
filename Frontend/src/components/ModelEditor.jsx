@@ -14,20 +14,13 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   const [currentMaterial, setCurrentMaterial] = React.useState(initialMaterial);
 
   // refs to persist threeJS objects across renders
-  // div element that holds the canvas
   const containerRef = useRef(null);  
-  // three.js scene
   const sceneRef = useRef(null); 
-  // three.js camera
   const cameraRef = useRef(null);
-  // three.js renderer
   const rendererRef = useRef(null);
-  // OrbitControls for mouse interaction
   const controlsRef = useRef(null);
-  // animation loop ID for cleanup
   const animationIdRef = useRef(null);
-  // currently loaded model
-  const modelRef = useRef(null);
+  const modelRef = useRef(null); //ref to the clothing model itself, for export
 
   // initialize threeJS scene, camera, renderer. 
   const initThree = (container) => {
@@ -123,6 +116,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
         //save a reference of the model
         modelRef.current = model;
 
+        //apply saved material if loading a user saved design
         if(initialMaterial !== 'cotton') {
           changeMaterial(initialMaterial)
         }
@@ -248,6 +242,8 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   }, [modelUrl]);
 
 
+  // save the current 3d model design to supabase
+  // - exports only the 3d model, not lights, camera, etc.
   const handleSave = async () => {
     const designName = prompt("Enter a name for this design:")
     if(!designName) return;
@@ -264,7 +260,8 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       async (result) => {
         let blob;
     
-        // STEP 1 FIX: verify exporter output
+       //verify we got binary output (ArrayBuffer)
+       // - if export fails, result is JSON object which fails
         if (result instanceof ArrayBuffer) {
           blob = new Blob([result], { type: 'model/gltf-binary' });
         } else {
@@ -275,6 +272,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     
         console.log('GLB blob size:', blob.size);
     
+        //send file and metadata to backend
         const formData = new FormData();
         formData.append('file', blob, `${designName}.glb`);
         formData.append('name', designName);

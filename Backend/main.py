@@ -336,6 +336,9 @@ async def get_manufacturer(manufacturer_id: str):
         }
     
 
+'''
+    Save a users 3d clothing design to supabase storage
+'''
 @app.post("/designs/save/{user_id}")
 async def save_design(
     user_id: str,
@@ -348,17 +351,24 @@ async def save_design(
         # - so we can use it in the file_path
         design_id = str(uuid4())
 
+        # user specific folder path
         file_path = f"{user_id}/{design_id}.glb"
         file_content = await file.read()
 
+        # upload .glb file to supabase storage 3d-models bucket
         supabase.storage.from_("3d-models").upload(
             file_path,
             file_content,
             {"content-type": "model/gltf-binary"}
         )
 
+        # get the url for the filepath
         public_url = supabase.storage.from_("3d-models").get_public_url(file_path)
 
+        # cleaning up URL formatting issues
+        # - what gets returned has double slashes and a trailing query parameter,
+        #   which dont allow for the GLTFLoader in ModelEditor.jsx load_model function
+        #   to load the file at that path
         if isinstance(public_url, str):
             # remove double slashes and trailing query params
             public_url = public_url.replace('//storage', '/storage').rstrip('?')
@@ -366,6 +376,8 @@ async def save_design(
             # handle if it's an object
             public_url = str(public_url).replace('//storage', '/storage').rstrip('?')
 
+
+        # insert metadata to db
         supabase.table('saved_designs').insert({
             'design_id': design_id,
             'user_id': user_id,
@@ -392,17 +404,13 @@ async def save_design(
         }
     
 
+'''
+    Retrieve all saved designs for a specific user
+    Returns a list of designs with 'model_url' pointing to supabase storage
+'''
 @app.get("/designs/saved_designs/{user_id}")
 async def get_user_saved_designs(user_id: str):
     response = supabase.table('saved_designs').select('*').eq('user_id', user_id).execute()
-
-    '''
-    for design in response.data:
-        print(f"model_url type: {type(design['model_url'])}")
-        print(f"model_url value: {design['model_url']}")
-    '''
-
-
     return {
         'designs': response.data
     }

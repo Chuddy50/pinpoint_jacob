@@ -39,6 +39,7 @@ const ModelSelector = ({ onSelect }) => {
       const fetchUsersDesigns = async () => {
         if (user) {
           try {
+            // get all saved designs for this user from backend
             const response = await fetch(`http://localhost:8000/designs/saved_designs/${user.user_id}`);
             const data = await response.json();
             setSavedDesigns(data.designs);
@@ -54,7 +55,7 @@ const ModelSelector = ({ onSelect }) => {
       <div>
         <h2>Select a Model</h2>
     
-        {/* Saved Designs Section */}
+        {/* if user has saved designs, show at top */}
         {savedDesigns.length > 0 && (
           <div>
             <h3>Your Saved Designs</h3>
@@ -62,6 +63,7 @@ const ModelSelector = ({ onSelect }) => {
               {savedDesigns.map((design) => (
                 <button
                   key={design.design_id}
+                  //load saved design w/ its stored material
                   onClick={() => onSelect(design.model_url, design.material_used)}
                 >
                   <p>{design.name}</p>
@@ -72,7 +74,7 @@ const ModelSelector = ({ onSelect }) => {
           </div>
         )}
     
-        {/* Base Models Section */}
+        {/* base models section */}
         <h3>Base Models</h3>
         <div>
           {models.map((model) => (
