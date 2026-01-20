@@ -26,6 +26,8 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   const controlsRef = useRef(null);
   // animation loop ID for cleanup
   const animationIdRef = useRef(null);
+  // currently loaded model
+  const modelRef = useRef(null);
 
   // initialize threeJS scene, camera, renderer. 
   const initThree = (container) => {
@@ -91,6 +93,11 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
         // get the scene from the loaded 3d model
         const model = gltf.scene;
+
+        // clear prev model if it exists
+        if (modelRef.current){
+          sceneRef.current.remove(modelRef.current);
+        }
         
         // autoscale model to fit in view
         // - create bounding box around whole 3d model, use the size of that to determine the size of the 3d model
@@ -112,6 +119,9 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
         
         sceneRef.current.add(model);
         //console.log('Model added to scene');
+
+        //save a reference of the model
+        modelRef.current = model;
 
         if(initialMaterial !== 'cotton') {
           changeMaterial(initialMaterial)
@@ -242,36 +252,55 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     const designName = prompt("Enter a name for this design:")
     if(!designName) return;
 
+    if(!modelRef.current){
+      alert('No model to save')
+      return;
+    }
+
     //export the current scene as a .glb file
     const exporter = new GLTFExporter();
     exporter.parse(
-      sceneRef.current,
-      async(gltf) => {
-        //convert to blob
-        const blob = new Blob([gltf], { type: 'model/gltf-binary' });
-
+      modelRef.current,
+      async (result) => {
+        let blob;
+    
+        // STEP 1 FIX: verify exporter output
+        if (result instanceof ArrayBuffer) {
+          blob = new Blob([result], { type: 'model/gltf-binary' });
+        } else {
+          console.error('GLTFExporter returned non-binary output:', result);
+          alert('Export failed: invalid GLB output');
+          return;
+        }
+    
+        console.log('GLB blob size:', blob.size);
+    
         const formData = new FormData();
         formData.append('file', blob, `${designName}.glb`);
         formData.append('name', designName);
         formData.append('material', currentMaterial);
-
-
+    
         try {
-          const response = await fetch(`http://localhost:8000/designs/save/${user.user_id}`, {
-            method: 'POST',
-            body: formData,
-          });
-
+          const response = await fetch(
+            `http://localhost:8000/designs/save/${user.user_id}`,
+            {
+              method: 'POST',
+              body: formData,
+            }
+          );
+    
           if (response.ok) {
-            alert('Design saved successfully')
+            alert('Design saved successfully');
           } else {
-            alert('Failed to save design')
+            alert('Failed to save design');
           }
-
         } catch (error) {
-          alert('Error saving design: ' + error)
-          console.log('Error saving design: ', error)
+          console.error('Error saving design:', error);
+          alert('Error saving design');
         }
+      },
+      (error) => {
+        console.error('GLTFExporter error:', error);
       },
       { binary: true }
     );

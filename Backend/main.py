@@ -359,6 +359,13 @@ async def save_design(
 
         public_url = supabase.storage.from_("3d-models").get_public_url(file_path)
 
+        if isinstance(public_url, str):
+            # remove double slashes and trailing query params
+            public_url = public_url.replace('//storage', '/storage').rstrip('?')
+        else:
+            # handle if it's an object
+            public_url = str(public_url).replace('//storage', '/storage').rstrip('?')
+
         supabase.table('saved_designs').insert({
             'design_id': design_id,
             'user_id': user_id,
