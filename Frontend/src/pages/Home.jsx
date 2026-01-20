@@ -9,6 +9,13 @@ export default function Home() {
       </aside>
 
       <div className="flex-1 rounded-3xl bg-white p-6 shadow-sm md:p-10">
+        <div className="mb-6">
+          <input
+            type='text'
+            placeholder='Search manufacturers...'
+            className="w-full px-4 py-2 border border-gray-300 rounded-2xl text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
         <CompanyList />
       </div>
     </div>
