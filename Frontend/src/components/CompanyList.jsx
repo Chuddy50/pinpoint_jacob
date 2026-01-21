@@ -48,28 +48,41 @@ export default function CompanyList({ searchTerm = "" }) {
     };
   }, []);
 
-  // fileter manufacturers based on search bar
+  // filter manufacturers based on search bar
+  // useMemo = only runs when manufacturers or searchTerm changes
   const filteredManufacturers = useMemo(() => {
+
+    //if search bar is empty, show all manufacturers, not none
     if(!searchTerm.trim()){
       return manufacturers
     }
+
+    // filter by checking if the manufacturer name includes the searched term case-insensitive
+    // TODO: maybe update search logic ?? only starts with maybe ??
     return manufacturers.filter((m) =>
       m.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [manufacturers, searchTerm]);
 
+  // sort the manufacturers based on selected sort mode
   const sortedManufacturers = useMemo(() => {
     const list = [...filteredManufacturers];
+
+    // sort rating high -> low
     if (sortMode === "rating-desc") {
       return list.sort(
         (a, b) => (Number(b.rating ?? 0) || 0) - (Number(a.rating ?? 0) || 0)
       );
     }
+
+    //sort rating low -> high
     if (sortMode === "rating-asc") {
       return list.sort(
         (a, b) => (Number(a.rating ?? 0) || 0) - (Number(b.rating ?? 0) || 0)
       );
     }
+
+    //alphabetical sorting
     return list.sort((a, b) => a.name.localeCompare(b.name));
   }, [filteredManufacturers, sortMode]);
 
