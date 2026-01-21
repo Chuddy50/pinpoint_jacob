@@ -18,7 +18,7 @@ const links = [
 
 export default function NavBar() {
   const baseLinkClass =
-    "flex items-center gap-2 rounded-xl px-4 py-3 md:text-2xl text-neutral-400 font-inter hover:bg-[#E3E9FF] md:my-5 transition";
+    "flex items-center gap-2 rounded-xl px-4 py-3 md:text-2xl text-neutral-400 font-inter hover:text-gray-300 md:my-5 transition";
 
   return (
 
