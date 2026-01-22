@@ -12,6 +12,13 @@ from config.database import supabase
 
 router = APIRouter()
 
+'''
+Submit a new review and rating for a manufacturer
+Creates review record in database with rating (1-5 stars) and written feedback
+
+@param review: Dictionary containing manufacturer_id, user_id, rating (int 1-5), and review text
+@return: Dictionary with success status and message
+'''
 @router.post("/reviews")
 async def create_review(review : dict):
     try:

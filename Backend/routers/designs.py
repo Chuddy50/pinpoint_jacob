@@ -15,7 +15,14 @@ from uuid import uuid4
 router = APIRouter()
 
 '''
-    Save a users 3d clothing design to supabase storage
+Save a user's 3D clothing design to Supabase storage
+Uploads GLB file to user-specific folder, stores metadata in database with material information
+
+@param user_id: UUID of user saving the design
+@param file: GLB file containing the 3D model data
+@param name: User-provided name for the design
+@param material: Material type selected for the design (cotton, denim, polyester, etc.)
+@return: Dictionary with success status and design_id on success; error message on failure
 '''
 @router.post("/designs/save/{user_id}")
 async def save_design(
@@ -83,8 +90,11 @@ async def save_design(
     
 
 '''
-    Retrieve all saved designs for a specific user
-    Returns a list of designs with 'model_url' pointing to supabase storage
+Retrieve all saved 3D designs for a specific user
+Fetches design metadata including model URLs from database
+
+@param user_id: UUID of user whose designs to retrieve
+@return: Dictionary containing 'designs' list with all user's saved design records
 '''
 @router.get("/designs/saved_designs/{user_id}")
 async def get_user_saved_designs(user_id: str):

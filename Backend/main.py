@@ -12,8 +12,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import auth, manufacturers, reviews, consultant, designs
 
+# Create FastAPI application instance
 app = FastAPI()
 
+# Configure CORS to allow frontend to make requests to backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -22,6 +24,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# Register all API route modules with their URL prefixes and documentation tags
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(manufacturers.router, tags=["manufacturers"])
 app.include_router(reviews.router, tags=["reviews"])

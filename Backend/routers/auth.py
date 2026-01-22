@@ -14,11 +14,11 @@ from config.database import supabase
 router = APIRouter()
 
 '''
-Main PinPoint sign up endpoint
+Create a new user account in PinPoint system
+Creates user in Supabase Auth, then adds user record to custom users table with default profile picture
 
-@param 'credentials': Dictionary containing the inputted email and password from react side
-@returns: Dictionary with a 'success' field to show if the sign up worked,
-    and the user_id, if it failed, sends the error message
+@param credentials: Dictionary containing user's email and password
+@return: Dictionary with success status, user_id, profile picture URL, and email on success; error message on failure
 '''
 @router.post("/signup")
 async def userSignup(credentials: dict):
@@ -61,8 +61,15 @@ async def userSignup(credentials: dict):
         return {"success": False, "error": str(e)}
     
 
+'''
+Authenticate existing user and retrieve their profile data
+Validates credentials against Supabase Auth and fetches user's saved profile picture
+
+@param credentials: Dictionary containing user's email and password
+@return: Dictionary with success status, user_id, profile picture URL, and email on success; error message on failure
+'''
 @router.post('/login')
-async def userLogin(credentials : dict):
+async def userLogin(credentials: dict):
     try:
         print("startng a login attempt")
 
@@ -92,13 +99,12 @@ async def userLogin(credentials : dict):
         return {"success": False, "error": "Login error: " + str(e)}
     
 '''
-fastAPI endpoint to allow a signed in user to update their profile pic
-This puts the new profile picture into the storage, creates a url w/ their unique
-user ID, and then updates OUR users table to have the correct url in that column
+Update a user's profile picture in storage and database
+Validates file type and size, uploads to Supabase storage, and updates users table with new URL
 
-@param 'user_id' : The user_id of the person trying to upload a new pfp
-@param 'file' : The file the user is trying to make their new pfp
-   - Syntax: expect a required uploaded file, UploadFile gives us access to filename, type, and stream access
+@param user_id: The UUID of the user updating their profile picture
+@param file: Image file to use as new profile picture (JPEG, PNG, or WebP)
+@return: Dictionary with success status and new profile picture URL on success; error message on failure
 '''
 @router.post("/updatePFP/{user_id}")
 async def userUpdateProfilePic(user_id: str, file: UploadFile = File(...)):

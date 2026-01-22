@@ -12,6 +12,13 @@ from config.database import groq_client, consultant_prompt, groq_model
 
 router = APIRouter()
 
+'''
+Relay chat messages to Groq AI for manufacturing consultation
+Accepts conversation history and returns AI-generated advice for clothing manufacturing
+
+@param payload: Dictionary containing 'messages' (list of chat history) and optional 'system_prompt'
+@return: Dictionary with 'reply' containing AI-generated response
+'''
 @router.post("/chat")
 async def consultant_chat(payload: dict):
     """

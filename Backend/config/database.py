@@ -13,12 +13,15 @@ from groq import Groq
 from dotenv import load_dotenv
 import os
 
+# Load environment variables from .env file
 load_dotenv()
 
+# Initialize Supabase client for database, authentication, and file storage
 supabaseURL = os.getenv("SUPABASE_URL")
 supabaseKey = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(supabaseURL, supabaseKey)
 
+# Initialize Groq AI client for consulatnt chat feature
 groq_api_key = os.getenv("GROQ_API_KEY")
 groq_client = Groq(api_key=groq_api_key) if groq_api_key else None
 consultant_prompt = os.getenv(

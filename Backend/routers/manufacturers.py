@@ -13,6 +13,13 @@ from config.database import supabase
 
 router = APIRouter()
 
+
+'''
+Fetch all manufacturers with calculated average ratings
+Retrieves manufacturer data and computes rating averages from review data
+
+@return: List of manufacturer dictionaries with calculated rating field
+'''
 @router.get("/manufacturers")
 async def list_manufacturers():
     """
@@ -52,6 +59,13 @@ async def list_manufacturers():
         raise HTTPException(status_code=500, detail=f"Failed to fetch manufacturers: {e}")
     
 
+'''
+Fetch detailed profile for a specific manufacturer
+Retrieves manufacturer info, calculated rating average, and price range data
+
+@param manufacturer_id: Unique identifier for the manufacturer
+@return: Dictionary with manufacturer details, rating, and price range; error message if not found
+'''
 @router.get("/manufacturers/{manufacturer_id}")
 async def get_manufacturer(manufacturer_id: str):
 
