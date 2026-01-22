@@ -1,3 +1,12 @@
+"""
+dataToDB.py
+
+Last Edited: 1/12/2026
+Developers: Leo Plute
+Description: Python script that takes the scraped JSON for manufacturers
+             and inserts it into our database schema.
+"""
+
 import json
 import os
 from dotenv import load_dotenv

@@ -1,3 +1,13 @@
+"""
+manufacturers.py
+
+Last Edited: 1/21/2026
+Developers: Leo Plute, Jacob Nguyen
+Description: FastAPI endpoints for fetching manufacturer data, including
+             list view with ratings and individual manufacturer profiles
+             with pricing information.
+"""
+
 from fastapi import APIRouter, HTTPException
 from config.database import supabase
 

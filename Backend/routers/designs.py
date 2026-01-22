@@ -1,3 +1,12 @@
+"""
+designs.py
+
+Last Edited: 1/21/2026
+Developers: Leo Plute
+Description: 3D design management endpoints. Handles saving and retrieving 
+             user-created clothing designs with GLB file storage in Supabase.
+"""
+
 from fastapi import APIRouter, UploadFile, File, Form
 from config.database import supabase
 from datetime import datetime, timezone

@@ -1,3 +1,13 @@
+"""
+database.py
+
+Last Edited: 1/21/2026
+Developers: Leo Plute
+Description: Centralized database and external service (Groq) configuration.
+             Initializes the Supabase client and Groq AI client with environment
+             variables
+"""
+
 from supabase import create_client, Client
 from groq import Groq
 from dotenv import load_dotenv

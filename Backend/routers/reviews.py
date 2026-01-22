@@ -1,3 +1,12 @@
+"""
+reviews.py
+
+Last Edited: 1/12/2026
+Developers: Luke Jones
+Description: Manufacturer reviews endpoints. Allows users to submit ratings
+             and written reviews for manufacturers
+"""
+
 from fastapi import APIRouter
 from config.database import supabase
 

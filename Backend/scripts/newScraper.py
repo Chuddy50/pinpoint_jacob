@@ -1,3 +1,17 @@
+"""
+newScraper.py
+
+Last Edited: 1/12/2026
+Developers: Leo Plute
+Description: Updated version of the scraper originally written
+             by Jacob Dietz. This one takes out some hardcoded stuff,
+             as well as fixes some of the small details. I (Leo) made a
+             whole new file for this to make sure the original one stayed
+             in tact in case I messed this one up further. 
+             This was the scraper actually used to scrape the site to JSON
+             before going into the database.
+"""
+
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 import time

@@ -1,3 +1,13 @@
+"""
+auth.py
+
+Last Edited: 1/10/2026
+Developers: Leo Plute
+Description: User authentication endpoints including signup, login, logout,
+             and profile picture updates. Handles Supabase Auth integration
+             and file storage for profile pictures.
+"""
+
 from fastapi import APIRouter, UploadFile, File
 from config.database import supabase
 
