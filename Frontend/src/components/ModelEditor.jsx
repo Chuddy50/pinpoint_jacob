@@ -1,5 +1,5 @@
 // ModelEditor.jsx
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -9,6 +9,16 @@ import { useAuth } from "../contexts/AuthContext"
 const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
   const { user } = useAuth();
+
+  // tab state
+  const [activeTab, setActiveTab] = useState('color');
+  const [designName, setDesignName] = useState('');
+
+  // notification state
+  const [notification, setNotification] = useState({ message: '', type: '' });
+
+  // loading progress state
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   // track the currently used material so when we save, we can store what they have selected for that model
   const [currentMaterial, setCurrentMaterial] = React.useState(initialMaterial);
@@ -21,6 +31,15 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   const controlsRef = useRef(null);
   const animationIdRef = useRef(null);
   const modelRef = useRef(null); //ref to the clothing model itself, for export
+
+  // function to show notifications
+  const showNotification = (message, type = 'error') => {
+    setNotification({ message, type });
+    // auto-hide after 3 seconds
+    setTimeout(() => {
+      setNotification({ message: '', type: '' });
+    }, 3000);
+  };
 
   // initialize threeJS scene, camera, renderer. 
   const initThree = (container) => {
@@ -77,6 +96,9 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     console.log('Loading url:', url);
     console.log('URL type: ', typeof url);
 
+    // reset loading state
+    setLoadingProgress(0);
+
     const loader = new GLTFLoader();  //gltf loader loads .glb and .gltf files
     loader.load(
       url, 
@@ -121,9 +143,13 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
           changeMaterial(initialMaterial)
         }
 
+        setLoadingProgress(100);
+
       },
       (progress) => {
-        console.log("Loading progress: ", (progress.loaded / progress.total * 100).toFixed(2) + '%');
+        const percentComplete = (progress.loaded / progress.total * 100)
+        setLoadingProgress(percentComplete)
+        console.log("Loading progress: ", percentComplete.toFixed(2) + '%');
       },
       (error) => {
         console.log('Error loading model:', url);
@@ -141,7 +167,6 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     rendererRef.current?.render(sceneRef.current, cameraRef.current); 
   };
 
-
   // function to traverse entire scene and changes the color of all mesh materials
   const changeColor = (hexColor) => {
     if (!sceneRef.current) return;
@@ -156,7 +181,6 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       }
     });
   };
-
 
   // function changes the roughness and metalness properties to simulate different fabrics
   const changeMaterial = (materialType) => {
@@ -199,7 +223,6 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     });
   };
 
-
   // array of preset colors w/ names and their hex colors
   const presetColors = [
     { hex: '#4169E1', name: 'Royal Blue' },
@@ -211,7 +234,6 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     { hex: '#4B0082', name: 'Indigo' },
     { hex: '#808080', name: 'Grey' },
   ];
-
 
   // main effect, runs once when component mounts or modelType changes
   useEffect(() => {
@@ -241,15 +263,22 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     };
   }, [modelUrl]);
 
-
   // save the current 3d model design to supabase
   // - exports only the 3d model, not lights, camera, etc.
   const handleSave = async () => {
-    const designName = prompt("Enter a name for this design:")
-    if(!designName) return;
+    if(!designName.trim()) {
+      showNotification('Please enter a name for your design', 'error');
+      return;
+    }
+
+    // make sure user is signed in
+    if(!user){
+      showNotification('you must be signed in to save designs', 'error');
+      return;
+    }
 
     if(!modelRef.current){
-      alert('No model to save')
+      showNotification('No model to save', 'error');
       return;
     }
 
@@ -266,7 +295,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
           blob = new Blob([result], { type: 'model/gltf-binary' });
         } else {
           console.error('GLTFExporter returned non-binary output:', result);
-          alert('Export failed: invalid GLB output');
+          showNotification('Export failed: invalid GLB output', 'error');
           return;
         }
     
@@ -288,13 +317,14 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
           );
     
           if (response.ok) {
-            alert('Design saved successfully');
+            showNotification('Design saved successfully', 'success');
+            setDesignName('');
           } else {
-            alert('Failed to save design');
+            showNotification('Failed to save design', 'error');
           }
         } catch (error) {
           console.error('Error saving design:', error);
-          alert('Error saving design');
+          showNotification('Error saving design', 'error');
         }
       },
       (error) => {
@@ -304,61 +334,217 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     );
   };
 
-
   // return the layout for the threeJS div + controls for customization
   return (
-    <div>
-      {/* back + save button */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px' }}>
-        <button onClick={onBack}>Back</button>
-        <button onClick={handleSave}>Save Design</button>
+    <div className="h-screen flex bg-white">
+      {/* 3D Model Viewer - Full Screen Left */}
+      <div className="flex-1 relative overflow-hidden">
+        {/* Back Button Overlay */}
+        <div className="absolute top-6 left-6 z-10">
+          <button 
+            onClick={onBack}
+            className="flex items-center gap-2 px-4 py-2 bg-white/90 hover:bg-white rounded-lg shadow-sm transition-all"
+          >
+            <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="font-medium text-slate-700">Back</span>
+          </button>
+        </div>
+
+        {/* notification Overlay */}
+        {notification.message && (
+          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20">
+            <div className={`px-6 py-3 rounded-lg shadow-lg ${
+              notification.type === 'success' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-red-600 text-white'
+            }`}>
+              <p className="font-medium">{notification.message}</p>
+            </div>
+          </div>
+        )}
+
+        {/* loading overlay */}
+        {loadingProgress < 100 && (
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-20">
+            <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full mx-4">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4 text-center">Loading Model</h3>
+              
+              {/* Progress Bar */}
+              <div className="w-full bg-slate-200 rounded-full h-3 mb-3 overflow-hidden">
+                <div 
+                  className="bg-slate-900 h-full transition-all duration-300 ease-out"
+                  style={{ width: `${loadingProgress}%` }}
+                />
+              </div>
+              
+              {/* Progress Percentage */}
+              <p className="text-center text-sm text-slate-600 font-medium">
+                {loadingProgress.toFixed(0)}%
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* container div where three.js canvas will be inserted */}
+        <div ref={containerRef} className="w-full h-full" />
       </div>
 
-      {/* container div where three.js canvas will be inserted */}
-      <div ref={containerRef} style={{ width: '100%', height: '80vh' }} />
-
-      {/* color + material controls */}
-      <div>
-        <h3>Customize</h3>
-
-        {/* preset colors */}
-        <div>
-          <label>Quick Colors:</label>
-          <div>
-            {presetColors.map(color => (
-              <button 
-                key={color.hex} 
-                onClick={() => changeColor(color.hex)} 
-                style={{ background: color.hex, width: '40px', height: '40px'}}
-              />
-            ))}
+      {/* Right Sidebar with Tabs */}
+      <div className="w-96 bg-white border-l border-slate-200 flex flex-col shadow-2xl">
+        {/* Tab Navigation */}
+        <div className="border-b border-slate-200 bg-slate-50">
+          <div className="flex">
+            <button 
+              onClick={() => setActiveTab('color')}
+              className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
+                activeTab === 'color' 
+                  ? 'text-slate-900 border-b-2 border-slate-900 bg-white' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50/50'
+              }`}
+            >
+              Color
+            </button>
+            <button 
+              onClick={() => setActiveTab('material')}
+              className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
+                activeTab === 'material' 
+                  ? 'text-slate-900 border-b-2 border-slate-900 bg-white' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50/50'
+              }`}
+            >
+              Material
+            </button>
+            <button 
+              onClick={() => setActiveTab('export')}
+              className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
+                activeTab === 'export' 
+                  ? 'text-slate-900 border-b-2 border-slate-900 bg-white' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50/50'
+              }`}
+            >
+              Export
+            </button>
           </div>
         </div>
 
-        {/* custom color picker */}
-        <div>
-          <label>Custom Color:</label>
-          <input
-            type='color'
-            defaultValue = '#808080'
-            onChange={(e) => changeColor(e.target.value)}
-          />
+        {/* Tab Content */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Color Tab */}
+          {activeTab === 'color' && (
+            <div className="p-6 space-y-8">
+              <div className="pb-6 border-b border-slate-200">
+                <h2 className="text-lg font-semibold text-slate-900">Color Customization</h2>
+                <p className="text-sm text-slate-500 mt-1">Choose from presets or create custom colors</p>
+              </div>
+
+              {/* preset colors */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 mb-4">Quick Colors</h3>
+                <div className="grid grid-cols-4 gap-2.5">
+                  {presetColors.map((color) => (
+                    <button
+                      key={color.hex}
+                      onClick={() => changeColor(color.hex)}
+                      className="aspect-square rounded-lg hover:scale-105 transition-transform shadow-sm border border-slate-200"
+                      style={{ backgroundColor: color.hex }}
+                      title={color.name}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* custom color picker */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 mb-4">Custom Color</h3>
+                <div className="flex gap-3 items-center">
+                  <input
+                    type="color"
+                    defaultValue='#808080'
+                    onChange={(e) => changeColor(e.target.value)}
+                    className="w-16 h-16 rounded-lg cursor-pointer border border-slate-200"
+                  />
+                  <p className="text-sm text-slate-500">Select any color from the picker</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Material Tab */}
+          {activeTab === 'material' && (
+            <div className="p-6 space-y-8">
+              <div className="pb-6 border-b border-slate-200">
+                <h2 className="text-lg font-semibold text-slate-900">Material Selection</h2>
+                <p className="text-sm text-slate-500 mt-1">Choose the fabric type for your design</p>
+              </div>
+
+              {/* material type */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 mb-4">Available Materials</h3>
+                <div className="space-y-2">
+                  {['cotton', 'denim', 'polyester', 'leather', 'silk'].map((material) => (
+                    <button
+                      key={material}
+                      onClick={() => changeMaterial(material)}
+                      className={`w-full px-4 py-3 text-left rounded-lg transition-all text-sm font-medium capitalize ${
+                        currentMaterial === material
+                          ? 'bg-slate-900 text-white' 
+                          : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {material}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Export Tab */}
+          {activeTab === 'export' && (
+            <div className="p-6 space-y-8">
+              <div className="pb-6 border-b border-slate-200">
+                <h2 className="text-lg font-semibold text-slate-900">Save Design</h2>
+                <p className="text-sm text-slate-500 mt-1">Export your customized model</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-900 mb-3">
+                  Design Name
+                </label>
+                <input
+                  type="text"
+                  value={designName}
+                  onChange={(e) => setDesignName(e.target.value)}
+                  placeholder="Enter a name for your design"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-slate-400 focus:outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+                <h4 className="text-sm font-medium text-slate-700">Current Settings</h4>
+                <div className="text-sm text-slate-600 space-y-1">
+                  <p>Material: <span className="font-medium capitalize">{currentMaterial}</span></p>
+                  <p>Name: <span className="font-medium">{designName || 'Not set'}</span></p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* material type */}
-        <div>
-          <label>Material Type:</label>
-          <select onChange={(e) => changeMaterial(e.target.value)} value={currentMaterial}>
-            <option value='cotton'>Cotton</option>
-            <option value='denim'>Denim</option>
-            <option value='polyester'>Polyester</option>
-            <option value='leather'>Leather</option>
-            <option value='silk'>Silk</option>
-          </select>
-        </div>
-
+        {/* save button at bottom (only show on export tab) */}
+        {activeTab === 'export' && (
+          <div className="p-6 border-t border-slate-200">
+            <button 
+              onClick={handleSave}
+              className="w-full px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
+            >
+              Save Design
+            </button>
+          </div>
+        )}
       </div>
-
     </div>
   );
 };
