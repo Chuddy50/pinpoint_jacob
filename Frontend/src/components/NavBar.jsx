@@ -22,7 +22,7 @@ export default function NavBar() {
 
   return (
 
-    <nav className="min-h-[95%] w-15/100 fixed rounded-3xl bg-white border border-gray-200 shadow-sm p-6 flex flex-col gap-4">
+    <nav className="h-screen fixed top-0 left-0 rounded-3xl bg-white border border-gray-200 shadow-sm px-6 pb-6 flex flex-col gap-4 justify-center">
       <img src={logo} alt="logo" className="mt-5 w-40 mb-6 self-center" />
       <div className="flex flex-col gap-2">
         {links.map(({ to, label, icon }) => (
