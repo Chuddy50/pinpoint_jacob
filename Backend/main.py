@@ -22,8 +22,8 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-app.include_router(auth.router, prefix="/pinpoint", tags=["auth"])
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(manufacturers.router, tags=["manufacturers"])
 app.include_router(reviews.router, tags=["reviews"])
-app.include_router(consultant.router, prefix="/pinpoint", tags=["consultant"])
+app.include_router(consultant.router, prefix="/consultant", tags=["consultant"])
 app.include_router(designs.router, tags=["designs"])

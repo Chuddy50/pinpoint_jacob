@@ -35,7 +35,7 @@ export default function Consultant() {
     // this is the backend call state 
     try {
       // 
-      const res = await fetch("http://127.0.0.1:8000/pinpoint/chat", {
+      const res = await fetch("http://127.0.0.1:8000/consultant/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
