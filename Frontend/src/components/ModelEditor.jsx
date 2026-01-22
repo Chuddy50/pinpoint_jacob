@@ -3,22 +3,24 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'; // used for saving 3d models
+import { useAuth } from "../contexts/AuthContext"
 
-const ModelEditor = ({ modelType, onBack }) => {
+const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
+
+  const { user } = useAuth();
+
+  // track the currently used material so when we save, we can store what they have selected for that model
+  const [currentMaterial, setCurrentMaterial] = React.useState(initialMaterial);
+
   // refs to persist threeJS objects across renders
-
-  // div element that holds the canvas
   const containerRef = useRef(null);  
-  // three.js scene
   const sceneRef = useRef(null); 
-  // three.js camera
   const cameraRef = useRef(null);
-  // three.js renderer
   const rendererRef = useRef(null);
-  // OrbitControls for mouse interaction
   const controlsRef = useRef(null);
-  // animation loop ID for cleanup
   const animationIdRef = useRef(null);
+  const modelRef = useRef(null); //ref to the clothing model itself, for export
 
   // initialize threeJS scene, camera, renderer. 
   const initThree = (container) => {
@@ -71,15 +73,24 @@ const ModelEditor = ({ modelType, onBack }) => {
   };
 
   // load the 3d model from file
-  const loadModel = (modelPath) => {
-    //console.log('Loading:', modelPath);
+  const loadModel = (url) => {
+    console.log('Loading url:', url);
+    console.log('URL type: ', typeof url);
+
     const loader = new GLTFLoader();  //gltf loader loads .glb and .gltf files
     loader.load(
-      modelPath, 
+      url, 
       (gltf) => {
+
+        console.log("Model loaded successfully: ", url);
 
         // get the scene from the loaded 3d model
         const model = gltf.scene;
+
+        // clear prev model if it exists
+        if (modelRef.current){
+          sceneRef.current.remove(modelRef.current);
+        }
         
         // autoscale model to fit in view
         // - create bounding box around whole 3d model, use the size of that to determine the size of the 3d model
@@ -101,10 +112,22 @@ const ModelEditor = ({ modelType, onBack }) => {
         
         sceneRef.current.add(model);
         //console.log('Model added to scene');
+
+        //save a reference of the model
+        modelRef.current = model;
+
+        //apply saved material if loading a user saved design
+        if(initialMaterial !== 'cotton') {
+          changeMaterial(initialMaterial)
+        }
+
       },
-      undefined,
+      (progress) => {
+        console.log("Loading progress: ", (progress.loaded / progress.total * 100).toFixed(2) + '%');
+      },
       (error) => {
-        console.error('Error loading model:', error);
+        console.log('Error loading model:', url);
+        console.log('Error details: ', error);
       }
     );
   };
@@ -137,6 +160,10 @@ const ModelEditor = ({ modelType, onBack }) => {
 
   // function changes the roughness and metalness properties to simulate different fabrics
   const changeMaterial = (materialType) => {
+
+    //update currently stored material
+    setCurrentMaterial(materialType)
+
     if (!sceneRef.current) return;
 
     // to simulate fabric types, change:
@@ -196,7 +223,7 @@ const ModelEditor = ({ modelType, onBack }) => {
     // initialize three.js environment
     initThree(container);
     setupLights();
-    loadModel(`/models/${modelType}.glb`);
+    loadModel(modelUrl);
     animate();
 
     // cleanup when component unmounts or modelType changes
@@ -212,14 +239,80 @@ const ModelEditor = ({ modelType, onBack }) => {
         container.removeChild(rendererRef.current.domElement);
       }
     };
-  }, [modelType]);
+  }, [modelUrl]);
+
+
+  // save the current 3d model design to supabase
+  // - exports only the 3d model, not lights, camera, etc.
+  const handleSave = async () => {
+    const designName = prompt("Enter a name for this design:")
+    if(!designName) return;
+
+    if(!modelRef.current){
+      alert('No model to save')
+      return;
+    }
+
+    //export the current scene as a .glb file
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      modelRef.current,
+      async (result) => {
+        let blob;
+    
+       //verify we got binary output (ArrayBuffer)
+       // - if export fails, result is JSON object which fails
+        if (result instanceof ArrayBuffer) {
+          blob = new Blob([result], { type: 'model/gltf-binary' });
+        } else {
+          console.error('GLTFExporter returned non-binary output:', result);
+          alert('Export failed: invalid GLB output');
+          return;
+        }
+    
+        console.log('GLB blob size:', blob.size);
+    
+        //send file and metadata to backend
+        const formData = new FormData();
+        formData.append('file', blob, `${designName}.glb`);
+        formData.append('name', designName);
+        formData.append('material', currentMaterial);
+    
+        try {
+          const response = await fetch(
+            `http://localhost:8000/designs/save/${user.user_id}`,
+            {
+              method: 'POST',
+              body: formData,
+            }
+          );
+    
+          if (response.ok) {
+            alert('Design saved successfully');
+          } else {
+            alert('Failed to save design');
+          }
+        } catch (error) {
+          console.error('Error saving design:', error);
+          alert('Error saving design');
+        }
+      },
+      (error) => {
+        console.error('GLTFExporter error:', error);
+      },
+      { binary: true }
+    );
+  };
 
 
   // return the layout for the threeJS div + controls for customization
   return (
     <div>
-      {/* back button */}
-      <button onClick={onBack}>Back</button>
+      {/* back + save button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px' }}>
+        <button onClick={onBack}>Back</button>
+        <button onClick={handleSave}>Save Design</button>
+      </div>
 
       {/* container div where three.js canvas will be inserted */}
       <div ref={containerRef} style={{ width: '100%', height: '80vh' }} />
@@ -255,7 +348,7 @@ const ModelEditor = ({ modelType, onBack }) => {
         {/* material type */}
         <div>
           <label>Material Type:</label>
-          <select onChange={(e) => changeMaterial(e.target.value)} defaultValue='cotton'>
+          <select onChange={(e) => changeMaterial(e.target.value)} value={currentMaterial}>
             <option value='cotton'>Cotton</option>
             <option value='denim'>Denim</option>
             <option value='polyester'>Polyester</option>
