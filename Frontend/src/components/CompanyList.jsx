@@ -4,7 +4,7 @@ import ManufacturerCard from "./ManufacturerCard";
 const sortModes = ["alphabetical", "rating-desc", "rating-asc"];
 const PAGE_SIZE = 18;
 
-export default function CompanyList() {
+export default function CompanyList({ searchTerm = "" }) {
   const [sortMode, setSortMode] = useState(sortModes[0]);
   const [manufacturers, setManufacturers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,20 +48,43 @@ export default function CompanyList() {
     };
   }, []);
 
+  // filter manufacturers based on search bar
+  // useMemo = only runs when manufacturers or searchTerm changes
+  const filteredManufacturers = useMemo(() => {
+
+    //if search bar is empty, show all manufacturers, not none
+    if(!searchTerm.trim()){
+      return manufacturers
+    }
+
+    // filter by checking if the manufacturer name includes the searched term case-insensitive
+    // TODO: maybe update search logic ?? only starts with maybe ??
+    return manufacturers.filter((m) =>
+      m.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [manufacturers, searchTerm]);
+
+  // sort the manufacturers based on selected sort mode
   const sortedManufacturers = useMemo(() => {
-    const list = [...manufacturers];
+    const list = [...filteredManufacturers];
+
+    // sort rating high -> low
     if (sortMode === "rating-desc") {
       return list.sort(
         (a, b) => (Number(b.rating ?? 0) || 0) - (Number(a.rating ?? 0) || 0)
       );
     }
+
+    //sort rating low -> high
     if (sortMode === "rating-asc") {
       return list.sort(
         (a, b) => (Number(a.rating ?? 0) || 0) - (Number(b.rating ?? 0) || 0)
       );
     }
+
+    //alphabetical sorting
     return list.sort((a, b) => a.name.localeCompare(b.name));
-  }, [manufacturers, sortMode]);
+  }, [filteredManufacturers, sortMode]);
 
   const totalPages = Math.max(
     1,
@@ -73,6 +96,11 @@ export default function CompanyList() {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
+
+  //reset to page 1 when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const pagedManufacturers = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
@@ -134,7 +162,7 @@ export default function CompanyList() {
           </label>
         </div>
         <p className="mt-3 text-sm text-gray-500">
-          Page {currentPage} of {totalPages}
+        Showing {sortedManufacturers.length} manufacturer{sortedManufacturers.length !== 1 ? 's' : ''} • Page {currentPage} of {totalPages}
         </p>
       </header>
 
@@ -142,6 +170,11 @@ export default function CompanyList() {
         <div className="text-sm text-gray-500">Loading manufacturers...</div>
       )}
       {error && <div className="text-sm text-red-500">{error}</div>}
+
+      {/* show message when no manufacturers match search */}
+      {!loading && !error && sortedManufacturers.length === 0 && (
+        <div className="text-sm text-gray-500">No manufacturers found matching "{searchTerm}"</div>
+      )}
 
       <div className="manufacturer-grid">
         {pagedManufacturers.map((m) => (
