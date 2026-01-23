@@ -1,3 +1,12 @@
+"""
+scraper.py
+
+Last Edited: 12/10/2025
+Developers: Jacob Dietz
+Description: Original web scraper written to get the manufacturer
+             information we needed to get the database and site going.
+"""
+
 from playwright.sync_api import sync_playwright
 
 from bs4 import BeautifulSoup

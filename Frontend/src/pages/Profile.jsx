@@ -32,7 +32,7 @@ export default function Profile() {
 
     try{
 
-      const result = await fetch("http://127.0.0.1:8000/pinpoint/logout", {
+      const result = await fetch("http://127.0.0.1:8000/auth/logout", {
         method: "POST",
         headers: {"Content-Type": "application/json"}
       })
