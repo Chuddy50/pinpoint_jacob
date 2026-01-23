@@ -46,14 +46,21 @@ export default function RequestQuote() {
       </aside>
 
       <div className="flex-1 rounded-3xl bg-white p-10 shadow-sm space-y-8">
-        <header className="space-y-2">
+        <header className="space-y-3">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="w-fit rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+          >
+            ← Back
+          </button>
           <p className="text-xs uppercase tracking-[0.35em] text-gray-400">
             PinPoint
           </p>
           <h1 className="text-3xl font-semibold text-gray-900">
             Request a Quote
           </h1>
-          <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500">
             Automated RFQ to send project details (material, color, quantities,
             notes) to a manufacturer. We will store this in Supabase later and
             send via Postmark.
