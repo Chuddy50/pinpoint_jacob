@@ -5,6 +5,10 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'; // used for saving 3d models
 import { useAuth } from "../contexts/AuthContext"
+import Notification from './Notification';
+import ColorTab from './ColorTab';
+import MaterialTab from './MaterialTab';
+import ExportTab from './ExportTab';
 
 const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
@@ -15,7 +19,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   const [designName, setDesignName] = useState('');
 
   // notification state
-  const [notification, setNotification] = useState({ message: '', type: '' });
+  const [notification, setNotification] = useState({ message: '', type: '' }); // type: 'success' or 'error'
 
   // loading progress state
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -31,6 +35,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   const controlsRef = useRef(null);
   const animationIdRef = useRef(null);
   const modelRef = useRef(null); //ref to the clothing model itself, for export
+  const colorPickerRef = useRef(null); // ref for color picker component
 
   // function to show notifications
   const showNotification = (message, type = 'error') => {
@@ -96,7 +101,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     console.log('Loading url:', url);
     console.log('URL type: ', typeof url);
 
-    // reset loading state
+    // Reset loading progress when starting to load
     setLoadingProgress(0);
 
     const loader = new GLTFLoader();  //gltf loader loads .glb and .gltf files
@@ -143,17 +148,21 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
           changeMaterial(initialMaterial)
         }
 
+        // Set loading complete
         setLoadingProgress(100);
 
       },
       (progress) => {
-        const percentComplete = (progress.loaded / progress.total * 100)
-        setLoadingProgress(percentComplete)
+        // Update loading progress
+        const percentComplete = (progress.loaded / progress.total * 100);
+        setLoadingProgress(percentComplete);
         console.log("Loading progress: ", percentComplete.toFixed(2) + '%');
       },
       (error) => {
         console.log('Error loading model:', url);
         console.log('Error details: ', error);
+        // Reset loading on error
+        setLoadingProgress(100);
       }
     );
   };
@@ -235,6 +244,9 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     { hex: '#808080', name: 'Grey' },
   ];
 
+  // array of available materials
+  const materials = ['cotton', 'denim', 'polyester', 'leather', 'silk'];
+
   // main effect, runs once when component mounts or modelType changes
   useEffect(() => {
     if (!containerRef.current) return;
@@ -271,9 +283,9 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       return;
     }
 
-    // make sure user is signed in
-    if(!user){
-      showNotification('you must be signed in to save designs', 'error');
+    // Check if user is signed in
+    if(!user) {
+      showNotification('You must be signed in to save designs', 'error');
       return;
     }
 
@@ -352,20 +364,10 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
           </button>
         </div>
 
-        {/* notification Overlay */}
-        {notification.message && (
-          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20">
-            <div className={`px-6 py-3 rounded-lg shadow-lg ${
-              notification.type === 'success' 
-                ? 'bg-green-600 text-white' 
-                : 'bg-red-600 text-white'
-            }`}>
-              <p className="font-medium">{notification.message}</p>
-            </div>
-          </div>
-        )}
+        {/* Notification Overlay */}
+        <Notification message={notification.message} type={notification.type} />
 
-        {/* loading overlay */}
+        {/* Loading Overlay */}
         {loadingProgress < 100 && (
           <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-20">
             <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full mx-4">
@@ -433,107 +435,33 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
         <div className="flex-1 overflow-y-auto">
           {/* Color Tab */}
           {activeTab === 'color' && (
-            <div className="p-6 space-y-8">
-              <div className="pb-6 border-b border-slate-200">
-                <h2 className="text-lg font-semibold text-slate-900">Color Customization</h2>
-                <p className="text-sm text-slate-500 mt-1">Choose from presets or create custom colors</p>
-              </div>
-
-              {/* preset colors */}
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900 mb-4">Quick Colors</h3>
-                <div className="grid grid-cols-4 gap-2.5">
-                  {presetColors.map((color) => (
-                    <button
-                      key={color.hex}
-                      onClick={() => changeColor(color.hex)}
-                      className="aspect-square rounded-lg hover:scale-105 transition-transform shadow-sm border border-slate-200"
-                      style={{ backgroundColor: color.hex }}
-                      title={color.name}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* custom color picker */}
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900 mb-4">Custom Color</h3>
-                <div className="flex gap-3 items-center">
-                  <input
-                    type="color"
-                    defaultValue='#808080'
-                    onChange={(e) => changeColor(e.target.value)}
-                    className="w-16 h-16 rounded-lg cursor-pointer border border-slate-200"
-                  />
-                  <p className="text-sm text-slate-500">Select any color from the picker</p>
-                </div>
-              </div>
-            </div>
+            <ColorTab 
+              presetColors={presetColors}
+              onColorChange={changeColor}
+              colorPickerRef={colorPickerRef}
+            />
           )}
 
           {/* Material Tab */}
           {activeTab === 'material' && (
-            <div className="p-6 space-y-8">
-              <div className="pb-6 border-b border-slate-200">
-                <h2 className="text-lg font-semibold text-slate-900">Material Selection</h2>
-                <p className="text-sm text-slate-500 mt-1">Choose the fabric type for your design</p>
-              </div>
-
-              {/* material type */}
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900 mb-4">Available Materials</h3>
-                <div className="space-y-2">
-                  {['cotton', 'denim', 'polyester', 'leather', 'silk'].map((material) => (
-                    <button
-                      key={material}
-                      onClick={() => changeMaterial(material)}
-                      className={`w-full px-4 py-3 text-left rounded-lg transition-all text-sm font-medium capitalize ${
-                        currentMaterial === material
-                          ? 'bg-slate-900 text-white' 
-                          : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      {material}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <MaterialTab 
+              materials={materials}
+              currentMaterial={currentMaterial}
+              onMaterialChange={changeMaterial}
+            />
           )}
 
           {/* Export Tab */}
           {activeTab === 'export' && (
-            <div className="p-6 space-y-8">
-              <div className="pb-6 border-b border-slate-200">
-                <h2 className="text-lg font-semibold text-slate-900">Save Design</h2>
-                <p className="text-sm text-slate-500 mt-1">Export your customized model</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-900 mb-3">
-                  Design Name
-                </label>
-                <input
-                  type="text"
-                  value={designName}
-                  onChange={(e) => setDesignName(e.target.value)}
-                  placeholder="Enter a name for your design"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-slate-400 focus:outline-none transition-all text-sm"
-                />
-              </div>
-
-              <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-                <h4 className="text-sm font-medium text-slate-700">Current Settings</h4>
-                <div className="text-sm text-slate-600 space-y-1">
-                  <p>Material: <span className="font-medium capitalize">{currentMaterial}</span></p>
-                  <p>Name: <span className="font-medium">{designName || 'Not set'}</span></p>
-                </div>
-              </div>
-            </div>
+            <ExportTab 
+              designName={designName}
+              onDesignNameChange={setDesignName}
+              currentMaterial={currentMaterial}
+            />
           )}
         </div>
 
-        {/* save button at bottom (only show on export tab) */}
+        {/* Save Button at Bottom (only show on export tab) */}
         {activeTab === 'export' && (
           <div className="p-6 border-t border-slate-200">
             <button 
