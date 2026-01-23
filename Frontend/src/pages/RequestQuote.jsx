@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import { useAuth } from "../contexts/AuthContext";
 
 const initialForm = {
   name: "",
@@ -18,6 +20,9 @@ const initialForm = {
 export default function RequestQuote() {
   const [formData, setFormData] = useState(initialForm);
   const [submitted, setSubmitted] = useState(false);
+  const { user } = useAuth();
+  const location = useLocation();
+  const manufacturer = location.state?.manufacturer || null;
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -29,9 +34,43 @@ export default function RequestQuote() {
     setFormData((prev) => ({ ...prev, attachments: file }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
-    setSubmitted(true);
+
+    try {
+      if (!user?.user_id) {
+        throw new Error("User not authenticated");
+      }
+
+      const response = await fetch("http://127.0.0.1:8000/rfq/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyer_id: user.user_id,
+          manufacturer_id: null,
+          contact_name: formData.name,
+          contact_email: formData.email,
+          contact_phone: formData.phone || null,
+          clothing_type: formData.clothingType,
+          quantity: formData.quantity,
+          material: formData.material || null,
+          color: formData.color || null,
+          size_range: formData.sizeRange || null,
+          deadline: formData.deadline || null,
+          notes: formData.notes || null,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.detail || data.error || "Failed to submit RFQ");
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Failed to save RFQ:", err);
+      alert("Failed to submit quote request");
+    }
   }
 
   function handleReset() {
@@ -60,17 +99,25 @@ export default function RequestQuote() {
           <h1 className="text-3xl font-semibold text-gray-900">
             Request a Quote
           </h1>
+          {manufacturer?.name && (
+            <p className="text-sm text-gray-600">
+              Requesting a quote from{" "}
+              <span className="font-semibold text-gray-900">
+                {manufacturer.name}
+              </span>
+              .
+            </p>
+          )}
         <p className="text-sm text-gray-500">
             Automated RFQ to send project details (material, color, quantities,
-            notes) to a manufacturer. We will store this in Supabase later and
-            send via Postmark.
+            notes) to a manufacturer. This saves a draft to Supabase and can be
+            sent via Postmark later.
           </p>
         </header>
 
         {submitted && (
           <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-            Your outline is ready. Connect this form to the backend when you are
-            ready to send it.
+            Your quote request was submitted successfully.
           </div>
         )}
 
@@ -223,7 +270,7 @@ export default function RequestQuote() {
               type="submit"
               className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-semibold text-white hover:bg-black transition"
             >
-              Save outline
+              Submit
             </button>
             <button
               type="button"
