@@ -2,19 +2,16 @@ import { useState } from "react";
 import NavBar from "../components/NavBar";
 
 const initialForm = {
-  companyName: "",
-  contactName: "",
+  name: "",
   email: "",
   phone: "",
-  projectName: "",
-  description: "",
-  materials: "",
+  clothingType: "",
   quantity: "",
-  budget: "",
+  material: "",
+  color: "",
+  sizeRange: "",
   deadline: "",
-  certifications: "",
-  shippingLocation: "",
-  ndaRequired: "no",
+  notes: "",
   attachments: null,
 };
 
@@ -54,10 +51,12 @@ export default function RequestQuote() {
             PinPoint
           </p>
           <h1 className="text-3xl font-semibold text-gray-900">
-            Request a Manufacturing Quote
+            Request a Quote
           </h1>
           <p className="text-sm text-gray-500">
-            Outline the project details you want to send to a manufacturer.
+            Automated RFQ to send project details (material, color, quantities,
+            notes) to a manufacturer. We will store this in Supabase later and
+            send via Postmark.
           </p>
         </header>
 
@@ -72,29 +71,19 @@ export default function RequestQuote() {
           <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Company name
+                Name <span className="text-red-500">*</span>
               </label>
               <input
-                name="companyName"
-                value={formData.companyName}
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                required
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Contact name
-              </label>
-              <input
-                name="contactName"
-                value={formData.contactName}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Email
+                Email <span className="text-red-500">*</span>
               </label>
               <input
                 name="email"
@@ -102,6 +91,7 @@ export default function RequestQuote() {
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                required
               />
             </div>
             <div className="space-y-2">
@@ -120,24 +110,13 @@ export default function RequestQuote() {
           <section className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Project name
+                Clothing type
               </label>
               <input
-                name="projectName"
-                value={formData.projectName}
+                name="clothingType"
+                value={formData.clothingType}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Project description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm min-h-[120px]"
               />
             </div>
           </section>
@@ -145,11 +124,22 @@ export default function RequestQuote() {
           <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Materials
+                Material
               </label>
               <input
-                name="materials"
-                value={formData.materials}
+                name="material"
+                value={formData.material}
+                onChange={handleChange}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Color
+              </label>
+              <input
+                name="color"
+                value={formData.color}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
               />
@@ -165,20 +155,20 @@ export default function RequestQuote() {
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
               />
             </div>
+          </section>
+
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Budget range
+                Size range
               </label>
               <input
-                name="budget"
-                value={formData.budget}
+                name="sizeRange"
+                value={formData.sizeRange}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
               />
             </div>
-          </section>
-
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
                 Desired deadline
@@ -191,46 +181,18 @@ export default function RequestQuote() {
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Certifications needed
-              </label>
-              <input
-                name="certifications"
-                value={formData.certifications}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              />
-            </div>
           </section>
 
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Shipping location
-              </label>
-              <input
-                name="shippingLocation"
-                value={formData.shippingLocation}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                NDA required
-              </label>
-              <select
-                name="ndaRequired"
-                value={formData.ndaRequired}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              >
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-                <option value="unsure">Not sure yet</option>
-              </select>
-            </div>
+          <section className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Additional notes
+            </label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm min-h-[120px]"
+            />
           </section>
 
           <section className="space-y-2">
