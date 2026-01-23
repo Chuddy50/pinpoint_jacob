@@ -1,26 +1,28 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import { useAuth } from "../contexts/AuthContext";
 
 const initialForm = {
-  companyName: "",
-  contactName: "",
+  name: "",
   email: "",
   phone: "",
-  projectName: "",
-  description: "",
-  materials: "",
+  clothingType: "",
   quantity: "",
-  budget: "",
+  material: "",
+  color: "",
+  sizeRange: "",
   deadline: "",
-  certifications: "",
-  shippingLocation: "",
-  ndaRequired: "no",
+  notes: "",
   attachments: null,
 };
 
 export default function RequestQuote() {
   const [formData, setFormData] = useState(initialForm);
   const [submitted, setSubmitted] = useState(false);
+  const { user } = useAuth();
+  const location = useLocation();
+  const manufacturer = location.state?.manufacturer || null;
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -32,9 +34,43 @@ export default function RequestQuote() {
     setFormData((prev) => ({ ...prev, attachments: file }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
-    setSubmitted(true);
+
+    try {
+      if (!user?.user_id) {
+        throw new Error("User not authenticated");
+      }
+
+      const response = await fetch("http://127.0.0.1:8000/rfq/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyer_id: user.user_id,
+          manufacturer_id: null,
+          contact_name: formData.name,
+          contact_email: formData.email,
+          contact_phone: formData.phone || null,
+          clothing_type: formData.clothingType,
+          quantity: formData.quantity,
+          material: formData.material || null,
+          color: formData.color || null,
+          size_range: formData.sizeRange || null,
+          deadline: formData.deadline || null,
+          notes: formData.notes || null,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.detail || data.error || "Failed to submit RFQ");
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Failed to save RFQ:", err);
+      alert("Failed to submit quote request");
+    }
   }
 
   function handleReset() {
@@ -49,22 +85,39 @@ export default function RequestQuote() {
       </aside>
 
       <div className="flex-1 rounded-3xl bg-white p-10 shadow-sm space-y-8">
-        <header className="space-y-2">
+        <header className="space-y-3">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="w-fit rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+          >
+            ← Back
+          </button>
           <p className="text-xs uppercase tracking-[0.35em] text-gray-400">
             PinPoint
           </p>
           <h1 className="text-3xl font-semibold text-gray-900">
-            Request a Manufacturing Quote
+            Request a Quote
           </h1>
-          <p className="text-sm text-gray-500">
-            Outline the project details you want to send to a manufacturer.
+          {manufacturer?.name && (
+            <p className="text-sm text-gray-600">
+              Requesting a quote from{" "}
+              <span className="font-semibold text-gray-900">
+                {manufacturer.name}
+              </span>
+              .
+            </p>
+          )}
+        <p className="text-sm text-gray-500">
+            Automated RFQ to send project details (material, color, quantities,
+            notes) to a manufacturer. This saves a draft to Supabase and can be
+            sent via Postmark later.
           </p>
         </header>
 
         {submitted && (
           <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-            Your outline is ready. Connect this form to the backend when you are
-            ready to send it.
+            Your quote request was submitted successfully.
           </div>
         )}
 
@@ -72,29 +125,19 @@ export default function RequestQuote() {
           <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Company name
+                Name <span className="text-red-500">*</span>
               </label>
               <input
-                name="companyName"
-                value={formData.companyName}
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                required
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Contact name
-              </label>
-              <input
-                name="contactName"
-                value={formData.contactName}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Email
+                Email <span className="text-red-500">*</span>
               </label>
               <input
                 name="email"
@@ -102,6 +145,7 @@ export default function RequestQuote() {
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                required
               />
             </div>
             <div className="space-y-2">
@@ -120,24 +164,13 @@ export default function RequestQuote() {
           <section className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Project name
+                Clothing type
               </label>
               <input
-                name="projectName"
-                value={formData.projectName}
+                name="clothingType"
+                value={formData.clothingType}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Project description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm min-h-[120px]"
               />
             </div>
           </section>
@@ -145,11 +178,22 @@ export default function RequestQuote() {
           <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Materials
+                Material
               </label>
               <input
-                name="materials"
-                value={formData.materials}
+                name="material"
+                value={formData.material}
+                onChange={handleChange}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Color
+              </label>
+              <input
+                name="color"
+                value={formData.color}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
               />
@@ -165,20 +209,20 @@ export default function RequestQuote() {
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
               />
             </div>
+          </section>
+
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Budget range
+                Size range
               </label>
               <input
-                name="budget"
-                value={formData.budget}
+                name="sizeRange"
+                value={formData.sizeRange}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
               />
             </div>
-          </section>
-
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
                 Desired deadline
@@ -191,46 +235,18 @@ export default function RequestQuote() {
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Certifications needed
-              </label>
-              <input
-                name="certifications"
-                value={formData.certifications}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              />
-            </div>
           </section>
 
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Shipping location
-              </label>
-              <input
-                name="shippingLocation"
-                value={formData.shippingLocation}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                NDA required
-              </label>
-              <select
-                name="ndaRequired"
-                value={formData.ndaRequired}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-              >
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-                <option value="unsure">Not sure yet</option>
-              </select>
-            </div>
+          <section className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Additional notes
+            </label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm min-h-[120px]"
+            />
           </section>
 
           <section className="space-y-2">
@@ -254,7 +270,7 @@ export default function RequestQuote() {
               type="submit"
               className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-semibold text-white hover:bg-black transition"
             >
-              Save outline
+              Submit
             </button>
             <button
               type="button"

@@ -9,6 +9,7 @@ import Consultant from "./pages/Consultant";
 import Messages from "./pages/Messages";
 import Ratings from "./pages/Ratings";
 import ManufacturerProfile from "./pages/ManufacturerProfile";
+import RequestQuote from "./pages/RequestQuote";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
               <Route path="/consultant" element={<Consultant />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/ratings/:id" element={<Ratings />} />
+              <Route path="/request-quote" element={<RequestQuote />} />
               <Route path="/manufacturers/:id" element={<ManufacturerProfile />} />
             </Routes>
           </main>
