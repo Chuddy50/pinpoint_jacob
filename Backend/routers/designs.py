@@ -24,7 +24,7 @@ Uploads GLB file to user-specific folder, stores metadata in database with mater
 @param material: Material type selected for the design (cotton, denim, polyester, etc.)
 @return: Dictionary with success status and design_id on success; error message on failure
 '''
-@router.post("/designs/save/{user_id}")
+@router.post("/save/{user_id}")
 async def save_design(
     user_id: str,
     file: UploadFile = File(...),
@@ -96,7 +96,7 @@ Fetches design metadata including model URLs from database
 @param user_id: UUID of user whose designs to retrieve
 @return: Dictionary containing 'designs' list with all user's saved design records
 '''
-@router.get("/designs/saved_designs/{user_id}")
+@router.get("/saved_designs/{user_id}")
 async def get_user_saved_designs(user_id: str):
     response = supabase.table('saved_designs').select('*').eq('user_id', user_id).execute()
     return {

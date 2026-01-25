@@ -1,8 +1,10 @@
 import NavBar from "../components/NavBar";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 function Ratings() {
+  const { user } = useAuth()
   const { id } = useParams();
 
   const navigate = useNavigate();
@@ -73,6 +75,7 @@ function Ratings() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          user_id: user.user_id,
           manufacturer_id: Number(id),
           rating,
           review,

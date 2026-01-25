@@ -3,6 +3,8 @@ import { useState, useRef } from "react";
 import NavBar from "../components/NavBar";
 import LoginForm from "../components/LoginForm";
 import { useAuth } from "../contexts/AuthContext"
+import UserReviews from "../components/UserReviews";
+import SavedDesignsProfile from "../components/SavedDesignsProfile";
 
 
 export default function Profile() {
@@ -127,6 +129,12 @@ export default function Profile() {
                 <p className="text-sm text-gray-500 font-mono">{user.user_id}</p>
               </div>
             </div>
+
+            {/* designs saved by this user */}
+            <SavedDesignsProfile userId={user.user_id}/>
+
+            {/* reviews left by this user */}
+            <UserReviews userId={user.user_id}/>
 
             {/*hidden file input for selecting a new pfp*/}
             <input 
