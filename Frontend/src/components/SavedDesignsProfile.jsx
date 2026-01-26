@@ -25,27 +25,29 @@ const SavedDesignsProfile = ({ userId }) => {
   if (loading) return <div className="p-4">Loading designs...</div>;
 
   return (
-    <div className="p-4 border border-gray-300 rounded mt-4 mb-4">
+    <div className="p-4 border border-gray-300 rounded mt-4">
       <h2 className="text-xl font-bold mb-4">
         Saved Designs ({designs.length})
       </h2>
-
+  
       {designs.length === 0 ? (
         <p className="text-gray-500">No saved designs yet</p>
       ) : (
-        <div className="grid grid-cols-3 gap-4">
-          {designs.map((design) => (
-            <div
-              key={design.id}
-              onClick={() => navigate(`/prototype?designId=${design.id}`)}
-              className="border border-gray-200 p-3 rounded cursor-pointer hover:border-blue-500 transition"
-            >
-              <h3 className="font-semibold text-gray-900">{design.name}</h3>
-              <p className="text-xs text-gray-400">
-                {new Date(design.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          ))}
+        <div className="overflow-x-auto max-w-full">
+          <div className="flex gap-4 pb-2">
+            {designs.map((design) => (
+              <div
+                key={design.id}
+                onClick={() => navigate(`/prototype?designId=${design.id}`)}
+                className="border border-gray-200 p-3 rounded cursor-pointer hover:border-blue-500 transition flex-shrink-0 w-48"
+              >
+                <h3 className="font-semibold text-gray-900 truncate">{design.name}</h3>
+                <p className="text-xs text-gray-400">
+                  {new Date(design.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
