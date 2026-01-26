@@ -102,3 +102,31 @@ async def get_user_saved_designs(user_id: str):
     return {
         'designs': response.data
     }
+
+
+@router.post("/delete/{user_id}/{design_id}")
+async def delete_saved_design(user_id: str,
+                              design_id: str):
+    
+    #remove from file bucket first
+    fileResponse = supabase.storage.from_("3d-models").remove([f"{user_id}/{design_id}.glb"])
+
+    if not fileResponse:
+        return {
+            "success": False,
+            "message": "Error removing the design from 3d-models bucket"
+        }
+
+    #remove from database
+    dbResponse = supabase.table('saved_designs').delete().eq('design_id', design_id).execute()
+
+    if not dbResponse.data:
+        return {
+            "success": False,
+            "message": "Error removing the design from saved_designs table"
+        }
+
+    return {
+        "success": True,
+        "message": "3D Model sucessfully removed from file storage and database"
+    }
