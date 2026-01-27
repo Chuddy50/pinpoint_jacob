@@ -22,7 +22,7 @@ Creates review record in database with rating (1-5 stars) and written feedback
 @router.post("")
 async def create_review(review : dict):
     try:
-        response = supabase.table("reviews").insert({
+        insertResponse = supabase.table("reviews").insert({
             "manufacturer_id": review['manufacturer_id'],
             "user_id": review['user_id'],
             "rating": review['rating'],
@@ -30,6 +30,35 @@ async def create_review(review : dict):
             #supabase automatically will make the created_at col bc of the
             #default value set to 'now()' during table creation
         }).execute()
+
+        # Now update the average rating for this manufacturer
+        print("Updating average rating for a manufacturer.")
+        print("Wassup")
+
+        # Get all ratings for manufacturer.
+        ratingsResponse = (
+            supabase
+            .table("reviews")
+            .select("rating")
+            .eq("manufacturer_id", review['manufacturer_id'])
+            .execute()
+        )
+        print("Got all ratings for manufacturer.")
+        # Calculate average rating.
+        ratings = [r["rating"] for r in ratingsResponse.data]
+        avgRating = sum(ratings) / len(ratings)
+        print("Calculated the average")
+
+        # Save average rating in the database.
+        avgRatingResponse = (
+            supabase
+            .table("manufacturers")
+            .update({"average_rating": avgRating})
+            .eq("manufacturer_id", review['manufacturer_id'])
+            .execute()
+        )
+
+        print("Saved the average rating")
 
         return {
             "success": True,
