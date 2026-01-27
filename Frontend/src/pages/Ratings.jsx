@@ -139,6 +139,20 @@ function Ratings() {
 
         {!loading && !loadError && (
           <>
+
+            {/* Back Button */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+              >
+                ← Back
+              </button>
+              <p className="text-xs uppercase tracking-[0.25em] text-gray-400">
+                Leave a review
+              </p>
+            </div>
+
             {/* Page Title */}
             <h1 className="text-3xl font-semibold text-gray-900">
               {manufacturerName}
