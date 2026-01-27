@@ -14,15 +14,6 @@ from config.database import supabase
 router = APIRouter()
 
 '''
-Get all manufacturers.
-
-@return: List of manufacturer dictionaries
-'''
-# @router.get("/manufactuerers")
-# async def list_manufactuerers():
-
-
-'''
 Fetch all manufacturers with calculated average ratings
 Retrieves manufacturer data and computes rating averages from review data
 
