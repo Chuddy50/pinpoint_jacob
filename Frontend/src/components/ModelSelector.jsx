@@ -5,6 +5,9 @@ const ModelSelector = ({ onSelect }) => {
 
     const [savedDesigns, setSavedDesigns] = useState([]);
     const { user } = useAuth()
+
+    const [deleteModal, setDeleteModal] = useState({ open: false, design: null});
+    const [deleteLoading, setDeleteLoading] = useState(false);
     
     const models = [
         {
@@ -56,6 +59,40 @@ const ModelSelector = ({ onSelect }) => {
       fetchUsersDesigns();
     }, [user]);
 
+    
+    const handleDelete = async () => {
+      if (!deleteModal.design) return;
+
+      setDeleteLoading(true);
+
+      try{
+        const response = await fetch(`http://localhost:8000/designs/delete/${deleteModal.design.design_id}?user_id=${user.user_id}`, {
+          method: 'DELETE',
+        });
+
+        console.log('Response status: ', response.status);
+        console.log('REsponse ok: ', response.ok);
+
+        const data = await response.json();
+        console.log('Response data: ', data);
+
+        if(data.success){
+          setSavedDesigns(prev => prev.filter(d => d.design_id !== deleteModal.design.design_id));
+          setDeleteModal({open: false, design: null});
+        }
+        else{
+          alert(data.message || "data not success, Failed to delete design");
+        }
+      }
+      catch (error) {
+        console.error('Error deleting design: ', error);
+        alert('ERROR Failed to delete design');
+      }
+      finally {
+        setDeleteLoading(false);
+      }
+    }
+
     return (
       <div className="min-h-full bg-white p-12">
         <div className="max-w-5xl ml-8">
@@ -78,10 +115,12 @@ const ModelSelector = ({ onSelect }) => {
                 {savedDesigns.map((design) => (
                   <div
                     key={design.design_id}
-                    className="group py-6 flex items-center justify-between hover:bg-slate-50 -mx-6 px-6 transition-colors cursor-pointer"
-                    onClick={() => onSelect(design.model_url, design.material_used)}
+                    className="group py-6 flex items-center justify-between hover:bg-slate-50 -mx-6 px-6 transition-colors"
                   >
-                    <div className="flex items-baseline gap-6">
+                    <div 
+                      className="flex items-baseline gap-6 flex-1 cursor-pointer"
+                      onClick={() => onSelect(design.model_url, design.material_used)}
+                    >
                       <span className="text-3xl font-light text-slate-900 group-hover:text-slate-700 transition-colors">
                         {design.name}
                       </span>
@@ -90,11 +129,31 @@ const ModelSelector = ({ onSelect }) => {
                       </span>
                     </div>
                     
-                    <div className="flex items-center gap-3 text-slate-400 group-hover:text-slate-700 transition-colors">
-                      <span className="text-sm">Open</span>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                    <div className="flex items-center gap-4">
+                      {/* Delete button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteModal({ open: true, design });
+                        }}
+                        className="text-slate-400 hover:text-red-600 transition-colors p-2"
+                        title="Delete design"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+    
+                      {/* Open button */}
+                      <div 
+                        className="flex items-center gap-3 text-slate-400 group-hover:text-slate-700 transition-colors cursor-pointer"
+                        onClick={() => onSelect(design.model_url, design.material_used)}
+                      >
+                        <span className="text-sm">Open</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -141,6 +200,37 @@ const ModelSelector = ({ onSelect }) => {
             </div>
           </section>
         </div>
+    
+        {/* Delete Confirmation Modal */}
+        {deleteModal.open && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 max-w-md mx-4 shadow-xl">
+              <h3 className="text-2xl font-light text-slate-900 mb-4">
+                Delete {deleteModal.design?.name}?
+              </h3>
+              <p className="text-slate-600 mb-8">
+                This can't be undone.
+              </p>
+              
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setDeleteModal({ open: false, design: null })}
+                  disabled={deleteLoading}
+                  className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteLoading}
+                  className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {deleteLoading ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
