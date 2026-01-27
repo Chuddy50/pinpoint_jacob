@@ -13,6 +13,14 @@ from config.database import supabase
 
 router = APIRouter()
 
+'''
+Get all manufacturers.
+
+@return: List of manufacturer dictionaries
+'''
+# @router.get("/manufactuerers")
+# async def list_manufactuerers():
+
 
 '''
 Fetch all manufacturers with calculated average ratings
@@ -30,27 +38,30 @@ async def list_manufacturers():
         #print("starting to grab manufacturers")
 
         manufacturers_response = supabase.table("manufacturers").select(
-            "manufacturer_id,name,location,address,phone,email,contactee,description"
+            "manufacturer_id,name,location,address,phone,email,contactee,description,average_rating"
         ).execute()
         manufacturers = manufacturers_response.data or []
 
-        reviews_response = supabase.table("reviews").select("manufacturer_id,rating").execute()
-        rating_map = {}
-        for review in reviews_response.data or []:
-            manufacturer_id = review.get("manufacturer_id")
-            rating = review.get("rating")
-            if manufacturer_id is None or rating is None:
-                continue
-            bucket = rating_map.setdefault(manufacturer_id, {"sum": 0.0, "count": 0})
-            bucket["sum"] += float(rating)
-            bucket["count"] += 1
+        for m in manufacturers:
+            m["rating"] = m.pop("average_rating", None)
 
-        for manufacturer in manufacturers:
-            stats = rating_map.get(manufacturer.get("manufacturer_id"))
-            if stats and stats["count"]:
-                manufacturer["rating"] = round(stats["sum"] / stats["count"], 1)
-            else:
-                manufacturer["rating"] = None
+        # reviews_response = supabase.table("reviews").select("manufacturer_id,rating").execute()
+        # rating_map = {}
+        # for review in reviews_response.data or []:
+        #     manufacturer_id = review.get("manufacturer_id")
+        #     rating = review.get("rating")
+        #     if manufacturer_id is None or rating is None:
+        #         continue
+        #     bucket = rating_map.setdefault(manufacturer_id, {"sum": 0.0, "count": 0})
+        #     bucket["sum"] += float(rating)
+        #     bucket["count"] += 1
+
+        # for manufacturer in manufacturers:
+        #     stats = rating_map.get(manufacturer.get("manufacturer_id"))
+        #     if stats and stats["count"]:
+        #         manufacturer["rating"] = round(stats["sum"] / stats["count"], 1)
+        #     else:
+        #         manufacturer["rating"] = None
 
         return manufacturers
 
@@ -72,7 +83,7 @@ async def get_manufacturer(manufacturer_id: str):
     try:
         #get the data from the manufacturer table for the specified manufacturer
         manufacturer_response = supabase.table('manufacturers').select(
-            'manufacturer_id, name, location, address, phone, email, contactee, description'
+            'manufacturer_id, name, location, address, phone, email, contactee, description, average_rating'
             ).eq('manufacturer_id', manufacturer_id).execute()
         
         if not manufacturer_response.data:
