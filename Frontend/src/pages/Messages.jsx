@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Messages() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [threads, setThreads] = useState([]);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -156,6 +158,11 @@ export default function Messages() {
                 type="button"
                 className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
                 disabled={!selectedThread?.manufacturer_id}
+                onClick={() => {
+                  if (selectedThread?.manufacturer_id) {
+                    navigate(`/manufacturers/${selectedThread.manufacturer_id}`);
+                  }
+                }}
               >
                 View profile
               </button>
@@ -202,21 +209,9 @@ export default function Messages() {
               )}
             </div>
 
-            <form className="mt-auto flex items-center gap-2 border-t border-gray-100 pt-3">
-              <input
-                type="text"
-                placeholder="Type your message..."
-                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm"
-                disabled
-              />
-              <button
-                type="submit"
-                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black transition"
-                disabled
-              >
-                Send
-              </button>
-            </form>
+            <div className="border-t border-gray-100 pt-3 text-xs text-gray-400">
+              Messaging is coming soon.
+            </div>
           </section>
         </div>
           </>
