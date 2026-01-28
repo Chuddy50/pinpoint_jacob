@@ -20,7 +20,9 @@ Retrieves manufacturer data and computes rating averages from review data
 @return: List of manufacturer dictionaries with calculated rating field
 '''
 @router.get("/manufacturers")
-async def list_manufacturers():
+async def list_manufacturers(
+    location: str | None = None
+):
     """
     Fetch manufacturers with an average rating (if reviews exist).
     """
@@ -28,9 +30,19 @@ async def list_manufacturers():
 
         #print("starting to grab manufacturers")
 
-        manufacturers_response = supabase.table("manufacturers").select(
+
+        query = supabase.table("manufacturers").select(
             "manufacturer_id,name,location,address,phone,email,contactee,description,average_rating"
-        ).execute()
+        )
+        print("Abouta be at the filtering")
+        
+        # Add the optional filtering
+        if location:
+            print("Filtering location.")
+            query = query.eq("location", location)
+
+        manufacturers_response = query.execute()
+
         manufacturers = manufacturers_response.data or []
 
         for m in manufacturers:
@@ -62,7 +74,7 @@ async def get_manufacturer(manufacturer_id: str):
         if not manufacturer_response.data:
             return {
                 "success": False,
-                "message": f"Supabase couldnt find a manufactuerer for ID: {manufacturer_id}. Error: {e}"
+                "message": f"Supabase couldnt find a manufacturer for ID: {manufacturer_id}. Error: {e}"
             }
         
         manufacturer = manufacturer_response.data[0]
@@ -100,3 +112,39 @@ async def get_manufacturer(manufacturer_id: str):
             "success": False,
             "message": f"Error grabbing manufacturer in API layer. Error: {str(e)}"
         }
+
+
+@router.get("/locations")
+async def get_all_unique_manufacturer_locations():
+    """
+    Fetch all unique locations.
+    Returns a list of string as locations.
+    """
+    try:
+        response = supabase.table("manufacturers").select("location").execute()
+        
+        # Extract unique locations and filter out None/empty values
+        locations = set()
+        for item in response.data or []:
+            location = item.get("location")
+            if location:
+                locations.add(location)
+        
+        # Return as sorted list
+        return sorted(list(locations))
+    except Exception as e:
+        print(f"Error fetching locations - {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch locations: {e}")
+
+@router.get("/minimums")
+async def get_minimums():
+    """
+    Fetch all minimum order quantities.
+    Returns a list of minimum objects with minimum_id and minimum_range.
+    """
+    try:
+        response = supabase.table('minimums').select('minimum_id, minimum_range').execute()
+        return response.data or []
+    except Exception as e:
+        print(f"Error fetching minimums - {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch minimums: {e}")

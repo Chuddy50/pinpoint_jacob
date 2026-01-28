@@ -4,7 +4,7 @@ import ManufacturerCard from "./ManufacturerCard";
 const sortModes = ["alphabetical", "rating-desc", "rating-asc"];
 const PAGE_SIZE = 18;
 
-export default function CompanyList({ searchTerm = "" }) {
+export default function CompanyList({ searchTerm = "", filters = {} }) {
   const [sortMode, setSortMode] = useState(sortModes[0]);
   const [manufacturers, setManufacturers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,22 @@ export default function CompanyList({ searchTerm = "" }) {
     async function fetchManufacturers() {
       setLoading(true);
       try {
-        const response = await fetch("http://localhost:8000/manufacturers");
+        // Begin changed
+        const params = new URLSearchParams();
+
+        if(filters.location) {
+          params.append("location", filters.location)
+        }
+
+        const queryString = params.toString();
+        let url = "";
+        if(queryString)
+          url = `http://localhost:8000/manufacturers?${queryString}`
+        else url = "http://localhost:8000/manufacturers";
+
+        const response = await fetch(url);
+        // end changed
+
         if (!response.ok) {
           throw new Error("Failed to fetch manufacturers");
         }
@@ -46,7 +61,7 @@ export default function CompanyList({ searchTerm = "" }) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [filters, searchTerm]);
 
   // filter manufacturers based on search bar
   // useMemo = only runs when manufacturers or searchTerm changes
