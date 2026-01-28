@@ -15,12 +15,12 @@ export default function Prototype() {
   }
 
   return (
-    <div className="flex bg-background w-screen h-screen bg-white p-6 gap-6">
+    <div className="flex bg-background w-screen h-screen">
       <aside className="w-72">
         <NavBar />
       </aside>
       
-      <main className="flex-1">
+      <main className="flex-1 overflow-y-auto">
         {!selectedUrl ? (
           <ModelSelector onSelect={handleSelect} />
         ) : (

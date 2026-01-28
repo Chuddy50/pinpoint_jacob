@@ -1,26 +1,18 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+"""
+main.py
+
+Last Edited: 1/21/2026
+Developers: Leo Plute, Jacob Nguyen, Luke Jones, Jacob Dietz
+Description: FastAPI application entry point. Configures CORS middleware,
+             and includes all API routers for auth, manufacturers, reviews
+             consultant, and designs.
+"""
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import UploadFile, File
-from supabase import create_client, Client
-from dotenv import load_dotenv
-from groq import Groq
-import os
-from datetime import datetime, timezone
-from uuid import uuid4, UUID
-import json
+from routers import auth, manufacturers, reviews, consultant, designs, rfq
 
-load_dotenv()
-supabaseURL = os.getenv("SUPABASE_URL")
-supabaseKey = os.getenv("SUPABASE_KEY")
-supabase: Client = create_client(supabaseURL, supabaseKey)
-groq_api_key = os.getenv("GROQ_API_KEY")
-groq_client = Groq(api_key=groq_api_key) if groq_api_key else None
-consultant_prompt = os.getenv(
-    "CONSULTANT_SYSTEM_PROMPT",
-    "You are PinPoint's consulting assistant. Be concise and actionable.",
-)
-groq_model = os.getenv("GROQ_MODEL", "mixtral-8x7b-32768")
-
+# Create FastAPI application instance
 app = FastAPI()
 
 
@@ -48,13 +40,12 @@ def _parse_optional_int(value):
 # *Will eventually need to add real site URL here once we deploy the site
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], 
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
 )
 
-# Starting auth stuff here
 
 '''
 Main PinPoint sign up endpoint
