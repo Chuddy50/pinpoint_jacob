@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from "../contexts/AuthContext"
 
-const UserReviews = ({ userId }) => {
-  const { user } = useAuth()
+const ManufacturerReviews = ({ manufacturerId }) => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,10 +11,13 @@ const UserReviews = ({ userId }) => {
     const fetchReviews = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:8000/reviews/user/${user.user_id}`);
+        const response = await fetch(`http://localhost:8000/reviews/manufacturer/${manufacturerId}`);
         if (!response.ok) throw new Error('Failed to fetch reviews');
         const data = await response.json();
-        setReviews(data.reviews);
+        console.log("Reviews data: ", data);
+        if (data.success) {
+          setReviews(data.reviews);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -24,8 +25,8 @@ const UserReviews = ({ userId }) => {
       }
     };
 
-    if (userId) fetchReviews();
-  }, [userId]);
+    if (manufacturerId) fetchReviews();
+  }, [manufacturerId]);
 
   if (loading) return <div className="p-4">Loading reviews...</div>;
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
@@ -49,7 +50,7 @@ const UserReviews = ({ userId }) => {
             {currentReviews.map((review) => (
               <div key={review.id} className="border border-gray-200 p-3 rounded">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">{review.manufacturer_name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{review.user_name}</h3>
                   <span className="text-xs text-gray-400">
                     {new Date(review.created_at).toLocaleDateString()}
                   </span>
@@ -91,4 +92,4 @@ const UserReviews = ({ userId }) => {
   );
 };
 
-export default UserReviews;
+export default ManufacturerReviews;
