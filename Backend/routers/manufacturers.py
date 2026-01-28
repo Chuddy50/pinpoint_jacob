@@ -1,7 +1,7 @@
 """
 manufacturers.py
 
-Last Edited: 1/21/2026
+Last Edited: 1/28/2026
 Developers: Leo Plute, Jacob Nguyen
 Description: FastAPI endpoints for fetching manufacturer data, including
              list view with ratings and individual manufacturer profiles
@@ -20,7 +20,7 @@ Retrieves manufacturer data and computes rating averages from review data
 
 @return: List of manufacturer dictionaries with calculated rating field
 '''
-@router.get("/manufacturers")
+@router.get("")
 async def list_manufacturers():
     """
     Fetch manufacturers with an average rating (if reviews exist).
@@ -66,7 +66,7 @@ Retrieves manufacturer info, calculated rating average, and price range data
 @param manufacturer_id: Unique identifier for the manufacturer
 @return: Dictionary with manufacturer details, rating, and price range; error message if not found
 '''
-@router.get("/manufacturers/{manufacturer_id}")
+@router.get("/{manufacturer_id}")
 async def get_manufacturer(manufacturer_id: str):
 
     try:
@@ -116,3 +116,161 @@ async def get_manufacturer(manufacturer_id: str):
             "success": False,
             "message": f"Error grabbing manufacturer in API layer. Error: {str(e)}"
         }
+    
+
+router.get("/{manufacturer_id}/categories")
+async def get_manufacturer_categories(manufacturer_id: str):
+
+    categories =[]
+
+    # query into junction table first
+    junctionResponse = supabase.table('manufacturer_categories').select('category_id').eq('manufacturer_id', manufacturer_id).execute()
+
+    if not junctionResponse.data:
+        return {
+            "success": False,
+            "message": f"No categories found for the manufacturer with id: {manufacturer_id}"
+        }
+
+    # query into categories table w/ all the categories the manfuacturer does
+    for category_id in junctionResponse.data:
+        categoryResponse = supabase.table('categories').select('category_name').eq('category_id', category_id).execute()
+
+        if not categoryResponse.data:
+            return {
+                "success": False,
+                "message": f"No category name found for category_id: {category_id}"
+            }
+
+        categories.append(categoryResponse.data['category_name'])
+
+    return {
+        "success": True,
+        "categories": categories
+    }
+
+router.get("/{manufacturer_id}/minimums")
+async def get_manufacturer_minimums(manufacturer_id: str):
+
+    minimums =[]
+
+    # query into junction table first
+    junctionResponse = supabase.table('manufacturer_minimums').select('minimum_id').eq('manufacturer_id', manufacturer_id).execute()
+
+    if not junctionResponse.data:
+        return {
+            "success": False,
+            "message": f"No minimums found for the manufacturer with id: {manufacturer_id}"
+        }
+
+    # query into minimums table w/ all the minimums the manfuacturer supports
+    for minimum_id in junctionResponse.data:
+        minimumResponse = supabase.table('minimums').select('minimum_range').eq('minimum_id', minimum_id).execute()
+
+        if not minimumResponse.data:
+            return {
+                "success": False,
+                "message": f"No category name found for category_id: {minimum_id}"
+            }
+
+        minimums.append(minimumResponse.data['minimun_range'])
+
+    return {
+        "success": True,
+        "minimums": minimums
+    }
+
+
+router.get("/{manufacturer_id}/services")
+async def get_manufacturer_services(manufacturer_id: str):
+
+    services =[]
+
+    # query into junction table first
+    junctionResponse = supabase.table('manufacturer_services').select('service_id').eq('manufacturer_id', manufacturer_id).execute()
+
+    if not junctionResponse.data:
+        return {
+            "success": False,
+            "message": f"No services found for the manufacturer with id: {manufacturer_id}"
+        }
+
+    # query into services table w/ all the services the manfuacturer supports
+    for service_id in junctionResponse.data:
+        serviceResponse = supabase.table('services').select('service_name').eq('service_id', service_id).execute()
+
+        if not serviceResponse.data:
+            return {
+                "success": False,
+                "message": f"No category name found for category_id: {service_id}"
+            }
+
+        services.append(serviceResponse.data['service_name'])
+
+    return {
+        "success": True,
+        "services": services
+    }
+
+
+@router.get("/{manufacturer_id}/products")
+async def get_manufacturer_products(manufacturer_id: str):
+    '''
+    structure:
+    [
+        { "category_name": "category1", "products": [{"id": 1, "name": "product1"}, ...] },
+        { "category_name": "category2", "products": [{"id": 2, "name": "product2"}, ...] },
+        ...
+    ]
+    '''
+
+    # get all product_type_ids for this manufacturer
+    junction_response = supabase.table('manufacturer_products') \
+        .select('product_type_id') \
+        .eq('manufacturer_id', manufacturer_id) \
+        .execute()
+
+    if not junction_response.data:
+        return {
+            "success": False,
+            "message": f"No products found for manufacturer with id: {manufacturer_id}"
+        }
+
+    product_type_ids = [item['product_type_id'] for item in junction_response.data]
+
+    # get product details with category IDs
+    products_response = supabase.table('product_type') \
+        .select('product_type_id, product_type_name, product_category_id') \
+        .in_('product_type_id', product_type_ids) \
+        .execute()
+
+    # get all unique category IDs
+    category_ids = list(set([p['product_category_id'] for p in products_response.data]))
+
+    # get category names
+    categories_response = supabase.table('product_categories') \
+        .select('category_id, category_name') \
+        .in_('category_id', category_ids) \
+        .execute()
+
+    # create category map
+    category_map = {cat['category_id']: cat['category_name'] for cat in categories_response.data}
+
+    # group products by category
+    products_by_category = {}
+    for product in products_response.data:
+        cat_id = product['product_category_id']
+        if cat_id not in products_by_category:
+            products_by_category[cat_id] = {
+                'category_name': category_map.get(cat_id, 'Unknown'),
+                'products': []
+            }
+        products_by_category[cat_id]['products'].append({
+            'product_type_id': product['product_type_id'],
+            'product_type_name': product['product_type_name']
+        })
+
+    return {
+        "success": True,
+        "products": list(products_by_category.values())
+    }
