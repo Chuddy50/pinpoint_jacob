@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import ManufacturerProducts from "../components/ManufacturerProducts";
+import ManufacturerCategories from "../components/ManufacturerCategories";
+import ManufacturerServices from "../components/ManufacturerServices";
+import ManufacturerMinimums from "../components/ManufacturerMinimums";
 
 function InfoRow({ label, value }) {
   const resolved =
@@ -168,6 +172,11 @@ export default function ManufacturerProfile() {
                   : "No description available yet."}
               </div>
             </div>
+
+            <ManufacturerProducts manufacturerId={id} />
+            <ManufacturerCategories manufacturerId={id} />
+            <ManufacturerServices manufacturerId={id} />
+            <ManufacturerMinimums manufacturerId={id} />
           </div>
         )}
       </div>

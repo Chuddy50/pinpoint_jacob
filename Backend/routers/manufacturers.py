@@ -118,99 +118,37 @@ async def get_manufacturer(manufacturer_id: str):
         }
     
 
-router.get("/{manufacturer_id}/categories")
+@router.get("/{manufacturer_id}/categories")
 async def get_manufacturer_categories(manufacturer_id: str):
-
-    categories =[]
-
-    # query into junction table first
-    junctionResponse = supabase.table('manufacturer_categories').select('category_id').eq('manufacturer_id', manufacturer_id).execute()
-
-    if not junctionResponse.data:
-        return {
-            "success": False,
-            "message": f"No categories found for the manufacturer with id: {manufacturer_id}"
-        }
-
-    # query into categories table w/ all the categories the manfuacturer does
-    for category_id in junctionResponse.data:
-        categoryResponse = supabase.table('categories').select('category_name').eq('category_id', category_id).execute()
-
-        if not categoryResponse.data:
-            return {
-                "success": False,
-                "message": f"No category name found for category_id: {category_id}"
-            }
-
-        categories.append(categoryResponse.data['category_name'])
-
-    return {
-        "success": True,
-        "categories": categories
-    }
-
-router.get("/{manufacturer_id}/minimums")
-async def get_manufacturer_minimums(manufacturer_id: str):
-
-    minimums =[]
-
-    # query into junction table first
-    junctionResponse = supabase.table('manufacturer_minimums').select('minimum_id').eq('manufacturer_id', manufacturer_id).execute()
-
-    if not junctionResponse.data:
-        return {
-            "success": False,
-            "message": f"No minimums found for the manufacturer with id: {manufacturer_id}"
-        }
-
-    # query into minimums table w/ all the minimums the manfuacturer supports
-    for minimum_id in junctionResponse.data:
-        minimumResponse = supabase.table('minimums').select('minimum_range').eq('minimum_id', minimum_id).execute()
-
-        if not minimumResponse.data:
-            return {
-                "success": False,
-                "message": f"No category name found for category_id: {minimum_id}"
-            }
-
-        minimums.append(minimumResponse.data['minimun_range'])
-
-    return {
-        "success": True,
-        "minimums": minimums
-    }
+    junction = supabase.table('manufacturer_categories').select('category_id').eq('manufacturer_id', manufacturer_id).execute()
+    if not junction.data:
+        return {"success": True, "categories": []}
+    
+    category_ids = [item['category_id'] for item in junction.data]
+    categories = supabase.table('categories').select('*').in_('category_id', category_ids).execute()
+    return {"success": True, "categories": categories.data}
 
 
-router.get("/{manufacturer_id}/services")
+@router.get("/{manufacturer_id}/services")
 async def get_manufacturer_services(manufacturer_id: str):
+    junction = supabase.table('manufacturer_services').select('service_id').eq('manufacturer_id', manufacturer_id).execute()
+    if not junction.data:
+        return {"success": True, "services": []}
+    
+    service_ids = [item['service_id'] for item in junction.data]
+    services = supabase.table('services').select('*').in_('service_id', service_ids).execute()
+    return {"success": True, "services": services.data}
 
-    services =[]
 
-    # query into junction table first
-    junctionResponse = supabase.table('manufacturer_services').select('service_id').eq('manufacturer_id', manufacturer_id).execute()
-
-    if not junctionResponse.data:
-        return {
-            "success": False,
-            "message": f"No services found for the manufacturer with id: {manufacturer_id}"
-        }
-
-    # query into services table w/ all the services the manfuacturer supports
-    for service_id in junctionResponse.data:
-        serviceResponse = supabase.table('services').select('service_name').eq('service_id', service_id).execute()
-
-        if not serviceResponse.data:
-            return {
-                "success": False,
-                "message": f"No category name found for category_id: {service_id}"
-            }
-
-        services.append(serviceResponse.data['service_name'])
-
-    return {
-        "success": True,
-        "services": services
-    }
+@router.get("/{manufacturer_id}/minimums")
+async def get_manufacturer_minimums(manufacturer_id: str):
+    junction = supabase.table('manufacturer_minimums').select('minimum_id').eq('manufacturer_id', manufacturer_id).execute()
+    if not junction.data:
+        return {"success": True, "minimums": []}
+    
+    minimum_ids = [item['minimum_id'] for item in junction.data]
+    minimums = supabase.table('minimums').select('*').in_('minimum_id', minimum_ids).execute()
+    return {"success": True, "minimums": minimums.data}
 
 
 @router.get("/{manufacturer_id}/products")
@@ -239,7 +177,7 @@ async def get_manufacturer_products(manufacturer_id: str):
     product_type_ids = [item['product_type_id'] for item in junction_response.data]
 
     # get product details with category IDs
-    products_response = supabase.table('product_type') \
+    products_response = supabase.table('product_types') \
         .select('product_type_id, product_type_name, product_category_id') \
         .in_('product_type_id', product_type_ids) \
         .execute()
@@ -249,12 +187,12 @@ async def get_manufacturer_products(manufacturer_id: str):
 
     # get category names
     categories_response = supabase.table('product_categories') \
-        .select('category_id, category_name') \
-        .in_('category_id', category_ids) \
+        .select('product_category_id, category_name') \
+        .in_('product_category_id', category_ids) \
         .execute()
 
     # create category map
-    category_map = {cat['category_id']: cat['category_name'] for cat in categories_response.data}
+    category_map = {cat['product_category_id']: cat['category_name'] for cat in categories_response.data}
 
     # group products by category
     products_by_category = {}
