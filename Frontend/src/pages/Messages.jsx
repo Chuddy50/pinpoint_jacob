@@ -45,7 +45,7 @@ export default function Messages() {
     return () => {
       isActive = false;
     };
-  }, [user?.user_id, selectedThreadId]);
+  }, [user?.user_id]);
 
   const selectedThread = useMemo(
     () => threads.find((thread) => thread.id === selectedThreadId) || null,
