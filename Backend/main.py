@@ -31,6 +31,17 @@ def _looks_like_uuid(value: str) -> bool:
     except Exception:
         return False
 
+
+def _parse_optional_int(value):
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except Exception:
+        return None
+
 # Add CORS middleware 
 # *Allows frontend server to send requests to this, normally same origin policy on
 #    browser would block this, this allows us to bypass that
@@ -238,9 +249,7 @@ async def submit_rfq(payload: dict):
         if not _looks_like_uuid(buyer_id):
             raise HTTPException(status_code=400, detail="buyer_id must be a UUID")
 
-        manufacturer_id = payload.get("manufacturer_id")
-        if manufacturer_id and not _looks_like_uuid(manufacturer_id):
-            manufacturer_id = None
+        manufacturer_id = _parse_optional_int(payload.get("manufacturer_id"))
         status = payload.get("status") or "draft"
 
         contact_name = payload.get("contact_name")

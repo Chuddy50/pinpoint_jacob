@@ -47,7 +47,7 @@ export default function RequestQuote() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           buyer_id: user.user_id,
-          manufacturer_id: null,
+          manufacturer_id: manufacturer?.id || null,
           contact_name: formData.name,
           contact_email: formData.email,
           contact_phone: formData.phone || null,
