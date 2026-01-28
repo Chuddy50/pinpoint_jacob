@@ -4,12 +4,24 @@ from uuid import UUID
 
 router = APIRouter()
 
+
 def _looks_like_uuid(value: str) -> bool:
     try:
         UUID(str(value))
         return True
     except Exception:
         return False
+
+
+def _parse_optional_int(value):
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except Exception:
+        return None
     
 
 @router.post("/submit")
@@ -21,9 +33,7 @@ async def submit_rfq(payload: dict):
         if not _looks_like_uuid(buyer_id):
             raise HTTPException(status_code=400, detail="buyer_id must be a UUID")
 
-        manufacturer_id = payload.get("manufacturer_id")
-        if manufacturer_id and not _looks_like_uuid(manufacturer_id):
-            manufacturer_id = None
+        manufacturer_id = _parse_optional_int(payload.get("manufacturer_id"))
         status = payload.get("status") or "draft"
 
         contact_name = payload.get("contact_name")
@@ -96,3 +106,62 @@ async def submit_rfq(payload: dict):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to submit RFQ: {e}")
+
+
+@router.get("/conversations/{buyer_id}")
+async def list_rfq_conversations(buyer_id: str):
+    try:
+        if not _looks_like_uuid(buyer_id):
+            raise HTTPException(status_code=400, detail="buyer_id must be a UUID")
+
+        conversations_response = (
+            supabase.table("rfq_conversations")
+            .select("id,buyer_id,manufacturer_id,status,created_at")
+            .eq("buyer_id", buyer_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        conversations = conversations_response.data or []
+        if not conversations:
+            return {"conversations": []}
+
+        conversation_ids = [c["id"] for c in conversations if c.get("id")]
+        details_response = (
+            supabase.table("rfq_details")
+            .select(
+                "rfq_conversation_id,contact_name,contact_email,contact_phone,"
+                "clothing_type,quantity,material,color,size_range,deadline,notes,created_at"
+            )
+            .in_("rfq_conversation_id", conversation_ids)
+            .execute()
+        )
+        details_map = {
+            d["rfq_conversation_id"]: d for d in (details_response.data or [])
+        }
+
+        manufacturer_ids = list(
+            {c["manufacturer_id"] for c in conversations if c.get("manufacturer_id")}
+        )
+        manufacturer_map = {}
+        if manufacturer_ids:
+            manufacturer_response = (
+                supabase.table("manufacturers")
+                .select("manufacturer_id,name")
+                .in_("manufacturer_id", manufacturer_ids)
+                .execute()
+            )
+            manufacturer_map = {
+                m["manufacturer_id"]: m["name"] for m in (manufacturer_response.data or [])
+            }
+
+        for conversation in conversations:
+            conversation["manufacturer_name"] = manufacturer_map.get(
+                conversation.get("manufacturer_id")
+            )
+            conversation["details"] = details_map.get(conversation.get("id"))
+
+        return {"conversations": conversations}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load RFQs: {e}")
