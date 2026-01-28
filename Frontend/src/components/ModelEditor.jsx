@@ -346,6 +346,52 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     );
   };
 
+  // download the current 3d model design to local computer
+  const handleDownload = () => {
+    if(!designName.trim()) {
+      showNotification('Please enter a name for your design', 'error');
+      return;
+    }
+
+    if(!modelRef.current){
+      showNotification('No model to download', 'error');
+      return;
+    }
+
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      modelRef.current,
+      (result) => {
+        let blob;
+        
+        if (result instanceof ArrayBuffer) {
+          blob = new Blob([result], { type: 'model/gltf-binary' });
+        } else {
+          console.error('GLTFExporter returned non-binary output:', result);
+          showNotification('Export failed: invalid GLB output', 'error');
+          return;
+        }
+
+        // create download link and trigger download
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${designName}.glb`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        showNotification('Design downloaded successfully', 'success');
+      },
+      (error) => {
+        console.error('GLTFExporter error:', error);
+        showNotification('Download failed', 'error');
+      },
+      { binary: true }
+    );
+  };
+
   // return the layout for the threeJS div + controls for customization
   return (
     <div className="h-screen flex bg-white">
@@ -458,21 +504,11 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
               designName={designName}
               onDesignNameChange={setDesignName}
               currentMaterial={currentMaterial}
+              onSaveToSupabase={handleSave}
+              onDownload={handleDownload}
             />
           )}
         </div>
-
-        {/* Save Button at Bottom (only show on export tab) */}
-        {activeTab === 'export' && (
-          <div className="p-6 border-t border-slate-200">
-            <button 
-              onClick={handleSave}
-              className="w-full px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
-            >
-              Save Design
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -43,7 +43,7 @@ async def create_review(review : dict):
         }
     
 
-@router.get('/{user_id}')
+@router.get('/user/{user_id}')
 async def get_users_reviews(user_id: str):
     try:
         # get all reviews by this user
@@ -72,4 +72,43 @@ async def get_users_reviews(user_id: str):
         
     except Exception as e:
         print(f"Error fetching user reviews: {e}")
+        return {"success": False, "error": str(e)}
+    
+
+@router.get('/manufacturer/{manufacturer_id}')
+async def get_manufacturers_reviews(manufacturer_id: str):
+    try:
+        # get all reviews for this manufacturer
+        response = supabase.table('reviews').select('*').eq('manufacturer_id', manufacturer_id).execute()
+        
+        if not response.data:
+            return {"success": True, "reviews": []}
+        
+        # parse reviews and fetch user names
+        parsed_reviews = []
+        for review in response.data:
+            # get user name
+            try:
+                user_response = supabase.table('users').select('name').eq('user_id', review['user_id']).single().execute()
+                user_name = user_response.data.get('name', '').strip() if user_response.data else ''
+                # use "Jane Doe" if name is empty, None, or whitespace
+                if not user_name or user_name == '':
+                    #TODO: Change
+                    user_name = "Jane Doe"
+            except:
+                #TODO: Change
+                user_name = "Jane Doe"
+            
+            parsed_reviews.append({
+                'id': review['review_id'],
+                'user_name': user_name,
+                'rating': review['rating'],
+                'message': review['review'],
+                'created_at': review['created_at']
+            })
+        
+        return {"success": True, "reviews": parsed_reviews}
+        
+    except Exception as e:
+        print(f"Error fetching manufacturer reviews: {e}")
         return {"success": False, "error": str(e)}
