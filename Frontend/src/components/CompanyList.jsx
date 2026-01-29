@@ -23,11 +23,30 @@ export default function CompanyList({ searchTerm = "", filters = {} }) {
     async function fetchManufacturers() {
       setLoading(true);
       try {
-        // Begin changed
         const params = new URLSearchParams();
 
         if(filters.location) {
           params.append("location", filters.location)
+        }
+
+        if(filters.priceLevels && filters.priceLevels.length > 0) {
+          filters.priceLevels.forEach(priceLevel => {
+            params.append("priceLevel", priceLevel)
+          })
+        }
+
+        if(filters.productCategories && filters.productCategories.length > 0) {
+          filters.productCategories.forEach(category => {
+            params.append("productCategory", category)
+          })
+        }
+
+        if(filters.moq) {
+          params.append("moq", filters.moq)
+        }
+
+        if(filters.minRating) {
+          params.append("rating", filters.minRating)
         }
 
         const queryString = params.toString();
@@ -37,7 +56,6 @@ export default function CompanyList({ searchTerm = "", filters = {} }) {
         else url = "http://localhost:8000/manufacturers";
 
         const response = await fetch(url);
-        // end changed
 
         if (!response.ok) {
           throw new Error("Failed to fetch manufacturers");

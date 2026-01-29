@@ -21,7 +21,9 @@ Retrieves manufacturer data and computes rating averages from review data
 '''
 @router.get("/manufacturers")
 async def list_manufacturers(
-    location: str | None = None
+    location: str | None = None,
+    moq: int | None = None,
+    rating: float | None = None
 ):
     """
     Fetch manufacturers with an average rating (if reviews exist).
@@ -40,6 +42,18 @@ async def list_manufacturers(
         if location:
             print("Filtering location.")
             query = query.eq("location", location)
+
+        if moq:
+            print("Filtering moq.")
+            moqResponse = supabase.table("manufacturer_minimums").select("manufacturer_id").eq("minimum_id", moq).execute()
+            manuIdsList = [item["manufacturer_id"] for item in moqResponse.data or []]
+            query = query.in_("manufacturer_id", manuIdsList)
+            
+        
+        if rating:
+            print("Filtering rating.")
+            query = query.gte("average_rating", rating)
+        
 
         manufacturers_response = query.execute()
 
@@ -135,6 +149,38 @@ async def get_all_unique_manufacturer_locations():
     except Exception as e:
         print(f"Error fetching locations - {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch locations: {e}")
+
+# @router.get("/prices")
+# async def get_prices():
+#     """
+#     Fetch all price levels.
+#     Returns a list of strings as price levels.
+#     """
+#     try:
+#         response = supabase.table("prices").select("price_level").execute()
+
+#         priceLevels = [item["price_level"] for item in response.data or [] if item.get("price_level")]
+
+#         return priceLevels
+#     except Exception as e:
+#         print(f"Error fetching price levels - {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Failed to fetch price levels: {e}")
+
+
+# @router.get("/product-categories")
+# async def get_product_categories():
+#     """
+#     Fetch all product categories.
+#     Returns a list of strings as product categories.
+#     """
+#     try:
+#         response = supabase.table("product_categories").select("category_name").execute()
+#         productCategories = [item["category_name"] for item in response.data or [] if item.get("category_name")]
+#         return productCategories
+#     except Exception as e:
+#         print(f"Error fetching product categories - {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Failed to fetch price levels: {e}")
+
 
 @router.get("/minimums")
 async def get_minimums():
