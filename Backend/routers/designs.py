@@ -102,3 +102,45 @@ async def get_user_saved_designs(user_id: str):
     return {
         'designs': response.data
     }
+
+
+@router.delete("/delete/{design_id}")
+async def delete_saved_design(design_id: str,
+                              user_id: str):
+    
+    #make sure design exists and belongs to signed in user
+    design = supabase.table('saved_designs').select('user_id').eq('design_id', design_id).execute()
+    if not design.data:
+        return {
+            "success": False,
+            "message": "Design does not exist"
+        }
+    
+    if design.data[0]['user_id'] != user_id:
+        return {
+            "success": False,
+            "message": "Design does not belong to user"
+        }
+
+    
+    #remove from database
+    dbResponse = supabase.table('saved_designs').delete().eq('design_id', design_id).execute()
+    if not dbResponse.data:
+        return {
+            "success": False,
+            "message": f"Error removing the design from saved_designs table. Error {str(e)}"
+        }   
+
+    #remove from file bucket
+    try:
+        supabase.storage.from_("3d-models").remove([f"{user_id}/{design_id}.glb"])  
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Error removing the design from 3d-models bucket. Error: {str(e)}"
+        } 
+
+    return {
+        "success": True,
+        "message": "3D Model sucessfully removed from file storage and database"
+    }
