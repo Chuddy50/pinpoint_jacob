@@ -1,7 +1,11 @@
 import NavBar from "../components/NavBar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Consultant() {
+
+  useEffect(() => {
+    document.title = "Consultant - PinPoint";
+  }, []);
 
   // store chat history here 
   const [messages, setMessages] = useState([]);
@@ -67,7 +71,7 @@ export default function Consultant() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-white p-4 gap-4 md:flex-row md:p-6 md:gap-6">
       {/* Nav bar stuff  */}
-      <aside className="w-full md:w-72">
+      <aside className="w-full md:w-45">
         <NavBar />
       </aside>
 

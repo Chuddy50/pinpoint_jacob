@@ -1,5 +1,5 @@
 // Profile.jsx
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import NavBar from "../components/NavBar";
 import LoginForm from "../components/LoginForm";
 import { useAuth } from "../contexts/AuthContext"
@@ -8,6 +8,11 @@ import SavedDesignsProfile from "../components/SavedDesignsProfile";
 
 
 export default function Profile() {
+
+  useEffect(() => {
+    document.title = "Profile - PinPoint";
+  }, []);
+  
   const { user, login, logout } = useAuth()
 
   const [selectedFile, setSelectedFile] = useState(null)
@@ -97,7 +102,7 @@ export default function Profile() {
 
   return (
     <div className="flex w-screen min-h-screen bg-[#F7F7F7] p-6 gap-6 max-md:flex-col max-md:p-4 max-md:gap-4">
-      <aside className="w-72 max-md:w-full">
+      <aside className="w-45 max-md:w-full">
         <NavBar />
       </aside>
       

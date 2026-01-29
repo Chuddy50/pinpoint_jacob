@@ -68,7 +68,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
     // create renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(1);
     renderer.setSize(container.clientWidth, container.clientHeight);
      // add canvas to div element where it will be displayed
     container.appendChild(renderer.domElement);
@@ -76,9 +76,6 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
     // setup orbit controls for rotating and zooming with mouse / trackpad
     const controls = new OrbitControls(camera, renderer.domElement);
-    // enableDamping = smooth camera movement, dampingFactor = momentum
-    controls.enableDamping = true;  
-    controls.dampingFactor = 0.07;
     controlsRef.current = controls;
   };
 
@@ -171,7 +168,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   const animate = () => {
     animationIdRef.current = requestAnimationFrame(animate);
     // update camera controls
-    controlsRef.current?.update();  
+    //controlsRef.current?.update();  
     // render scene
     rendererRef.current?.render(sceneRef.current, cameraRef.current); 
   };

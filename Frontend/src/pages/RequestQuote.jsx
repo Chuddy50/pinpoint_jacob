@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { useAuth } from "../contexts/AuthContext";
@@ -23,6 +23,10 @@ export default function RequestQuote() {
   const { user } = useAuth();
   const location = useLocation();
   const manufacturer = location.state?.manufacturer || null;
+
+  useEffect(() => {
+    document.title = "Request Quote - PinPoint";
+  }, []);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -80,7 +84,7 @@ export default function RequestQuote() {
 
   return (
     <div className="flex min-h-screen w-full bg-[#F3F4F6] p-6 gap-6">
-      <aside className="w-72">
+      <aside className="w-45">
         <NavBar />
       </aside>
 

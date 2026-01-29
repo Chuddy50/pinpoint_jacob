@@ -112,7 +112,7 @@ function Ratings() {
 
   return (
     <div className="flex min-h-screen w-full bg-[#F3F4F6] p-6 gap-6">
-      <aside className="w-72">
+      <aside className="w-45">
         <NavBar />
       </aside>
 
