@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import NavBar from "../components/NavBar";
 import CompanyList from "../components/CompanyList";
 import FilterPanel from "../components/FilterPanel";
 
 export default function Home() {
+
+  useEffect(() => {
+    document.title = "Home - PinPoint";
+  }, []);
 
   // state to track the current search term entered by the user
   //  - gets passed down to company list to know what to show
@@ -22,7 +26,7 @@ export default function Home() {
     <div className="flex min-h-screen w-full flex-col bg-[#F3F4F6] p-4 gap-4 md:flex-row md:p-6 md:gap-6">
 
       {/* nav bar section */}
-      <aside className="w-full md:w-72 md:flex-shrink-0">
+      <aside className="w-full md:w-45 md:flex-shrink-0">
         <NavBar />
       </aside>
 

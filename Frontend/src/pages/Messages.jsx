@@ -11,6 +11,11 @@ export default function Messages() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  //give tab a title
+  useEffect(() => {
+    document.title = "Messages - PinPoint";
+  }, []);
+
   useEffect(() => {
     if (!user?.user_id) return;
     let isActive = true;
@@ -63,7 +68,7 @@ export default function Messages() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-[#F3F4F6] p-4 gap-4 md:flex-row md:p-6 md:gap-6">
-      <aside className="w-full md:w-72">
+      <aside className="w-full md:w-45">
         <NavBar />
       </aside>
 
