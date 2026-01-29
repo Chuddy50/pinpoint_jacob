@@ -1,7 +1,7 @@
 // ExportTab.jsx
 import React from 'react';
 
-const ExportTab = ({ designName, onDesignNameChange, currentMaterial }) => {
+const ExportTab = ({ designName, onDesignNameChange, currentMaterial, onSaveToSupabase, onDownload }) => {
   return (
     <div className="p-6 space-y-8">
       {/* header section */}
@@ -31,6 +31,22 @@ const ExportTab = ({ designName, onDesignNameChange, currentMaterial }) => {
           <p>Material: <span className="font-medium capitalize">{currentMaterial}</span></p>
           <p>Name: <span className="font-medium">{designName || 'Not set'}</span></p>
         </div>
+      </div>
+
+      {/* export buttons */}
+      <div className="space-y-3">
+        <button 
+          onClick={onSaveToSupabase}
+          className="w-full px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
+        >
+          Save to Account
+        </button>
+        <button 
+          onClick={onDownload}
+          className="w-full px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-900 font-semibold rounded-lg border-2 border-slate-900 transition-colors"
+        >
+          Download to Computer
+        </button>
       </div>
     </div>
   );

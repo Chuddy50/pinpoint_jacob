@@ -30,7 +30,7 @@ app.add_middleware(
 
 # Register all API route modules with their URL prefixes and documentation tags
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(manufacturers.router, tags=["manufacturers"])
+app.include_router(manufacturers.router, prefix="/manufacturers", tags=["manufacturers"])
 app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 app.include_router(consultant.router, prefix="/consultant", tags=["consultant"])
 app.include_router(designs.router, prefix="/designs", tags=["designs"])

@@ -101,7 +101,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     console.log('Loading url:', url);
     console.log('URL type: ', typeof url);
 
-    // Reset loading progress when starting to load
+    // reset loading progress when starting to load
     setLoadingProgress(0);
 
     const loader = new GLTFLoader();  //gltf loader loads .glb and .gltf files
@@ -148,12 +148,12 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
           changeMaterial(initialMaterial)
         }
 
-        // Set loading complete
+        //set loading complete
         setLoadingProgress(100);
 
       },
       (progress) => {
-        // Update loading progress
+        // update loading progress
         const percentComplete = (progress.loaded / progress.total * 100);
         setLoadingProgress(percentComplete);
         console.log("Loading progress: ", percentComplete.toFixed(2) + '%');
@@ -161,7 +161,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       (error) => {
         console.log('Error loading model:', url);
         console.log('Error details: ', error);
-        // Reset loading on error
+        // reset loading on error
         setLoadingProgress(100);
       }
     );
@@ -346,12 +346,58 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     );
   };
 
+  // download the current 3d model design to local computer
+  const handleDownload = () => {
+    if(!designName.trim()) {
+      showNotification('Please enter a name for your design', 'error');
+      return;
+    }
+
+    if(!modelRef.current){
+      showNotification('No model to download', 'error');
+      return;
+    }
+
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      modelRef.current,
+      (result) => {
+        let blob;
+        
+        if (result instanceof ArrayBuffer) {
+          blob = new Blob([result], { type: 'model/gltf-binary' });
+        } else {
+          console.error('GLTFExporter returned non-binary output:', result);
+          showNotification('Export failed: invalid GLB output', 'error');
+          return;
+        }
+
+        // create download link and trigger download
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${designName}.glb`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        showNotification('Design downloaded successfully', 'success');
+      },
+      (error) => {
+        console.error('GLTFExporter error:', error);
+        showNotification('Download failed', 'error');
+      },
+      { binary: true }
+    );
+  };
+
   // return the layout for the threeJS div + controls for customization
   return (
     <div className="h-screen flex bg-white">
-      {/* 3D Model Viewer - Full Screen Left */}
+      {/* 3d model viewer - full screen left */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Back Button Overlay */}
+        {/* back btn overlay */}
         <div className="absolute top-6 left-6 z-10">
           <button 
             onClick={onBack}
@@ -364,16 +410,16 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
           </button>
         </div>
 
-        {/* Notification Overlay */}
+        {/* notification overlay */}
         <Notification message={notification.message} type={notification.type} />
 
-        {/* Loading Overlay */}
+        {/* loading overlay */}
         {loadingProgress < 100 && (
           <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-20">
             <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full mx-4">
               <h3 className="text-lg font-semibold text-slate-900 mb-4 text-center">Loading Model</h3>
               
-              {/* Progress Bar */}
+              {/* progress Bar */}
               <div className="w-full bg-slate-200 rounded-full h-3 mb-3 overflow-hidden">
                 <div 
                   className="bg-slate-900 h-full transition-all duration-300 ease-out"
@@ -381,7 +427,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
                 />
               </div>
               
-              {/* Progress Percentage */}
+              {/* progress Percentage */}
               <p className="text-center text-sm text-slate-600 font-medium">
                 {loadingProgress.toFixed(0)}%
               </p>
@@ -393,11 +439,12 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
         <div ref={containerRef} className="w-full h-full" />
       </div>
 
-      {/* Right Sidebar with Tabs */}
+      {/* Model editing tabs */}
       <div className="w-96 bg-white border-l border-slate-200 flex flex-col shadow-2xl">
-        {/* Tab Navigation */}
+        {/* tab Navigation */}
         <div className="border-b border-slate-200 bg-slate-50">
           <div className="flex">
+            {/* when a tab is clicked, update activeTab */}
             <button 
               onClick={() => setActiveTab('color')}
               className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
@@ -431,9 +478,9 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
           </div>
         </div>
 
-        {/* Tab Content */}
+        {/* tab content, based on waht activeTab is currntly set to */}
         <div className="flex-1 overflow-y-auto">
-          {/* Color Tab */}
+          {/* color Tab */}
           {activeTab === 'color' && (
             <ColorTab 
               presetColors={presetColors}
@@ -442,7 +489,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
             />
           )}
 
-          {/* Material Tab */}
+          {/* material Tab */}
           {activeTab === 'material' && (
             <MaterialTab 
               materials={materials}
@@ -451,27 +498,17 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
             />
           )}
 
-          {/* Export Tab */}
+          {/* export Tab */}
           {activeTab === 'export' && (
             <ExportTab 
               designName={designName}
               onDesignNameChange={setDesignName}
               currentMaterial={currentMaterial}
+              onSaveToSupabase={handleSave}
+              onDownload={handleDownload}
             />
           )}
         </div>
-
-        {/* Save Button at Bottom (only show on export tab) */}
-        {activeTab === 'export' && (
-          <div className="p-6 border-t border-slate-200">
-            <button 
-              onClick={handleSave}
-              className="w-full px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition-colors shadow-sm"
-            >
-              Save Design
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
