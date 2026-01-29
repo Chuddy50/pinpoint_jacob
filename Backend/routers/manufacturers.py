@@ -19,17 +19,12 @@ Retrieves manufacturer data and computes rating averages from review data
 
 @return: List of manufacturer dictionaries with calculated rating field
 '''
-<<<<<<< Backend/routers/manufacturers.py
-@router.get("/manufacturers")
+@router.get("")
 async def list_manufacturers(
     location: str | None = None,
     moq: int | None = None,
     rating: float | None = None
 ):
-=======
-@router.get("")
-async def list_manufacturers():
->>>>>>> Backend/routers/manufacturers.py
     """
     Fetch manufacturers with an average rating (if reviews exist).
     """
