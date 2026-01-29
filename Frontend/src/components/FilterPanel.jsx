@@ -58,10 +58,10 @@ export default function FilterPanel({ onFiltersChange }) {
     const fetchFilterOptions = async () => {
       try {
         const [locRes, priceRes, minRes, catRes] = await Promise.all([
-          fetch("http://localhost:8000/locations"),
-          fetch("http://localhost:8000/prices"),
-          fetch("http://localhost:8000/minimums"),
-          fetch("http://localhost:8000/product-categories"),
+          fetch("http://localhost:8000/manufacturers/locations"),
+          fetch("http://localhost:8000/manufacturers/prices"),
+          fetch("http://localhost:8000/manufacturers/minimums"),
+          fetch("http://localhost:8000/manufacturers/product-categories"),
         ]);
 
         if (locRes.ok) {

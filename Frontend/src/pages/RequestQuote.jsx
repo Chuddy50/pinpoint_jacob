@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { useAuth } from "../contexts/AuthContext";
@@ -23,6 +23,10 @@ export default function RequestQuote() {
   const { user } = useAuth();
   const location = useLocation();
   const manufacturer = location.state?.manufacturer || null;
+
+  useEffect(() => {
+    document.title = "Request Quote - PinPoint";
+  }, []);
 
   function handleChange(event) {
     const { name, value } = event.target;
