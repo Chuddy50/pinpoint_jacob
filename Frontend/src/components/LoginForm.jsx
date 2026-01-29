@@ -11,7 +11,7 @@ export default function LoginForm({ onSubmit }) {
     setError(null);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/pinpoint/signup", {
+      const res = await fetch("http://127.0.0.1:8000/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -34,7 +34,7 @@ export default function LoginForm({ onSubmit }) {
     setError(null)
 
     try{
-      const result = await fetch("http://127.0.0.1:8000/pinpoint/login", {
+      const result = await fetch("http://127.0.0.1:8000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })

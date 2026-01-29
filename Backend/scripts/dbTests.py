@@ -1,3 +1,13 @@
+"""
+dbTests.py
+
+Last Edited: 1/13/2026
+Developers: Leo Plute
+Description: Simple test queries used to ensure the dataToDB.py
+             script was working as expected before it was ran 
+             on 350+ manufacturers.
+"""
+
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client

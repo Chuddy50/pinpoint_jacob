@@ -1,8 +1,10 @@
 import NavBar from "../components/NavBar";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 function Ratings() {
+  const { user } = useAuth()
   const { id } = useParams();
 
   const navigate = useNavigate();
@@ -73,6 +75,7 @@ function Ratings() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          user_id: user.user_id,
           manufacturer_id: Number(id),
           rating,
           review,
@@ -109,7 +112,7 @@ function Ratings() {
 
   return (
     <div className="flex min-h-screen w-full bg-[#F3F4F6] p-6 gap-6">
-      <aside className="w-72">
+      <aside className="w-45">
         <NavBar />
       </aside>
 
@@ -136,6 +139,20 @@ function Ratings() {
 
         {!loading && !loadError && (
           <>
+
+            {/* Back Button */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+              >
+                ← Back
+              </button>
+              <p className="text-xs uppercase tracking-[0.25em] text-gray-400">
+                Leave a review
+              </p>
+            </div>
+
             {/* Page Title */}
             <h1 className="text-3xl font-semibold text-gray-900">
               {manufacturerName}
