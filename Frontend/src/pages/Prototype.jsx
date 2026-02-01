@@ -1,11 +1,16 @@
 //Prototype.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import NavBar from "../components/NavBar";
 import ModelSelector from "../components/ModelSelector";
 import ModelEditor from "../components/ModelEditor";
 
 
 export default function Prototype() {
+
+  useEffect(() => {
+    document.title = "Prototype - PinPoint";
+  }, []);
+
   const [selectedUrl, setSelectedUrl] = useState(null);
   const [selectedMaterial, setSelectedMaterial] = useState('cotton')
 
@@ -15,12 +20,12 @@ export default function Prototype() {
   }
 
   return (
-    <div className="flex bg-background w-screen h-screen bg-white p-6 gap-6">
-      <aside className="w-72">
+    <div className="flex bg-background w-screen h-screen">
+      <aside className="w-60">
         <NavBar />
       </aside>
       
-      <main className="flex-1">
+      <main className="flex-1 overflow-y-auto">
         {!selectedUrl ? (
           <ModelSelector onSelect={handleSelect} />
         ) : (

@@ -1,14 +1,22 @@
 // Profile.jsx
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import NavBar from "../components/NavBar";
 import LoginForm from "../components/LoginForm";
 import { useAuth } from "../contexts/AuthContext"
+import UserReviews from "../components/UserReviews";
+import SavedDesignsProfile from "../components/SavedDesignsProfile";
 
 
 export default function Profile() {
+
+  useEffect(() => {
+    document.title = "Profile - PinPoint";
+  }, []);
+  
   const { user, login, logout } = useAuth()
 
   const [selectedFile, setSelectedFile] = useState(null)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const fileInputRef = useRef(null)
 
   function handleUpdatePfpBtnClicked(){
@@ -19,20 +27,59 @@ export default function Profile() {
     const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
-      console.log("Selected file:", file);
+      setShowConfirmDialog(true);
     }
   }
 
-  function handleLoginSuccess(data){
-    login(data)
+  function handleCancelUpload() {
+    setSelectedFile(null);
+    setShowConfirmDialog(false);
+    fileInputRef.current.value = ''; // Reset file input
+  }
+
+  async function handleConfirmUpload() {
+    if (!selectedFile) return;
+
+    setShowConfirmDialog(false);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const response = await fetch(`http://127.0.0.1:8000/auth/updatePFP/${user.user_id}`, {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Add cache-busting timestamp to force image reload
+        const newPfpUrl = data.profile_pic_url + '?t=' + new Date().getTime();
+        
+        // Update user context with new pfp URL
+        login({
+          ...user,
+          pfp_url: newPfpUrl
+        });
+      } else {
+        console.error("Upload error:", data.error);
+        alert("Failed to update profile picture: " + data.error);
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Failed to upload image");
+    } finally {
+      setSelectedFile(null);
+      fileInputRef.current.value = ''; // Reset file input
+    }
   }
 
   async function logoutUser(e) {
     e.preventDefault()
 
     try{
-
-      const result = await fetch("http://127.0.0.1:8000/pinpoint/logout", {
+      const result = await fetch("http://127.0.0.1:8000/auth/logout", {
         method: "POST",
         headers: {"Content-Type": "application/json"}
       })
@@ -44,45 +91,50 @@ export default function Profile() {
       } else {
         console.error("logout error: ", data.error)
       }
-
     } catch (error) {
       console.error("logout error: ", error)
     }
   }
 
-
-  //starting function to update the pfp, but need to implement auth state first to
-  // know user id
-  /*
-  async function updatePfp(e) {
-    e.preventDefault()
-
-    try{
-
-      const res = await fetch("http://127.0.0.1:8000/pinpoint/updatePFP/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await res.json();
-
-    } catch (error) {
-
-    }
-
-  }*/
+  function handleLoginSuccess(data){
+    login(data)
+  }
 
   return (
     <div className="flex w-screen min-h-screen bg-[#F7F7F7] p-6 gap-6 max-md:flex-col max-md:p-4 max-md:gap-4">
-      <aside className="w-72 max-md:w-full">
+      <aside className="w-45 max-md:w-full">
         <NavBar />
       </aside>
       
       <div className="flex-1 p-8 max-md:p-4">
         {user ? (
-          // Show user profile after successful login
           <div className="">
+            {/* confirmation Dialog */}
+            {showConfirmDialog && (
+              <div className="fixed inset-0 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+                  <h3 className="text-lg font-semibold mb-4">Confirm Profile Picture Change</h3>
+                  <p className="text-gray-600 mb-6">
+                    Upload: <span className="font-medium">{selectedFile?.name}</span>
+                  </p>
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={handleCancelUpload}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleConfirmUpload}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    >
+                      Confirm Change
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Profile Header Section */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-6">
@@ -128,6 +180,12 @@ export default function Profile() {
               </div>
             </div>
 
+            {/* designs saved by this user */}
+            <SavedDesignsProfile userId={user.user_id}/>
+
+            {/* reviews left by this user */}
+            <UserReviews userId={user.user_id}/>
+
             {/*hidden file input for selecting a new pfp*/}
             <input 
               type="file"
@@ -138,7 +196,6 @@ export default function Profile() {
             />
           </div>
         ) : (
-          // Show login form if no user data
           <LoginForm onSubmit={handleLoginSuccess} />
         )}
       </div>
