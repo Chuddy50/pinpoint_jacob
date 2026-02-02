@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { useAuth } from "../contexts/AuthContext";
+import { useSendEmailMessage } from "../mutations/email"; 
 
+//    const { username, id, headers } = useContext(AuthContext);
 export default function Messages() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -10,6 +12,16 @@ export default function Messages() {
   const [selectedThreadId, setSelectedThreadId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // usually send with headers
+  const [message, setMessage] = useState("Hle");
+  const {mutate: sendMessage } = useSendEmailMessage(null, message);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    useSendEmailMessage(null, "test messagage");
+    
+}
 
   //give tab a title
   useEffect(() => {
@@ -79,146 +91,170 @@ export default function Messages() {
           </div>
         ) : (
           <>
-        <header className="flex flex-col gap-3 border-b border-gray-100 pb-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
-              Messages
-            </p>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              Inbox
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Search conversations"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm md:w-72"
-            />
-            <button
-              type="button"
-              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
-            >
-              New
-            </button>
-          </div>
-        </header>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[320px_1fr]">
-          <section className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-            {loading ? (
-              <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white text-sm text-gray-500">
-                Loading conversations...
-              </div>
-            ) : error ? (
-              <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-red-200 bg-white text-sm text-red-600">
-                {error}
-              </div>
-            ) : threads.length === 0 ? (
-              <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white text-sm text-gray-500">
-                No conversations yet.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {threads.map((thread) => (
-                  <button
-                    key={thread.id}
-                    type="button"
-                    onClick={() => setSelectedThreadId(thread.id)}
-                    className={`w-full rounded-xl border px-4 py-3 text-left shadow-sm transition ${
-                      thread.id === selectedThreadId
-                        ? "border-gray-300 bg-white"
-                        : "border-transparent bg-white hover:border-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-gray-900">
-                        {thread.manufacturer_name || "Unassigned manufacturer"}
-                      </h3>
-                      <span className="text-xs text-gray-400">
-                        {formatDate(thread.created_at)}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-xs text-gray-500 line-clamp-2">
-                      {thread.details
-                        ? `${thread.details.clothing_type} · ${thread.details.quantity}`
-                        : "Draft RFQ"}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col min-h-[420px]">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+            <header className="flex flex-col gap-3 border-b border-gray-100 pb-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-base font-semibold text-gray-900">
-                  {selectedThread?.manufacturer_name || "Request details"}
-                </h2>
-                <p className="text-xs text-gray-500">
-                  {selectedThread ? "RFQ details" : "Messages will appear here."}
+                <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
+                  Messages
                 </p>
+                <h1 className="text-2xl font-semibold text-gray-900">Inbox</h1>
               </div>
-              <button
-                type="button"
-                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
-                disabled={!selectedThread?.manufacturer_id}
-                onClick={() => {
-                  if (selectedThread?.manufacturer_id) {
-                    navigate(`/manufacturers/${selectedThread.manufacturer_id}`);
-                  }
-                }}
-              >
-                View profile
-              </button>
-            </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Search conversations"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm md:w-72"
+                />
+                <button
+                  type="button"
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+                >
+                  New
+                </button>
+              </div>
+            </header>
 
-            <div className="flex-1 py-6 text-sm text-gray-700">
-              {!selectedThread ? (
-                <div className="flex h-full items-center justify-center text-gray-400">
-                  No messages to display.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
-                      Request
-                    </p>
-                    <p className="text-sm text-gray-800">
-                      {selectedThread.details?.clothing_type || "—"} ·{" "}
-                      {selectedThread.details?.quantity ?? "—"}
-                    </p>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[320px_1fr]">
+              <section className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
+                {loading ? (
+                  <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white text-sm text-gray-500">
+                    Loading conversations...
+                  </div>
+                ) : error ? (
+                  <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-red-200 bg-white text-sm text-red-600">
+                    {error}
+                  </div>
+                ) : threads.length === 0 ? (
+                  <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white text-sm text-gray-500">
+                    No conversations yet.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {threads.map((thread) => (
+                      <button
+                        key={thread.id}
+                        type="button"
+                        onClick={() => setSelectedThreadId(thread.id)}
+                        className={`w-full rounded-xl border px-4 py-3 text-left shadow-sm transition ${
+                          thread.id === selectedThreadId
+                            ? "border-gray-300 bg-white"
+                            : "border-transparent bg-white hover:border-gray-200"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold text-gray-900">
+                            {thread.manufacturer_name ||
+                              "Unassigned manufacturer"}
+                          </h3>
+                          <span className="text-xs text-gray-400">
+                            {formatDate(thread.created_at)}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500 line-clamp-2">
+                          {thread.details
+                            ? `${thread.details.clothing_type} · ${thread.details.quantity}`
+                            : "Draft RFQ"}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-2xl border border-gray-100 bg-white p-4 flex flex-col min-h-[420px]">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">
+                      {selectedThread?.manufacturer_name || "Request details"}
+                    </h2>
                     <p className="text-xs text-gray-500">
-                      Material: {selectedThread.details?.material || "—"} ·
-                      Color: {selectedThread.details?.color || "—"}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Size range: {selectedThread.details?.size_range || "—"}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Deadline: {formatDate(selectedThread.details?.deadline) || "—"}
+                      {selectedThread
+                        ? "RFQ details"
+                        : "Messages will appear here."}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+                    disabled={!selectedThread?.manufacturer_id}
+                    onClick={() => {
+                      if (selectedThread?.manufacturer_id) {
+                        navigate(
+                          `/manufacturers/${selectedThread.manufacturer_id}`
+                        );
+                      }
+                    }}
+                  >
+                    View profile
+                  </button>
+                </div>
 
-                  {selectedThread.details?.notes && (
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">
-                        Notes
-                      </p>
-                      <p className="text-sm text-gray-800">
-                        {selectedThread.details.notes}
-                      </p>
+                <div className="flex-1 py-6 text-sm text-gray-700">
+                  {!selectedThread ? (
+                    <div className="flex h-full items-center justify-center text-gray-400">
+                      No messages to display.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                          Request
+                        </p>
+                        <p className="text-sm text-gray-800">
+                          {selectedThread.details?.clothing_type || "—"} ·{" "}
+                          {selectedThread.details?.quantity ?? "—"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Material: {selectedThread.details?.material || "—"} ·
+                          Color: {selectedThread.details?.color || "—"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Size range:{" "}
+                          {selectedThread.details?.size_range || "—"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Deadline:{" "}
+                          {formatDate(selectedThread.details?.deadline) || "—"}
+                        </p>
+                      </div>
+
+                      {selectedThread.details?.notes && (
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                          <p className="text-xs uppercase tracking-wide text-gray-500">
+                            Notes
+                          </p>
+                          <p className="text-sm text-gray-800">
+                            {selectedThread.details.notes}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            <div className="border-t border-gray-100 pt-3 text-xs text-gray-400">
-              Messaging is coming soon.
+                <div className="border-t border-gray-100 pt-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder={
+                        selectedThread
+                          ? "Type a message..."
+                          : "Select a conversation to message"
+                      }
+                      disabled={!selectedThread}
+                      className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:bg-gray-50 disabled:text-gray-400"
+                    />
+
+                    <button
+                      type="button"
+                      disabled={!selectedThread}
+                      className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition disabled:bg-gray-50 disabled:text-gray-400"
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
+              </section>
             </div>
-          </section>
-        </div>
           </>
         )}
       </div>

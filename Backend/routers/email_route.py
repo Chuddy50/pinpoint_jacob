@@ -9,6 +9,6 @@ from email_service import send_email
 
 
 
-@app.get("/email")
-async def get_manufacturer():
-    pass
+@app.post("/email")
+async def send_email():
+    print("Sending email")
