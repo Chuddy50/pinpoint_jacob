@@ -48,7 +48,7 @@ const ModelSelector = ({ onSelect }) => {
         if (user) {
           try {
             // get all saved designs for this user from backend
-            const response = await fetch(`http://localhost:8000/designs/saved_designs/${user.user_id}`);
+            const response = await fetch(`http://localhost:8000/designs/saved_designs/${user.id}`);
             const data = await response.json();
             setSavedDesigns(data.designs);
           } catch (error) {

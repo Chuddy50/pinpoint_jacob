@@ -13,7 +13,7 @@ const UserReviews = ({ userId }) => {
     const fetchReviews = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:8000/reviews/user/${user.user_id}`);
+        const response = await fetch(`http://localhost:8000/reviews/user/${userId}`);
         if (!response.ok) throw new Error('Failed to fetch reviews');
         const data = await response.json();
         setReviews(data.reviews);

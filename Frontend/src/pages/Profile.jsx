@@ -176,15 +176,15 @@ export default function Profile() {
                 <label className="block text-sm font-medium text-gray-600 mb-1">
                   User ID
                 </label>
-                <p className="text-sm text-gray-500 font-mono">{user.user_id}</p>
+                <p className="text-sm text-gray-500 font-mono">{user.id}</p>
               </div>
             </div>
 
             {/* designs saved by this user */}
-            <SavedDesignsProfile userId={user.user_id}/>
+            <SavedDesignsProfile userId={user.id}/>
 
             {/* reviews left by this user */}
-            <UserReviews userId={user.user_id}/>
+            <UserReviews userId={user.id}/>
 
             {/*hidden file input for selecting a new pfp*/}
             <input 
