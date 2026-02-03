@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { useAuth } from "../contexts/AuthContext";
 
+
 const initialForm = {
   name: "",
   email: "",

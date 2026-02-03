@@ -31,7 +31,7 @@ export const get = async (url, headers) => {
 
 
 
-export const sendEmail = async (to, subject, textBody, htmlBody) => {
+export const sendEmail = async () => {
     console.log("sending email --api");
 
     //  // this is the backend call state 
@@ -50,7 +50,8 @@ export const sendEmail = async (to, subject, textBody, htmlBody) => {
     //   if (!res.ok) {
     //     throw new Error(`Backend error ${res.status}`);
     //   }
- 
+
+    return 1;
 }
 
 

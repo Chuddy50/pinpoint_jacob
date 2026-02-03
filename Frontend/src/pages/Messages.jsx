@@ -15,12 +15,11 @@ export default function Messages() {
 
   // usually send with headers
   const [message, setMessage] = useState("Hle");
-  const {mutate: sendMessage } = useSendEmailMessage(null, message);
+  const {mutate: sendMessage } = useSendEmailMessage("test");
 
   const handleSubmit = (e) => {
     e.preventDefault();
     useSendEmailMessage(null, "test messagage");
-    
 }
 
   //give tab a title

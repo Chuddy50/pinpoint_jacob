@@ -3,12 +3,11 @@ import { useMutation } from "@tanstack/react-query";
 
 
 
-export const useSendEmailMessage = (headers ) => {
+export const useSendEmailMessage = (test ) => {
     return (
         useMutation({
             mutationFn: () =>
-                //joinChat(headers, chatId, id),
-                sendEmail(headers, chatId, id),
+                sendEmail(),
             onSuccess: () => {
                 console.log("Joined Chat From mutations");
                 //setMemberOfChat(true);
