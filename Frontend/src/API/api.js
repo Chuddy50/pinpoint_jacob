@@ -48,15 +48,17 @@ class ApiError extends Error {
    */
   export const postLoginForm = async (url, values) => {
     const { password } = values;
-    const { username } = values;
+    const { email } = values;
   
-    const formData = new FormData();
-    formData.append("username", username);
-    formData.append("password", password);
+    // const formData = new FormData();
+    // formData.append("username", username);
+    // formData.append("password", password);
     
     const response = await fetch(baseUrl + url, {
+      headers: { "Content-Type": "application/json" },
       method: "POST",
-      body: formData,
+      body: JSON.stringify({ email, password })
     });
+
     return await handleResponse(response);
   };
