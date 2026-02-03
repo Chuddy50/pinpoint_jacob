@@ -8,7 +8,7 @@ Description: FastAPI endpoints for fetching manufacturer data, including
              with pricing information.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from config.database import supabase
 
 router = APIRouter()
@@ -22,6 +22,8 @@ Retrieves manufacturer data and computes rating averages from review data
 @router.get("")
 async def list_manufacturers(
     location: str | None = None,
+    priceLevel: list[int] | None = Query(None),
+    # productCategory: list[int] | None = None,
     moq: int | None = None,
     rating: float | None = None
 ):
@@ -42,6 +44,21 @@ async def list_manufacturers(
         if location:
             print("Filtering location.")
             query = query.eq("location", location)
+
+        print(priceLevel)
+        if priceLevel:
+            print("Filtering price level.")
+            print(priceLevel)
+            priceLevelResponse = (
+                supabase
+                .table("manufacturer_prices")
+                .select("manufacturer_id")
+                .in_("price_id", priceLevel)
+                .execute()
+            )
+
+            manuIdsList = [item["manufacturer_id"] for item in priceLevelResponse.data or []]
+            query = query.in_("manufacturer_id", manuIdsList)
 
         if moq:
             print("Filtering moq.")
