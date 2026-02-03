@@ -318,7 +318,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     
         try {
           const response = await fetch(
-            `http://localhost:8000/designs/save/${user.user_id}`,
+            `http://localhost:8000/designs/save/${user.id}`,
             {
               method: 'POST',
               body: formData,

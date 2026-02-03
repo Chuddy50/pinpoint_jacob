@@ -66,7 +66,7 @@ const ModelSelector = ({ onSelect }) => {
       setDeleteLoading(true);
 
       try{
-        const response = await fetch(`http://localhost:8000/designs/delete/${deleteModal.design.design_id}?user_id=${user.user_id}`, {
+        const response = await fetch(`http://localhost:8000/designs/delete/${deleteModal.design.design_id}?user_id=${user.id}`, {
           method: 'DELETE',
         });
 
