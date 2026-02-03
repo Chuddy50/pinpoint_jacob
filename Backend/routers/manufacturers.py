@@ -90,36 +90,33 @@ async def get_all_unique_manufacturer_locations():
         print(f"Error fetching locations - {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch locations: {e}")
 
-# @router.get("/prices")
-# async def get_prices():
-#     """
-#     Fetch all price levels.
-#     Returns a list of strings as price levels.
-#     """
-#     try:
-#         response = supabase.table("prices").select("price_level").execute()
+@router.get("/prices")
+async def get_prices():
+    """
+    Fetch all price levels.
+    Returns a list of objects with price_id and price_level.
+    """
+    try:
+        response = supabase.table("prices").select("price_id, price_level").execute()
 
-#         priceLevels = [item["price_level"] for item in response.data or [] if item.get("price_level")]
-
-#         return priceLevels
-#     except Exception as e:
-#         print(f"Error fetching price levels - {str(e)}")
-#         raise HTTPException(status_code=500, detail=f"Failed to fetch price levels: {e}")
+        return response.data or []
+    except Exception as e:
+        print(f"Error fetching price levels - {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch price levels: {e}")
 
 
-# @router.get("/product-categories")
-# async def get_product_categories():
-#     """
-#     Fetch all product categories.
-#     Returns a list of strings as product categories.
-#     """
-#     try:
-#         response = supabase.table("product_categories").select("category_name").execute()
-#         productCategories = [item["category_name"] for item in response.data or [] if item.get("category_name")]
-#         return productCategories
-#     except Exception as e:
-#         print(f"Error fetching product categories - {str(e)}")
-#         raise HTTPException(status_code=500, detail=f"Failed to fetch price levels: {e}")
+@router.get("/product-categories")
+async def get_product_categories():
+    """
+    Fetch all product categories.
+    Returns a list of objects with product_category_id and category_name.
+    """
+    try:
+        response = supabase.table("product_categories").select("product_category_id, category_name").execute()
+        return response.data or []
+    except Exception as e:
+        print(f"Error fetching product categories - {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch product categories: {e}")
 
 
 @router.get("/minimums")
