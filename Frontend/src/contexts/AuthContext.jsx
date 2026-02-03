@@ -81,8 +81,6 @@
 // export const useAuth = () => useContext(AuthContext)
 
 
-
-
 // src/contexts/AuthContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "../api/supabaseClient";
