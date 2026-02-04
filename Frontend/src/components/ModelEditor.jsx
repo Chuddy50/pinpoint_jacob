@@ -326,12 +326,15 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
             }
           );
     
-          if (response.ok) {
-            showNotification('Design saved successfully', 'success');
-            setDesignName('');
-          } else {
-            showNotification('Failed to save design', 'error');
-          }
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to save design');
+          } 
+
+          const data = await response.json();
+          showNotification('Design saved successfully', 'success');
+          setDesignName('');
+
         } catch (error) {
           console.error('Error saving design:', error);
           showNotification('Error saving design', 'error');

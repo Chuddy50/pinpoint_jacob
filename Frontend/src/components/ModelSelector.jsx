@@ -76,20 +76,24 @@ const ModelSelector = ({ onSelect }) => {
         console.log('Response status: ', response.status);
         console.log('REsponse ok: ', response.ok);
 
+        if(!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.detail || "Failed to delete design")
+        }
+
         const data = await response.json();
         console.log('Response data: ', data);
 
-        if(data.success){
-          setSavedDesigns(prev => prev.filter(d => d.design_id !== deleteModal.design.design_id));
-          setDeleteModal({open: false, design: null});
-        }
-        else{
-          alert(data.message || "data not success, Failed to delete design");
-        }
+
+        setSavedDesigns(prev => 
+          prev.filter(d => d.design_id !== deleteModal.design.design_id)
+        );
+
+        setDeleteModal({open: false, design: null});
       }
       catch (error) {
         console.error('Error deleting design: ', error);
-        alert('ERROR Failed to delete design');
+        alert(error.message);
       }
       finally {
         setDeleteLoading(false);
