@@ -41,6 +41,12 @@ export default function CompanyList({ searchTerm = "", filters = {} }) {
           })
         }
 
+        if(filters.services && filters.services.length > 0) {
+          filters.services.forEach(service => {
+            params.append("services", service)
+          })
+        }
+
         if(filters.moq) {
           params.append("moq", filters.moq)
         }

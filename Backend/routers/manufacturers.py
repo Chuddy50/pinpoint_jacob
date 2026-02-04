@@ -24,6 +24,7 @@ async def list_manufacturers(
     location: str | None = None,
     priceLevel: list[int] | None = Query(None),
     productCategory: list[int] | None = Query(None),
+    services: list[int] | None = Query(None),
     moq: int | None = None,
     rating: float | None = None
 ):
@@ -96,6 +97,35 @@ async def list_manufacturers(
 
             print(len(fullPCResponse))
             manuIdsList = [item["manufacturer_id"] for item in fullPCResponse or []]
+
+            # Remove Duplicates
+            manuIdsList = list(set(manuIdsList))
+            query = query.in_("manufacturer_id", manuIdsList)
+
+        if services:
+            print("Filtering services.")
+            fullServiceResponse = []
+            pageSize = 1000
+            page = 1
+
+            while True:
+                serviceResponse = (
+                    supabase
+                    .table("manufacturer_services")
+                    .select("manufacturer_id")
+                    .in_("service_id", services)
+                    .range((page-1) * pageSize, page * pageSize - 1)
+                    .execute()
+                )
+
+                fullServiceResponse.extend(serviceResponse.data)
+                page += 1
+
+                if len(serviceResponse.data or []) == 0:
+                    break
+
+            print(len(fullServiceResponse))
+            manuIdsList = [item["manufacturer_id"] for item in fullServiceResponse or []]
 
             # Remove Duplicates
             manuIdsList = list(set(manuIdsList))
