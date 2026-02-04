@@ -49,15 +49,31 @@ async def list_manufacturers(
         if priceLevel:
             print("Filtering price level.")
             print(priceLevel)
-            priceLevelResponse = (
-                supabase
-                .table("manufacturer_prices")
-                .select("manufacturer_id")
-                .in_("price_id", priceLevel)
-                .execute()
-            )
+            fullPriceLevelResponse = []
+            pageSize = 1000
+            page = 1
 
-            manuIdsList = [item["manufacturer_id"] for item in priceLevelResponse.data or []]
+            while True:
+
+                priceLevelResponse = (
+                    supabase
+                    .table("manufacturer_prices")
+                    .select("manufacturer_id")
+                    .in_("price_id", priceLevel)
+                    .range((page-1) * pageSize, page * pageSize - 1)
+                    .execute()
+                )
+
+                fullPriceLevelResponse.extend(priceLevelResponse.data)
+                page += 1
+                
+                if len(priceLevelResponse.data or []) == 0:
+                    break
+
+            manuIdsList = [item["manufacturer_id"] for item in fullPriceLevelResponse or []]
+            
+            # Remove Duplicates
+            manuIdsList = list(set(manuIdsList))
             query = query.in_("manufacturer_id", manuIdsList)
 
         if moq:
