@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from "../contexts/AuthContext"
 
 const UserReviews = ({ userId }) => {
-  const { user } = useAuth()
+  const { authHeaders } = useAuth()
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,7 +13,9 @@ const UserReviews = ({ userId }) => {
     const fetchReviews = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:8000/reviews/user/${userId}`);
+        const response = await fetch(`http://localhost:8000/reviews/user`, {
+          headers: authHeaders
+        });
         if (!response.ok) throw new Error('Failed to fetch reviews');
         const data = await response.json();
         setReviews(data.reviews);

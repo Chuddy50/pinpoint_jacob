@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from config.database import supabase
 from uuid import UUID
 
@@ -108,9 +108,23 @@ async def submit_rfq(payload: dict):
         raise HTTPException(status_code=500, detail=f"Failed to submit RFQ: {e}")
 
 
-@router.get("/conversations/{buyer_id}")
-async def list_rfq_conversations(buyer_id: str):
+@router.get("/conversations")
+async def list_rfq_conversations(authorization: str = Header(...)):
     try:
+
+        #1 extract jwt
+        try:
+            token = authorization.replace("Bearer ", "")
+        except:
+            raise HTTPException(status_code=401, detail="Missing authorization header")
+        
+        #2 verify jwt
+        try:
+            user_response = supabase.auth.get_user(token)
+            buyer_id = user_response.user.id #extract user_id from VERIFIED token
+        except:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
         if not _looks_like_uuid(buyer_id):
             raise HTTPException(status_code=400, detail="buyer_id must be a UUID")
 

@@ -7,7 +7,7 @@ Description: Manufacturer reviews endpoints. Allows users to submit ratings
              and written reviews for manufacturers
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header, HTTPException
 from config.database import supabase
 
 router = APIRouter()
@@ -72,9 +72,23 @@ async def create_review(review : dict):
         }
     
 
-@router.get('/user/{user_id}')
-async def get_users_reviews(user_id: str):
+@router.get('/user')
+async def get_users_reviews(authorization: str = Header(...)):
     try:
+
+        #1 extract jwt
+        try:
+            token = authorization.replace("Bearer ", "")
+        except:
+            raise HTTPException(status_code=401, detail="Missing authorization header")
+        
+        #2 verify jwt
+        try:
+            user_response = supabase.auth.get_user(token)
+            user_id = user_response.user.id #extract user_id from VERIFIED token
+        except:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
         # get all reviews by this user
         response = supabase.table('reviews').select('*').eq('user_id', user_id).execute()
         

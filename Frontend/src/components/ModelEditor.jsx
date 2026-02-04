@@ -12,7 +12,7 @@ import ExportTab from './ExportTab';
 
 const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
 
   // tab state
   const [activeTab, setActiveTab] = useState('color');
@@ -318,9 +318,10 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     
         try {
           const response = await fetch(
-            `http://localhost:8000/designs/save/${user.id}`,
+            `http://localhost:8000/designs/save`,
             {
               method: 'POST',
+              headers: authHeaders,
               body: formData,
             }
           );

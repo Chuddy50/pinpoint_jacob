@@ -7,7 +7,7 @@ Description: 3D design management endpoints. Handles saving and retrieving
              user-created clothing designs with GLB file storage in Supabase.
 """
 
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, Header, HTTPException
 from config.database import supabase
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -24,14 +24,28 @@ Uploads GLB file to user-specific folder, stores metadata in database with mater
 @param material: Material type selected for the design (cotton, denim, polyester, etc.)
 @return: Dictionary with success status and design_id on success; error message on failure
 '''
-@router.post("/save/{user_id}")
+@router.post("/save")
 async def save_design(
-    user_id: str,
     file: UploadFile = File(...),
     name: str = Form(...),
-    material: str = Form(...)
+    material: str = Form(...),
+    authorization: str = Header(...)
 ):
     try:
+
+        #1 extract jwt
+        try:
+            token = authorization.replace("Bearer ", "")
+        except:
+            raise HTTPException(status_code=401, detail="Missing authorization header")
+        
+        #2 verify jwt
+        try:
+            user_response = supabase.auth.get_user(token)
+            user_id = user_response.user.id #extract user_id from VERIFIED token
+        except:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
         # generate a random design id here, rather than auto incremening
         # - so we can use it in the file_path
         design_id = str(uuid4())
@@ -96,8 +110,23 @@ Fetches design metadata including model URLs from database
 @param user_id: UUID of user whose designs to retrieve
 @return: Dictionary containing 'designs' list with all user's saved design records
 '''
-@router.get("/saved_designs/{user_id}")
-async def get_user_saved_designs(user_id: str):
+@router.get("/saved_designs")
+async def get_user_saved_designs(authorization: str = Header(...)):
+
+    #1 extract jwt
+    try:
+        token = authorization.replace("Bearer ", "")
+    except:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+    
+    #2 verify jwt
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id #extract user_id from VERIFIED token
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
     response = supabase.table('saved_designs').select('*').eq('user_id', user_id).execute()
     return {
         'designs': response.data
@@ -105,8 +134,23 @@ async def get_user_saved_designs(user_id: str):
 
 
 @router.delete("/delete/{design_id}")
-async def delete_saved_design(design_id: str,
-                              user_id: str):
+async def delete_saved_design(
+    design_id: str,
+    authorization: str = Header(...)
+):
+    
+    #1 extract jwt
+    try:
+        token = authorization.replace("Bearer ", "")
+    except:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+    
+    #2 verify jwt
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id #extract user_id from VERIFIED token
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
     
     #make sure design exists and belongs to signed in user
     design = supabase.table('saved_designs').select('user_id').eq('design_id', design_id).execute()

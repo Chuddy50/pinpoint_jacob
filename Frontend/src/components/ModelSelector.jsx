@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 const ModelSelector = ({ onSelect }) => {
 
     const [savedDesigns, setSavedDesigns] = useState([]);
-    const { user } = useAuth()
+    const { user, authHeaders } = useAuth()
 
     const [deleteModal, setDeleteModal] = useState({ open: false, design: null});
     const [deleteLoading, setDeleteLoading] = useState(false);
@@ -48,7 +48,9 @@ const ModelSelector = ({ onSelect }) => {
         if (user) {
           try {
             // get all saved designs for this user from backend
-            const response = await fetch(`http://localhost:8000/designs/saved_designs/${user.id}`);
+            const response = await fetch(`http://localhost:8000/designs/saved_designs`, {
+              headers: authHeaders
+            });
             const data = await response.json();
             setSavedDesigns(data.designs);
           } catch (error) {
@@ -66,8 +68,9 @@ const ModelSelector = ({ onSelect }) => {
       setDeleteLoading(true);
 
       try{
-        const response = await fetch(`http://localhost:8000/designs/delete/${deleteModal.design.design_id}?user_id=${user.id}`, {
+        const response = await fetch(`http://localhost:8000/designs/delete/${deleteModal.design.design_id}`, {
           method: 'DELETE',
+          headers: authHeaders
         });
 
         console.log('Response status: ', response.status);
