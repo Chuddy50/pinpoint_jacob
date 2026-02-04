@@ -8,7 +8,7 @@ Description: FastAPI endpoints for fetching manufacturer data, including
              with pricing information.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from config.database import supabase
 
 router = APIRouter()
@@ -22,6 +22,9 @@ Retrieves manufacturer data and computes rating averages from review data
 @router.get("")
 async def list_manufacturers(
     location: str | None = None,
+    priceLevel: list[int] | None = Query(None),
+    productCategory: list[int] | None = Query(None),
+    services: list[int] | None = Query(None),
     moq: int | None = None,
     rating: float | None = None
 ):
@@ -32,7 +35,6 @@ async def list_manufacturers(
 
         #print("starting to grab manufacturers")
 
-
         query = supabase.table("manufacturers").select(
             "manufacturer_id,name,location,address,phone,email,contactee,description,average_rating"
         )
@@ -42,6 +44,92 @@ async def list_manufacturers(
         if location:
             print("Filtering location.")
             query = query.eq("location", location)
+
+        if priceLevel:
+            print("Filtering price level.")
+            fullPriceLevelResponse = []
+            pageSize = 1000
+            page = 1
+
+            while True:
+                priceLevelResponse = (
+                    supabase
+                    .table("manufacturer_prices")
+                    .select("manufacturer_id")
+                    .in_("price_id", priceLevel)
+                    .range((page-1) * pageSize, page * pageSize - 1)
+                    .execute()
+                )
+
+                fullPriceLevelResponse.extend(priceLevelResponse.data)
+                page += 1
+                
+                if len(priceLevelResponse.data or []) == 0:
+                    break
+
+            manuIdsList = [item["manufacturer_id"] for item in fullPriceLevelResponse or []]
+
+            # Remove Duplicates
+            manuIdsList = list(set(manuIdsList))
+            query = query.in_("manufacturer_id", manuIdsList)
+
+        if productCategory:
+            print("Filtering product categories.")
+            fullPCResponse = []
+            pageSize = 1000
+            page = 1
+
+            while True:
+                pcResponse = (
+                    supabase
+                    .table("manufacturer_categories")
+                    .select("manufacturer_id")
+                    .in_("category_id", productCategory)
+                    .range((page-1) * pageSize, page * pageSize - 1)
+                    .execute()
+                )
+
+                fullPCResponse.extend(pcResponse.data)
+                page += 1
+
+                if len(pcResponse.data or []) == 0:
+                    break
+
+            print(len(fullPCResponse))
+            manuIdsList = [item["manufacturer_id"] for item in fullPCResponse or []]
+
+            # Remove Duplicates
+            manuIdsList = list(set(manuIdsList))
+            query = query.in_("manufacturer_id", manuIdsList)
+
+        if services:
+            print("Filtering services.")
+            fullServiceResponse = []
+            pageSize = 1000
+            page = 1
+
+            while True:
+                serviceResponse = (
+                    supabase
+                    .table("manufacturer_services")
+                    .select("manufacturer_id")
+                    .in_("service_id", services)
+                    .range((page-1) * pageSize, page * pageSize - 1)
+                    .execute()
+                )
+
+                fullServiceResponse.extend(serviceResponse.data)
+                page += 1
+
+                if len(serviceResponse.data or []) == 0:
+                    break
+
+            print(len(fullServiceResponse))
+            manuIdsList = [item["manufacturer_id"] for item in fullServiceResponse or []]
+
+            # Remove Duplicates
+            manuIdsList = list(set(manuIdsList))
+            query = query.in_("manufacturer_id", manuIdsList)
 
         if moq:
             print("Filtering moq.")
@@ -67,6 +155,83 @@ async def list_manufacturers(
     except Exception as e:
         print(f"Error grabbing manufacturers - {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch manufacturers: {e}")
+
+@router.get("/locations")
+async def get_all_unique_manufacturer_locations():
+    """
+    Fetch all unique locations.
+    Returns a list of string as locations.
+    """
+    try:
+        response = supabase.table("manufacturers").select("location").execute()
+        
+        # Extract unique locations and filter out None/empty values
+        locations = set()
+        for item in response.data or []:
+            location = item.get("location")
+            if location:
+                locations.add(location)
+        
+        # Return as sorted list
+        return sorted(list(locations))
+    except Exception as e:
+        print(f"Error fetching locations - {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch locations: {e}")
+
+@router.get("/prices")
+async def get_prices():
+    """
+    Fetch all price levels.
+    Returns a list of objects with price_id and price_level.
+    """
+    try:
+        response = supabase.table("prices").select("price_id, price_level").execute()
+
+        return response.data or []
+    except Exception as e:
+        print(f"Error fetching price levels - {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch price levels: {e}")
+
+
+@router.get("/product-categories")
+async def get_product_categories():
+    """
+    Fetch all product categories.
+    Returns a list of objects with product_category_id and category_name.
+    """
+    try:
+        response = supabase.table("product_categories").select("product_category_id, category_name").execute()
+        return response.data or []
+    except Exception as e:
+        print(f"Error fetching product categories - {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch product categories: {e}")
+    
+@router.get("/services")
+async def get_services():
+    """
+    Fetch all services.
+    Returns a list of objects with service_id and service_name.
+    """
+    try:
+        response = supabase.table("services").select("service_id, service_name").execute()
+        return response.data or []
+    except Exception as e:
+        print(f"Error fetching services - {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch services: {e}")
+
+
+@router.get("/minimums")
+async def get_minimums():
+    """
+    Fetch all minimum order quantities.
+    Returns a list of minimum objects with minimum_id and minimum_range.
+    """
+    try:
+        response = supabase.table('minimums').select('minimum_id, minimum_range').execute()
+        return response.data or []
+    except Exception as e:
+        print(f"Error fetching minimums - {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch minimums: {e}")
     
 
 '''
@@ -126,74 +291,6 @@ async def get_manufacturer(manufacturer_id: str):
             "success": False,
             "message": f"Error grabbing manufacturer in API layer. Error: {str(e)}"
         }
-
-@router.get("/locations")
-async def get_all_unique_manufacturer_locations():
-    """
-    Fetch all unique locations.
-    Returns a list of string as locations.
-    """
-    try:
-        response = supabase.table("manufacturers").select("location").execute()
-        
-        # Extract unique locations and filter out None/empty values
-        locations = set()
-        for item in response.data or []:
-            location = item.get("location")
-            if location:
-                locations.add(location)
-        
-        # Return as sorted list
-        return sorted(list(locations))
-    except Exception as e:
-        print(f"Error fetching locations - {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch locations: {e}")
-
-# @router.get("/prices")
-# async def get_prices():
-#     """
-#     Fetch all price levels.
-#     Returns a list of strings as price levels.
-#     """
-#     try:
-#         response = supabase.table("prices").select("price_level").execute()
-
-#         priceLevels = [item["price_level"] for item in response.data or [] if item.get("price_level")]
-
-#         return priceLevels
-#     except Exception as e:
-#         print(f"Error fetching price levels - {str(e)}")
-#         raise HTTPException(status_code=500, detail=f"Failed to fetch price levels: {e}")
-
-
-# @router.get("/product-categories")
-# async def get_product_categories():
-#     """
-#     Fetch all product categories.
-#     Returns a list of strings as product categories.
-#     """
-#     try:
-#         response = supabase.table("product_categories").select("category_name").execute()
-#         productCategories = [item["category_name"] for item in response.data or [] if item.get("category_name")]
-#         return productCategories
-#     except Exception as e:
-#         print(f"Error fetching product categories - {str(e)}")
-#         raise HTTPException(status_code=500, detail=f"Failed to fetch price levels: {e}")
-
-
-@router.get("/minimums")
-async def get_minimums():
-    """
-    Fetch all minimum order quantities.
-    Returns a list of minimum objects with minimum_id and minimum_range.
-    """
-    try:
-        response = supabase.table('minimums').select('minimum_id, minimum_range').execute()
-        return response.data or []
-    except Exception as e:
-        print(f"Error fetching minimums - {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch minimums: {e}")
-    
 
 @router.get("/{manufacturer_id}/categories")
 async def get_manufacturer_categories(manufacturer_id: str):

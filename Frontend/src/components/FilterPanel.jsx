@@ -7,15 +7,18 @@ export default function FilterPanel({ onFiltersChange }) {
     minRating: "",
     moq: "",
     productCategories: [],
+    services: [],
   });
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPriceLevelsDropdownOpen, setIsPriceLevelsDropdownOpen] = useState(false);
   const [isProductCategoriesDropdownOpen, setIsProductCategoriesDropdownOpen] = useState(false);
+  const [isServicesDropdownOpen, setIsServicesDropdownOpen] = useState(false);
   const [locations, setLocations] = useState([]);
   const [priceLevels, setPriceLevels] = useState([]);
   const [minimums, setMinimums] = useState([]);
   const [productCategories, setProductCategories] = useState([]);
+  const [services, setServices] = useState([]);
 
   const handleChange = (field, value) => {
     const updatedFilters = { ...filters, [field]: value };
@@ -30,6 +33,7 @@ export default function FilterPanel({ onFiltersChange }) {
       minRating: "",
       moq: "",
       productCategories: [],
+      services: [],
     };
     setFilters(emptyFilters);
     onFiltersChange(emptyFilters);
@@ -53,15 +57,25 @@ export default function FilterPanel({ onFiltersChange }) {
     onFiltersChange(updatedFilters);
   };
 
+  const handleServiceToggle = (serviceId) => {
+    const updatedServices = filters.services.includes(serviceId)
+      ? filters.services.filter((id) => id !== serviceId)
+      : [...filters.services, serviceId];
+    const updatedFilters = { ...filters, services: updatedServices };
+    setFilters(updatedFilters);
+    onFiltersChange(updatedFilters);
+  };
+
   // Fetch filter options from backend
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
-        const [locRes, priceRes, minRes, catRes] = await Promise.all([
+        const [locRes, priceRes, minRes, catRes, servRes] = await Promise.all([
           fetch("http://localhost:8000/manufacturers/locations"),
           fetch("http://localhost:8000/manufacturers/prices"),
           fetch("http://localhost:8000/manufacturers/minimums"),
           fetch("http://localhost:8000/manufacturers/product-categories"),
+          fetch("http://localhost:8000/manufacturers/services"),
         ]);
 
         if (locRes.ok) {
@@ -83,12 +97,18 @@ export default function FilterPanel({ onFiltersChange }) {
           const catData = await catRes.json();
           setProductCategories(Array.isArray(catData) ? catData : []);
         }
+
+        if (servRes.ok) {
+          const servData = await servRes.json();
+          setServices(Array.isArray(servData) ? servData : []);
+        }
       } catch (err) {
         console.error("Failed to fetch filter options:", err);
         setLocations([]);
         setPriceLevels([]);
         setMinimums([]);
         setProductCategories([]);
+        setServices([]);
       }
     };
 
@@ -220,6 +240,43 @@ export default function FilterPanel({ onFiltersChange }) {
                   ))
                 ) : (
                   <p className="text-xs text-gray-500">No categories available</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Services */}
+          <div>
+            <button
+              onClick={() => setIsServicesDropdownOpen(!isServicesDropdownOpen)}
+              className="w-full text-left flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+            >
+              <span>Services {filters.services.length > 0 && `(${filters.services.length})`}</span>
+              <svg
+                className={`w-4 h-4 transition-transform ${isServicesDropdownOpen ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </button>
+            {isServicesDropdownOpen && (
+              <div className="border border-gray-300 border-t-0 rounded-b-md p-3 max-h-48 overflow-y-auto bg-white">
+                {services.length > 0 ? (
+                  services.map((service) => (
+                    <label key={service.service_id} className="flex items-center gap-2 mb-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                      <input
+                        type="checkbox"
+                        checked={filters.services.includes(service.service_id)}
+                        onChange={() => handleServiceToggle(service.service_id)}
+                        className="w-4 h-4 accent-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{service.service_name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-500">No services available</p>
                 )}
               </div>
             )}
