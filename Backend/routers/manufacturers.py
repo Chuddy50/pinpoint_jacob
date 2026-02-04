@@ -175,6 +175,19 @@ async def get_product_categories():
     except Exception as e:
         print(f"Error fetching product categories - {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch product categories: {e}")
+    
+@router.get("/services")
+async def get_services():
+    """
+    Fetch all services.
+    Returns a list of objects with service_id and service_name.
+    """
+    try:
+        response = supabase.table("services").select("service_id, service_name").execute()
+        return response.data or []
+    except Exception as e:
+        print(f"Error fetching services - {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch services: {e}")
 
 
 @router.get("/minimums")
