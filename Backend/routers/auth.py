@@ -8,7 +8,7 @@ Description: User authentication endpoints including signup, login, logout,
              and file storage for profile pictures.
 """
 
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Header, HTTPException
 from config.database import supabase
 
 router = APIRouter()
@@ -21,22 +21,38 @@ Validates file type and size, uploads to Supabase storage, and updates users tab
 @param file: Image file to use as new profile picture (JPEG, PNG, or WebP)
 @return: Dictionary with success status and new profile picture URL on success; error message on failure
 '''
-@router.post("/updatePFP/{user_id}")
-async def userUpdateProfilePic(user_id: str, file: UploadFile = File(...)):
+@router.post("/updatePFP")
+async def userUpdateProfilePic(
+    file: UploadFile = File(...),
+    authorization: str = Header(...)
+):
+    
+    #1 extract jwt
+    try:
+        token = authorization.replace("Bearer ", "")
+    except:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+    
+    #2 verify jwt
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id #extract user_id from VERIFIED token
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
     allowed_types = ["image/jpeg", "image/png", "image/webp"]
     max_size = 5 * 1024 * 1024  # 5MB
 
-    #1 Validate file type
+    #3 Validate file type
     if file.content_type not in allowed_types:
         return {"success": False, "error": "File type not allowed"}
 
-    #2 Validate size
+    #4 Validate size
     fileBytes = await file.read()
     if len(fileBytes) > max_size:
         return {"success": False, "error": "File too large"}
 
-    #3 Get current pfp to check if we need to delete it
+    #5 Get current pfp to check if we need to delete it
     try:
         result = supabase.table("users").select("profile_pic_url").eq("user_id", user_id).execute()
         current_pfp_url = result.data[0]['profile_pic_url']
@@ -58,11 +74,11 @@ async def userUpdateProfilePic(user_id: str, file: UploadFile = File(...)):
         print(f"Warning: Could not fetch current pfp: {e}")
         # Continue anyway - upload will still work
 
-    #4 Make storage path
+    #6 Make storage path
     extension = file.filename.split(".")[-1].lower()
     path = f"{user_id}.{extension}"
 
-    #5 Upload to supabase storage (with upsert to overwrite)
+    #7 Upload to supabase storage (with upsert to overwrite)
     try:
         supabase.storage.from_("profile_pics").upload(
             path, 
@@ -72,10 +88,10 @@ async def userUpdateProfilePic(user_id: str, file: UploadFile = File(...)):
     except Exception as e:
         return {"success": False, "error": "Failed to upload to storage: " + str(e)}
 
-    #6 Get the URL in the storage
+    #8 Get the URL in the storage
     public_url = supabase.storage.from_("profile_pics").get_public_url(path)
 
-    #7 Update the users table w/ new pfp url
+    #9 Update the users table w/ new pfp url
     try:
         supabase.table("users").update({"profile_pic_url": public_url}).eq("user_id", user_id).execute()
     except Exception as e:

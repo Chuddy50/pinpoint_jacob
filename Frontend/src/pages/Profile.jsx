@@ -13,7 +13,7 @@ export default function Profile() {
     document.title = "Profile - PinPoint";
   }, []);
   
-  const { user, logout, refreshUser } = useAuth()
+  const { user, logout, refreshUser, authHeaders } = useAuth()
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
@@ -46,8 +46,9 @@ export default function Profile() {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      const response = await fetch(`http://127.0.0.1:8000/auth/updatePFP/${user.id}`, {
+      const response = await fetch(`http://127.0.0.1:8000/auth/updatePFP`, {
         method: "POST",
+        headers: authHeaders, //JWT sent here
         body: formData
       });
 

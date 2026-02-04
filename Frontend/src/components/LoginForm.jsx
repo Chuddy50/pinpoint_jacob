@@ -14,8 +14,8 @@ export default function LoginForm() {
 
     try{
       await login(email, password); // call directly, no backend
-    } catch(error){
-      setError('Login failed');
+    } catch (err) {
+      setError('Login failed: ', err.message);
     }
   }
 
@@ -26,7 +26,7 @@ export default function LoginForm() {
     try {
       await signup(email, password)
     } catch (err) {
-      setError(err.message || "Signup failed");
+      setError("Signup failed: ", err.message);
     }
   }
 

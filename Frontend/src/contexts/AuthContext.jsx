@@ -12,15 +12,13 @@ const AuthContext = createContext(null);
  * state changes (login, logout, token refresh), and exposes the current
  * user, JWT token, and login/logout helpers via React context.
  */
-// src/contexts/AuthContext.jsx
-
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState(null);
 
   const isUserLoggedIn = !!token;
 
-  // SESSION RESTORE - Updated
+  // session restore
   useEffect(() => {
     let isMounted = true;
 
@@ -105,7 +103,7 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  // SIGNUP - Updated (login() call will handle user data fetch)
+  // sign up
   const signup = async (email, password) => {
     const { data, error } = await supabase.auth.signUp({
       email: email,
@@ -125,7 +123,7 @@ export const AuthProvider = ({ children }) => {
       preferences: {}
     });
   
-    // Set user state immediately with default values
+    // set user state immediately with default values
     const fullUser = {
       ...data.user,
       pfp_url: defaultPfp,
@@ -137,7 +135,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem(TOKEN_KEY, data.session.access_token);
   };
 
-  // LOGIN - Already updated from before
+  // login
   const login = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -149,14 +147,14 @@ export const AuthProvider = ({ children }) => {
     const session = data?.session ?? null;
     const authUser = session?.user;
 
-    // FETCH custom user data
+    // fetch custom user data
     const { data: userData } = await supabase
       .from("users")
       .select("profile_pic_url, name")
       .eq("user_id", authUser.id)
       .single();
 
-    // MERGE auth user with custom data
+    // combine auth user with custom data
     const fullUser = {
       ...authUser,
       pfp_url: userData?.profile_pic_url,
@@ -175,6 +173,7 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  // logout
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -182,7 +181,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem(TOKEN_KEY);
   };
 
-  // Add this function after logout
+  // used when new pfp is selected to refresh the image
   const refreshUser = async () => {
     if (!user?.id) return;
 
