@@ -23,7 +23,7 @@ Retrieves manufacturer data and computes rating averages from review data
 async def list_manufacturers(
     location: str | None = None,
     priceLevel: list[int] | None = Query(None),
-    # productCategory: list[int] | None = None,
+    productCategory: list[int] | None = Query(None),
     moq: int | None = None,
     rating: float | None = None
 ):
@@ -33,7 +33,6 @@ async def list_manufacturers(
     try:
 
         #print("starting to grab manufacturers")
-
 
         query = supabase.table("manufacturers").select(
             "manufacturer_id,name,location,address,phone,email,contactee,description,average_rating"
@@ -45,16 +44,13 @@ async def list_manufacturers(
             print("Filtering location.")
             query = query.eq("location", location)
 
-        print(priceLevel)
         if priceLevel:
             print("Filtering price level.")
-            print(priceLevel)
             fullPriceLevelResponse = []
             pageSize = 1000
             page = 1
 
             while True:
-
                 priceLevelResponse = (
                     supabase
                     .table("manufacturer_prices")
@@ -71,7 +67,36 @@ async def list_manufacturers(
                     break
 
             manuIdsList = [item["manufacturer_id"] for item in fullPriceLevelResponse or []]
-            
+
+            # Remove Duplicates
+            manuIdsList = list(set(manuIdsList))
+            query = query.in_("manufacturer_id", manuIdsList)
+
+        if productCategory:
+            print("Filtering product categories.")
+            fullPCResponse = []
+            pageSize = 1000
+            page = 1
+
+            while True:
+                pcResponse = (
+                    supabase
+                    .table("manufacturer_categories")
+                    .select("manufacturer_id")
+                    .in_("category_id", productCategory)
+                    .range((page-1) * pageSize, page * pageSize - 1)
+                    .execute()
+                )
+
+                fullPCResponse.extend(pcResponse.data)
+                page += 1
+
+                if len(pcResponse.data or []) == 0:
+                    break
+
+            print(len(fullPCResponse))
+            manuIdsList = [item["manufacturer_id"] for item in fullPCResponse or []]
+
             # Remove Duplicates
             manuIdsList = list(set(manuIdsList))
             query = query.in_("manufacturer_id", manuIdsList)
