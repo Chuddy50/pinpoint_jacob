@@ -12,91 +12,6 @@ from fastapi import APIRouter, UploadFile, File
 from config.database import supabase
 
 router = APIRouter()
-
-'''
-Create a new user account in PinPoint system
-Creates user in Supabase Auth, then adds user record to custom users table with default profile picture
-
-@param credentials: Dictionary containing user's email and password
-@return: Dictionary with success status, user_id, profile picture URL, and email on success; error message on failure
-'''
-@router.post("/signup")
-async def userSignup(credentials: dict):
-    try:
-
-        print("started sign up fun")
-
-        #1 Create user in Supabase Auth table
-        auth_result = supabase.auth.sign_up({
-            "email": credentials['email'],
-            "password": credentials['password']
-        })
-
-        user_id = auth_result.user.id
-
-        print("added to supbase auth, now adding to our 'users' table")
-
-        # URL to the basic pfp stored in supabase file storage bucket
-        default_pfp = 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/profile_pics/basicPfp.jpg'
-
-        #2 Insert into our custom users table, assigned basic pfp on sign up
-        supabase.table("users").insert({
-            "user_id": user_id,
-            "name": "",
-            "profile_pic_url": default_pfp,
-            "role": "",
-            "preferences": {}
-        }).execute()
-
-        print("executed query")
-
-        
-        supabase.auth.sign_out()
-
-        return {"success": True, 
-                "user_id": user_id, 
-                "pfp_url": default_pfp, 
-                'email': credentials['email']}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-    
-
-'''
-Authenticate existing user and retrieve their profile data
-Validates credentials against Supabase Auth and fetches user's saved profile picture
-
-@param credentials: Dictionary containing user's email and password
-@return: Dictionary with success status, user_id, profile picture URL, and email on success; error message on failure
-'''
-@router.post('/login')
-async def userLogin(credentials: dict):
-    try:
-        print("startng a login attempt")
-
-        # Log the user in with inputted email + pw
-        login_result = supabase.auth.sign_in_with_password({
-            "email" : credentials['email'],
-            "password": credentials['password']
-        })
-
-        user_id = login_result.user.id
-
-        #Grab their saved pfp
-        result = supabase.table("users").select("profile_pic_url").eq("user_id", user_id).execute()
-        saved_pfp_url = result.data[0]['profile_pic_url']
-
-        supabase.auth.sign_out()
-
-        # If here, login successful
-        return {
-            "success": True,
-            "user_id": user_id,
-            "pfp_url": saved_pfp_url,
-            "email": credentials['email']
-        }
-
-    except Exception as e:
-        return {"success": False, "error": "Login error: " + str(e)}
     
 '''
 Update a user's profile picture in storage and database
@@ -169,11 +84,3 @@ async def userUpdateProfilePic(user_id: str, file: UploadFile = File(...)):
     return {"success": True, "profile_pic_url": public_url}
 
     
-
-@router.post("/logout")
-async def userLogout():
-    try:
-        result = supabase.auth.sign_out()
-        return {"success": True}
-    except Exception as e:
-        return {"success": False, "error": str(e)}

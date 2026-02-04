@@ -1,3 +1,7 @@
+// helper functions for calling our fastAPI backend
+// literally just to put the fastAPI backend calls in helper functions
+//    to clean up the react components
+
 
 class ApiError extends Error {
     /**
@@ -37,28 +41,5 @@ class ApiError extends Error {
    */
   export const get = async (url, headers) => {
     const response = await fetch(baseUrl + url, { headers });
-    return await handleResponse(response);
-  };
-  
-   /**
-   * Login 
-   * @param {*} url destination of request
-   * @param {*} headers 
-   * @returns value from handlResponse
-   */
-  export const postLoginForm = async (url, values) => {
-    const { password } = values;
-    const { email } = values;
-  
-    // const formData = new FormData();
-    // formData.append("username", username);
-    // formData.append("password", password);
-    
-    const response = await fetch(baseUrl + url, {
-      headers: { "Content-Type": "application/json" },
-      method: "POST",
-      body: JSON.stringify({ email, password })
-    });
-
     return await handleResponse(response);
   };

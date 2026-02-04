@@ -12,21 +12,21 @@ const AuthContext = createContext(null);
  * state changes (login, logout, token refresh), and exposes the current
  * user, JWT token, and login/logout helpers via React context.
  */
+// src/contexts/AuthContext.jsx
+
 export const AuthProvider = ({ children }) => {
-  // initialize from localStorage so refresh doesn't flash logged-out
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState(null);
 
   const isUserLoggedIn = !!token;
 
-  // On mount: restore Supabase session (if it exists)
+  // SESSION RESTORE - Updated
   useEffect(() => {
     let isMounted = true;
 
-    supabase.auth.getSession().then(({ data, error }) => {
+    supabase.auth.getSession().then(async ({ data, error }) => {
       if (!isMounted) return;
       if (error) {
-        // if session retrieval fails, clear everything
         setUser(null);
         setToken(null);
         localStorage.removeItem(TOKEN_KEY);
@@ -34,7 +34,28 @@ export const AuthProvider = ({ children }) => {
       }
 
       const session = data?.session ?? null;
-      setUser(session?.user ?? null);
+      const authUser = session?.user ?? null;
+
+      if (authUser) {
+        // FETCH custom user data
+        const { data: userData } = await supabase
+          .from("users")
+          .select("profile_pic_url, name")
+          .eq("user_id", authUser.id)
+          .single();
+
+        // MERGE auth user with custom data
+        const fullUser = {
+          ...authUser,
+          pfp_url: userData?.profile_pic_url,
+          username: userData?.name,
+        };
+
+        setUser(fullUser);
+      } else {
+        setUser(null);
+      }
+
       setToken(session?.access_token ?? null);
 
       if (session?.access_token) {
@@ -44,11 +65,31 @@ export const AuthProvider = ({ children }) => {
       }
     });
 
-    // Keep state in sync when Supabase refreshes token / logs in / logs out
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Keep state in sync when Supabase refreshes token
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted) return;
 
-      setUser(session?.user ?? null);
+      const authUser = session?.user ?? null;
+
+      if (authUser) {
+        // FETCH custom user data on auth state change too
+        const { data: userData } = await supabase
+          .from("users")
+          .select("profile_pic_url, name")
+          .eq("user_id", authUser.id)
+          .single();
+
+        const fullUser = {
+          ...authUser,
+          pfp_url: userData?.profile_pic_url,
+          username: userData?.name,
+        };
+
+        setUser(fullUser);
+      } else {
+        setUser(null);
+      }
+
       setToken(session?.access_token ?? null);
 
       if (session?.access_token) {
@@ -64,7 +105,39 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  // Login via Supabase (no userData param)
+  // SIGNUP - Updated (login() call will handle user data fetch)
+  const signup = async (email, password) => {
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password
+    });
+  
+    if (error) throw error;
+  
+    const userId = data.user.id;
+    const defaultPfp = 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/profile_pics/basicPfp.jpg';
+  
+    await supabase.from("users").insert({
+      user_id: userId,
+      name: "",
+      profile_pic_url: defaultPfp,
+      role: "",
+      preferences: {}
+    });
+  
+    // Set user state immediately with default values
+    const fullUser = {
+      ...data.user,
+      pfp_url: defaultPfp,
+      username: "",
+    };
+    
+    setUser(fullUser);
+    setToken(data.session.access_token);
+    localStorage.setItem(TOKEN_KEY, data.session.access_token);
+  };
+
+  // LOGIN - Already updated from before
   const login = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -74,9 +147,23 @@ export const AuthProvider = ({ children }) => {
     if (error) throw error;
 
     const session = data?.session ?? null;
+    const authUser = session?.user;
 
-    // These sets are redundant with onAuthStateChange, but make UI update immediately
-    setUser(session?.user ?? null);
+    // FETCH custom user data
+    const { data: userData } = await supabase
+      .from("users")
+      .select("profile_pic_url, name")
+      .eq("user_id", authUser.id)
+      .single();
+
+    // MERGE auth user with custom data
+    const fullUser = {
+      ...authUser,
+      pfp_url: userData?.profile_pic_url,
+      username: userData?.name,
+    };
+
+    setUser(fullUser);
     setToken(session?.access_token ?? null);
 
     if (session?.access_token) {
@@ -85,24 +172,39 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem(TOKEN_KEY);
     }
 
-    return data; 
+    return data;
   };
 
   const logout = async () => {
     await supabase.auth.signOut();
-
     setUser(null);
     setToken(null);
     localStorage.removeItem(TOKEN_KEY);
   };
 
-  // optional convenience: headers for calling your FastAPI with JWT
+  // Add this function after logout
+  const refreshUser = async () => {
+    if (!user?.id) return;
+
+    const { data: userData } = await supabase
+      .from("users")
+      .select("profile_pic_url, name")
+      .eq("user_id", user.id)
+      .single();
+
+    setUser({
+      ...user,
+      pfp_url: userData?.profile_pic_url,
+      username: userData?.name,
+    });
+  };
+
   const authHeaders = useMemo(() => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
 
   const value = useMemo(
-    () => ({ user, token, isUserLoggedIn, authHeaders, login, logout }),
+    () => ({ user, token, isUserLoggedIn, authHeaders, login, logout, signup, refreshUser }),
     [user, token, isUserLoggedIn, authHeaders]
   );
 
