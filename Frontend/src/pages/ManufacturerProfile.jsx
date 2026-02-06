@@ -146,10 +146,6 @@ export default function ManufacturerProfile() {
                 </span>
                 <span>{ratingDisplay}</span>
               </div>
-              <p className="text-sm text-gray-500">
-                If something looks empty, it just means we don&apos;t have that
-                data yet.
-              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
