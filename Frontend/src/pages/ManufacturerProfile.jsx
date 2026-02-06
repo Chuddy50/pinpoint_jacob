@@ -40,20 +40,16 @@ export default function ManufacturerProfile() {
       try {
         const response = await fetch(`http://localhost:8000/manufacturers/${id}`);
         if (!response.ok) {
+          setError(data.message || "We couldnt find that manufacturer yet")
+          setManufacturer(null)
           throw new Error("Failed to fetch manufacturers");
         }
         const data = await response.json();
         
         if (!isActive) return;
-        
-        //check if api returned error
-        if (data.success === false) {
-          setError(data.message || "We couldnt find that manufacturer yet")
-          setManufacturer(null)
-        } else {
-          setManufacturer(data)
-          setError("")
-        }
+
+        setManufacturer(data)
+        setError("")
       } catch (err) {
         if (isActive) {
           setError("Unable to load manufacturer right now.");
