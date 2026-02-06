@@ -45,12 +45,12 @@ async def userUpdateProfilePic(
 
     #3 Validate file type
     if file.content_type not in allowed_types:
-        return {"success": False, "error": "File type not allowed"}
+        raise HTTPException(status_code=400, detail="File must be .jpeg, .png, or .webp")
 
     #4 Validate size
     fileBytes = await file.read()
     if len(fileBytes) > max_size:
-        return {"success": False, "error": "File too large"}
+        raise HTTPException(status_code=400, detail="File must be smaller than 5MB")
 
     #5 Get current pfp to check if we need to delete it
     try:
@@ -86,7 +86,7 @@ async def userUpdateProfilePic(
             {"content-type": file.content_type, "upsert": "true"}
         )
     except Exception as e:
-        return {"success": False, "error": "Failed to upload to storage: " + str(e)}
+        raise HTTPException(status_code=500, detail="Inernal server error during supabase file storage")
 
     #8 Get the URL in the storage
     public_url = supabase.storage.from_("profile_pics").get_public_url(path)
@@ -95,7 +95,7 @@ async def userUpdateProfilePic(
     try:
         supabase.table("users").update({"profile_pic_url": public_url}).eq("user_id", user_id).execute()
     except Exception as e:
-        return {"success": False, "error": "Failed to update users pfp url: " + str(e)}
+        raise HTTPException(status_code=500, detail="Internal server error during supabase db update")
     
     return {"success": True, "profile_pic_url": public_url}
 

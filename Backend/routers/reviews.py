@@ -32,8 +32,8 @@ async def create_review(review : dict):
         }).execute()
 
         # Now update the average rating for this manufacturer
-        print("Updating average rating for a manufacturer.")
-        print("Wassup")
+        #print("Updating average rating for a manufacturer.")
+        #print("Wassup")
 
         # Get all ratings for manufacturer.
         ratingsResponse = (
@@ -43,11 +43,11 @@ async def create_review(review : dict):
             .eq("manufacturer_id", review['manufacturer_id'])
             .execute()
         )
-        print("Got all ratings for manufacturer.")
+        #print("Got all ratings for manufacturer.")
         # Calculate average rating.
         ratings = [r["rating"] for r in ratingsResponse.data]
         avgRating = sum(ratings) / len(ratings)
-        print("Calculated the average")
+        #print("Calculated the average")
 
         # Save average rating in the database.
         avgRatingResponse = (
@@ -58,18 +58,18 @@ async def create_review(review : dict):
             .execute()
         )
 
-        print("Saved the average rating")
+        #print("Saved the average rating")
 
         return {
             "success": True,
             "message": "Review sucessfully added"
         }
+    
+    except HTTPException:
+        raise
 
     except Exception as e:
-        return {
-            "success": False,
-            "message": f"Error submitting review in API layer. Error: {str(e)}"
-        }
+        raise HTTPException(status_code=500, detail=f"Internal server error, unexpected exception hit: {e}")
     
 
 @router.get('/user')
@@ -112,10 +112,13 @@ async def get_users_reviews(authorization: str = Header(...)):
             })
         
         return {"success": True, "reviews": parsed_reviews}
+    
+    except HTTPException:
+        raise
         
     except Exception as e:
         print(f"Error fetching user reviews: {e}")
-        return {"success": False, "error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Internal server error, unexpected exception hit: {e}")
     
 
 @router.get('/manufacturer/{manufacturer_id}')
@@ -151,7 +154,10 @@ async def get_manufacturers_reviews(manufacturer_id: str):
             })
         
         return {"success": True, "reviews": parsed_reviews}
+    
+    except HTTPException:
+        raise
         
     except Exception as e:
         print(f"Error fetching manufacturer reviews: {e}")
-        return {"success": False, "error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Internal server error, unexpected exception hit: {e}")

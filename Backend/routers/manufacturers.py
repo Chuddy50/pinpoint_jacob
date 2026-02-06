@@ -86,10 +86,7 @@ async def get_manufacturer(manufacturer_id: str):
             ).eq('manufacturer_id', manufacturer_id).execute()
         
         if not manufacturer_response.data:
-            return {
-                "success": False,
-                "message": f"Supabase couldnt find a manufacturer for ID: {manufacturer_id}. Error: {e}"
-            }
+            raise HTTPException(status_code=404, detail="Couldn't find manufacturer from id in database")
         
         manufacturer = manufacturer_response.data[0]
 
@@ -120,12 +117,14 @@ async def get_manufacturer(manufacturer_id: str):
             manufacturer['price_range'] = None
 
         return manufacturer
+    
+    except HTTPException:
+        #if one of the HTTPExceptions raised in try block is hit, just raise it here
+        raise
 
     except Exception as e:
-        return {
-            "success": False,
-            "message": f"Error grabbing manufacturer in API layer. Error: {str(e)}"
-        }
+        # this except block is for unexpected exceptions
+        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
 @router.get("/locations")
 async def get_all_unique_manufacturer_locations():
@@ -246,10 +245,7 @@ async def get_manufacturer_products(manufacturer_id: str):
         .execute()
 
     if not junction_response.data:
-        return {
-            "success": False,
-            "message": f"No products found for manufacturer with id: {manufacturer_id}"
-        }
+        raise HTTPException(status_code=404, detail="No products found for given manufacturer")
 
     product_type_ids = [item['product_type_id'] for item in junction_response.data]
 
