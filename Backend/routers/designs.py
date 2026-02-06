@@ -24,7 +24,7 @@ Uploads GLB file to user-specific folder, stores metadata in database with mater
 @param authorization: Header that contains JWT to extract the user_id
 @return: Dictionary with success status and design_id on success; error message on failure
 '''
-@router.post("/save")
+@router.post("/save", status_code=204)
 async def save_design(
     file: UploadFile = File(...),
     name: str = Form(...),
@@ -33,10 +33,10 @@ async def save_design(
 ):
     
     #1 extract jwt
-    if not authorization.startswith("Bearer "):
+    try:
+        token = authorization.replace("Bearer ", "")
+    except:
         raise HTTPException(status_code=401, detail="Missing authorization header")
-
-    token = authorization.replace("Bearer ", "")
     
     #2 verify jwt
     try:
@@ -90,10 +90,7 @@ async def save_design(
 
         #print(f"DB response data: {dbResponse.data}")
 
-        return {
-            'success': True, 
-            'design_id': design_id
-        }
+        return
 
 
     except Exception as e:
@@ -134,7 +131,7 @@ async def get_user_saved_designs(authorization: str = Header(...)):
     }
 
 
-@router.delete("/delete/{design_id}")
+@router.delete("/delete/{design_id}", status_code=204)
 async def delete_saved_design(
     design_id: str,
     authorization: str = Header(...)
@@ -165,7 +162,7 @@ async def delete_saved_design(
     if design.data[0]['user_id'] != user_id:
         raise HTTPException(
             status_code=403,
-            details="Design does not belong to user"
+            detail="Design does not belong to user"
         )
 
     
@@ -187,7 +184,4 @@ async def delete_saved_design(
             detail="Error removing design from file storage"
         )
 
-    return {
-        "success": True,
-        "message": "3D Model sucessfully removed from file storage and database"
-    }
+    return

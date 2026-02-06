@@ -16,7 +16,9 @@ const UserReviews = ({ userId }) => {
         const response = await fetch(`http://localhost:8000/reviews/user`, {
           headers: authHeaders
         });
-        if (!response.ok) throw new Error('Failed to fetch reviews');
+        if (!response.ok) {
+          throw new Error('Failed to fetch reviews');
+        }
         const data = await response.json();
         setReviews(data.reviews);
       } catch (err) {

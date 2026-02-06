@@ -62,7 +62,6 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     );
 
     // position camera away from origin
-    // TODO: maybe wanna mess with this to determine the best angle ???
     camera.position.set(0, 1.2, 3);
     cameraRef.current = camera;
 
@@ -331,7 +330,6 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
             throw new Error(errorData.detail || 'Failed to save design');
           } 
 
-          const data = await response.json();
           showNotification('Design saved successfully', 'success');
           setDesignName('');
 

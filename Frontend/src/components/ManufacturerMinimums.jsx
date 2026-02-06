@@ -9,10 +9,12 @@ export default function ManufacturerMinimums({ manufacturerId }) {
       try {
         console.log("starting to fetch minimums in frontend")
         const response = await fetch(`http://localhost:8000/manufacturers/${manufacturerId}/minimums`);
-        const data = await response.json();
-        if (data.success) {
-          setMinimums(data.minimums);
+        if(!response.ok){
+          const errorData = await respinse.json()
+          throw new Error(errorData.detail || "Failed to fetch manufacturer minimums")
         }
+        const data = await response.json();
+        setMinimums(data.minimums);
       } catch (err) {
         console.error("Failed to load minimums:", err);
       } finally {

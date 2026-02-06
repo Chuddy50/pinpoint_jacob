@@ -81,10 +81,6 @@ const ModelSelector = ({ onSelect }) => {
           throw new Error(errorData.detail || "Failed to delete design")
         }
 
-        const data = await response.json();
-        console.log('Response data: ', data);
-
-
         setSavedDesigns(prev => 
           prev.filter(d => d.design_id !== deleteModal.design.design_id)
         );

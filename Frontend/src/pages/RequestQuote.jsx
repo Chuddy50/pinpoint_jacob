@@ -69,9 +69,9 @@ export default function RequestQuote() {
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.detail || data.error || "Failed to submit RFQ");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || errorData.error || "Failed to submit RFQ");
       }
 
       setSubmitted(true);

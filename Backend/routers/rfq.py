@@ -134,7 +134,6 @@ async def submit_rfq(payload: dict, authorization: str = Header(...)):
             raise HTTPException(status_code=500, detail="Failed to save RFQ details")
 
         return {
-            "success": True,
             "rfq_conversation_id": rfq_conversation_id,
         }
     except HTTPException:

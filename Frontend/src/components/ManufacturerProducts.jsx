@@ -8,10 +8,12 @@ export default function ManuacturerProducts( {manufacturerId }) {
         async function fetchProducts() {
             try {
                 const response = await fetch(`http://localhost:8000/manufacturers/${manufacturerId}/products`);
-                const data = await response.json();
-                if(data.success){
-                    setProducts(data.products)
+                if(!response.ok){
+                  const errorData = await response.json()
+                  throw new Error(errorData.detail || "Failed to fetch manufacturer products")
                 }
+                const data = await response.json();
+                setProducts(data.products)
             }
             catch (error) {
                 console.error("Failed to load products: ", error);

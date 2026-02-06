@@ -48,18 +48,17 @@ export default function Profile() {
 
       const response = await fetch(`http://127.0.0.1:8000/auth/updatePFP`, {
         method: "POST",
-        headers: authHeaders, //JWT sent here
+        headers: authHeaders, 
         body: formData
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        await refreshUser()
-      } else {
-        console.error("Upload error:", data.error);
+      if(!response.ok){
+        const data = await response.json();
         alert("Failed to update profile picture: " + data.error);
       }
+
+      await refreshUser()
+      
     } catch (error) {
       console.error("Upload error:", error);
       alert("Failed to upload image");

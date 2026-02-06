@@ -1,8 +1,8 @@
 """
 reviews.py
 
-Last Edited: 1/12/2026
-Developers: Luke Jones
+Last Edited: 2/6/2026
+Developers: Luke Jones, Leo Plute
 Description: Manufacturer reviews endpoints. Allows users to submit ratings
              and written reviews for manufacturers
 """
@@ -17,14 +17,28 @@ Submit a new review and rating for a manufacturer
 Creates review record in database with rating (1-5 stars) and written feedback
 
 @param review: Dictionary containing manufacturer_id, user_id, rating (int 1-5), and review text
-@return: Dictionary with success status and message
+@return: 204 status code
 '''
-@router.post("")
-async def create_review(review : dict):
+@router.post("", status_code=204)
+async def create_review(review : dict, authorization: str = Header(...)):
     try:
+
+        #1 extract jwt
+        try:
+            token = authorization.replace("Bearer ", "")
+        except:
+            raise HTTPException(status_code=401, detail="Missing authorization header")
+        
+        #2 verify jwt
+        try:
+            user_response = supabase.auth.get_user(token)
+            user_id = user_response.user.id #extract user_id from VERIFIED token
+        except:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
         insertResponse = supabase.table("reviews").insert({
             "manufacturer_id": review['manufacturer_id'],
-            "user_id": review['user_id'],
+            "user_id": user_id,
             "rating": review['rating'],
             "review":  review['review'],
             #supabase automatically will make the created_at col bc of the
@@ -58,12 +72,7 @@ async def create_review(review : dict):
             .execute()
         )
 
-        #print("Saved the average rating")
-
-        return {
-            "success": True,
-            "message": "Review sucessfully added"
-        }
+        return 
     
     except HTTPException:
         raise
@@ -93,7 +102,7 @@ async def get_users_reviews(authorization: str = Header(...)):
         response = supabase.table('reviews').select('*').eq('user_id', user_id).execute()
         
         if not response.data:
-            return {"success": True, "reviews": []}
+            return { "reviews": [] }
         
         # parse reviews and fetch manufacturer names
         parsed_reviews = []
@@ -111,7 +120,7 @@ async def get_users_reviews(authorization: str = Header(...)):
                 'created_at': review['created_at']
             })
         
-        return {"success": True, "reviews": parsed_reviews}
+        return {"reviews": parsed_reviews}
     
     except HTTPException:
         raise
@@ -128,7 +137,7 @@ async def get_manufacturers_reviews(manufacturer_id: str):
         response = supabase.table('reviews').select('*').eq('manufacturer_id', manufacturer_id).execute()
         
         if not response.data:
-            return {"success": True, "reviews": []}
+            return {"reviews": []}
         
         # parse reviews and fetch user names
         parsed_reviews = []
@@ -153,7 +162,7 @@ async def get_manufacturers_reviews(manufacturer_id: str):
                 'created_at': review['created_at']
             })
         
-        return {"success": True, "reviews": parsed_reviews}
+        return {"reviews": parsed_reviews}
     
     except HTTPException:
         raise

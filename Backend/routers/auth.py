@@ -21,7 +21,7 @@ Validates file type and size, uploads to Supabase storage, and updates users tab
 @param file: Image file to use as new profile picture (JPEG, PNG, or WebP)
 @return: Dictionary with success status and new profile picture URL on success; error message on failure
 '''
-@router.post("/updatePFP")
+@router.post("/updatePFP", status_code=204) # status_code 204 = success, no content. we dont use anything sent back
 async def userUpdateProfilePic(
     file: UploadFile = File(...),
     authorization: str = Header(...)
@@ -97,6 +97,6 @@ async def userUpdateProfilePic(
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal server error during supabase db update")
     
-    return {"success": True, "profile_pic_url": public_url}
+    return
 
     
