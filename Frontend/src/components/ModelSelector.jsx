@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 const ModelSelector = ({ onSelect }) => {
 
     const [savedDesigns, setSavedDesigns] = useState([]);
-    const { user } = useAuth()
+    const { user, authHeaders } = useAuth()
 
     const [deleteModal, setDeleteModal] = useState({ open: false, design: null});
     const [deleteLoading, setDeleteLoading] = useState(false);
@@ -48,7 +48,9 @@ const ModelSelector = ({ onSelect }) => {
         if (user) {
           try {
             // get all saved designs for this user from backend
-            const response = await fetch(`http://localhost:8000/designs/saved_designs/${user.user_id}`);
+            const response = await fetch(`http://localhost:8000/designs/saved_designs`, {
+              headers: authHeaders
+            });
             const data = await response.json();
             setSavedDesigns(data.designs);
           } catch (error) {
@@ -66,27 +68,28 @@ const ModelSelector = ({ onSelect }) => {
       setDeleteLoading(true);
 
       try{
-        const response = await fetch(`http://localhost:8000/designs/delete/${deleteModal.design.design_id}?user_id=${user.user_id}`, {
+        const response = await fetch(`http://localhost:8000/designs/delete/${deleteModal.design.design_id}`, {
           method: 'DELETE',
+          headers: authHeaders
         });
 
         console.log('Response status: ', response.status);
         console.log('REsponse ok: ', response.ok);
 
-        const data = await response.json();
-        console.log('Response data: ', data);
+        if(!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.detail || "Failed to delete design")
+        }
 
-        if(data.success){
-          setSavedDesigns(prev => prev.filter(d => d.design_id !== deleteModal.design.design_id));
-          setDeleteModal({open: false, design: null});
-        }
-        else{
-          alert(data.message || "data not success, Failed to delete design");
-        }
+        setSavedDesigns(prev => 
+          prev.filter(d => d.design_id !== deleteModal.design.design_id)
+        );
+
+        setDeleteModal({open: false, design: null});
       }
       catch (error) {
         console.error('Error deleting design: ', error);
-        alert('ERROR Failed to delete design');
+        alert(error.message);
       }
       finally {
         setDeleteLoading(false);
@@ -110,54 +113,60 @@ const ModelSelector = ({ onSelect }) => {
               Saved Designs
             </h2>
             
-            {savedDesigns.length > 0 ? (
-              <div className="divide-y divide-slate-100">
-                {savedDesigns.map((design) => (
-                  <div
-                    key={design.design_id}
-                    className="group py-6 flex items-center justify-between hover:bg-slate-50 -mx-6 px-6 transition-colors"
-                  >
-                    <div 
-                      className="flex items-baseline gap-6 flex-1 cursor-pointer"
-                      onClick={() => onSelect(design.model_url, design.material_used)}
+            {user ? (
+              savedDesigns.length > 0 ? (
+                <div className="divide-y divide-slate-100">
+                  {savedDesigns.map((design) => (
+                    <div
+                      key={design.design_id}
+                      className="group py-6 flex items-center justify-between hover:bg-slate-50 -mx-6 px-6 transition-colors"
                     >
-                      <span className="text-3xl font-light text-slate-900 group-hover:text-slate-700 transition-colors">
-                        {design.name}
-                      </span>
-                      <span className="text-sm text-slate-400">
-                        {new Date(design.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                      {/* Delete button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteModal({ open: true, design });
-                        }}
-                        className="text-slate-400 hover:text-red-600 transition-colors p-2"
-                        title="Delete design"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-    
-                      {/* Open button */}
                       <div 
-                        className="flex items-center gap-3 text-slate-400 group-hover:text-slate-700 transition-colors cursor-pointer"
+                        className="flex items-baseline gap-6 flex-1 cursor-pointer"
                         onClick={() => onSelect(design.model_url, design.material_used)}
                       >
-                        <span className="text-sm">Open</span>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <span className="text-3xl font-light text-slate-900 group-hover:text-slate-700 transition-colors">
+                          {design.name}
+                        </span>
+                        <span className="text-sm text-slate-400">
+                          {new Date(design.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteModal({ open: true, design });
+                          }}
+                          className="text-slate-400 hover:text-red-600 transition-colors p-2"
+                          title="Delete design"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+
+                        <div 
+                          className="flex items-center gap-3 text-slate-400 group-hover:text-slate-700 transition-colors cursor-pointer"
+                          onClick={() => onSelect(design.model_url, design.material_used)}
+                        >
+                          <span className="text-sm">Open</span>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="border-2 border-slate-300 bg-slate-100 p-8 text-center">
+                  <p className="text-slate-600 font-light">
+                    No saved designs yet
+                  </p>
+                </div>
+              )
             ) : (
               <div className="border-2 border-slate-300 bg-slate-100 p-8 text-center">
                 <p className="text-slate-600 font-light">

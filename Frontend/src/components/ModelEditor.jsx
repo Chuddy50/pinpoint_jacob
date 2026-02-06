@@ -12,7 +12,7 @@ import ExportTab from './ExportTab';
 
 const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
 
   // tab state
   const [activeTab, setActiveTab] = useState('color');
@@ -62,7 +62,6 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     );
 
     // position camera away from origin
-    // TODO: maybe wanna mess with this to determine the best angle ???
     camera.position.set(0, 1.2, 3);
     cameraRef.current = camera;
 
@@ -318,19 +317,22 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     
         try {
           const response = await fetch(
-            `http://localhost:8000/designs/save/${user.user_id}`,
+            `http://localhost:8000/designs/save`,
             {
               method: 'POST',
+              headers: authHeaders,
               body: formData,
             }
           );
     
-          if (response.ok) {
-            showNotification('Design saved successfully', 'success');
-            setDesignName('');
-          } else {
-            showNotification('Failed to save design', 'error');
-          }
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to save design');
+          } 
+
+          showNotification('Design saved successfully', 'success');
+          setDesignName('');
+
         } catch (error) {
           console.error('Error saving design:', error);
           showNotification('Error saving design', 'error');

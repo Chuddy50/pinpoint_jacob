@@ -8,10 +8,12 @@ export default function ManufacturerServices({ manufacturerId }) {
     async function fetchServices() {
       try {
         const response = await fetch(`http://localhost:8000/manufacturers/${manufacturerId}/services`);
-        const data = await response.json();
-        if (data.success) {
-          setServices(data.services);
+        if(!response.ok){
+          const errorData = await response.json()
+          throw new Error(errorData.detail || 'Failed to fetch manufactuerer services')
         }
+        const data = await response.json();
+        setServices(data.services);
       } catch (err) {
         console.error("Failed to load services:", err);
       } finally {

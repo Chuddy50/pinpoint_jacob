@@ -1,7 +1,7 @@
 """
 consultant.py
 
-Last Edited: 1/21/2026
+Last Edited: 2/4/2026
 Developers: Jacob Nguyen
 Description: AI consultant chat endpoint. Relays user messages to Groq API
              for manufacturing advice and guidance

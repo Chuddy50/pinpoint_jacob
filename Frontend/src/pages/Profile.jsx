@@ -13,7 +13,7 @@ export default function Profile() {
     document.title = "Profile - PinPoint";
   }, []);
   
-  const { user, login, logout } = useAuth()
+  const { user, logout, refreshUser, authHeaders } = useAuth()
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
@@ -46,26 +46,19 @@ export default function Profile() {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      const response = await fetch(`http://127.0.0.1:8000/auth/updatePFP/${user.user_id}`, {
+      const response = await fetch(`http://127.0.0.1:8000/auth/updatePFP`, {
         method: "POST",
+        headers: authHeaders, 
         body: formData
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        // Add cache-busting timestamp to force image reload
-        const newPfpUrl = data.profile_pic_url + '?t=' + new Date().getTime();
-        
-        // Update user context with new pfp URL
-        login({
-          ...user,
-          pfp_url: newPfpUrl
-        });
-      } else {
-        console.error("Upload error:", data.error);
+      if(!response.ok){
+        const data = await response.json();
         alert("Failed to update profile picture: " + data.error);
       }
+
+      await refreshUser()
+      
     } catch (error) {
       console.error("Upload error:", error);
       alert("Failed to upload image");
@@ -79,25 +72,10 @@ export default function Profile() {
     e.preventDefault()
 
     try{
-      const result = await fetch("http://127.0.0.1:8000/auth/logout", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"}
-      })
-
-      const data = await result.json()
-
-      if(data.success) {
-        logout()
-      } else {
-        console.error("logout error: ", data.error)
-      }
+      await logout()
     } catch (error) {
-      console.error("logout error: ", error)
+      console.error(error.message || "Logout error")
     }
-  }
-
-  function handleLoginSuccess(data){
-    login(data)
   }
 
   return (
@@ -170,21 +148,11 @@ export default function Profile() {
             {/* Horizontal divider */}
             <hr className="border-t border-gray-400 mb-2 mx-2" />
 
-            {/* User Info */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  User ID
-                </label>
-                <p className="text-sm text-gray-500 font-mono">{user.user_id}</p>
-              </div>
-            </div>
-
             {/* designs saved by this user */}
-            <SavedDesignsProfile userId={user.user_id}/>
+            <SavedDesignsProfile userId={user.id}/>
 
             {/* reviews left by this user */}
-            <UserReviews userId={user.user_id}/>
+            <UserReviews userId={user.id}/>
 
             {/*hidden file input for selecting a new pfp*/}
             <input 
@@ -196,7 +164,7 @@ export default function Profile() {
             />
           </div>
         ) : (
-          <LoginForm onSubmit={handleLoginSuccess} />
+          <LoginForm/>
         )}
       </div>
     </div>

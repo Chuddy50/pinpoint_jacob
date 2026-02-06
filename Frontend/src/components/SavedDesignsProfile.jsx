@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const SavedDesignsProfile = ({ userId }) => {
+
+  const { authHeaders } = useAuth()
+  
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
@@ -11,7 +15,9 @@ const SavedDesignsProfile = ({ userId }) => {
   useEffect(() => {
     const fetchDesigns = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/designs/saved_designs/${userId}`);
+        const response = await fetch(`http://localhost:8000/designs/saved_designs`, {
+          headers: authHeaders
+        });
         const data = await response.json();
         setDesigns(data.designs || []);
       } catch (err) {

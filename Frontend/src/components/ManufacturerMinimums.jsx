@@ -7,11 +7,14 @@ export default function ManufacturerMinimums({ manufacturerId }) {
   useEffect(() => {
     async function fetchMinimums() {
       try {
+        console.log("starting to fetch minimums in frontend")
         const response = await fetch(`http://localhost:8000/manufacturers/${manufacturerId}/minimums`);
-        const data = await response.json();
-        if (data.success) {
-          setMinimums(data.minimums);
+        if(!response.ok){
+          const errorData = await respinse.json()
+          throw new Error(errorData.detail || "Failed to fetch manufacturer minimums")
         }
+        const data = await response.json();
+        setMinimums(data.minimums);
       } catch (err) {
         console.error("Failed to load minimums:", err);
       } finally {
@@ -33,7 +36,7 @@ export default function ManufacturerMinimums({ manufacturerId }) {
             key={min.minimum_id}
             className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
           >
-            {min.minimum_name}
+            {min.minimum_range}
           </span>
         ))}
       </div>

@@ -12,12 +12,12 @@ const ManufacturerReviews = ({ manufacturerId }) => {
       try {
         setLoading(true);
         const response = await fetch(`http://localhost:8000/reviews/manufacturer/${manufacturerId}`);
-        if (!response.ok) throw new Error('Failed to fetch reviews');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to load manufacturers reviews')
+        } 
         const data = await response.json();
-        console.log("Reviews data: ", data);
-        if (data.success) {
-          setReviews(data.reviews);
-        }
+        setReviews(data.reviews);
       } catch (err) {
         setError(err.message);
       } finally {

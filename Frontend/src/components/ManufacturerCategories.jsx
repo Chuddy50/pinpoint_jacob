@@ -8,10 +8,13 @@ export default function ManufacturerCategories({ manufacturerId }) {
     async function fetchCategories() {
       try {
         const response = await fetch(`http://localhost:8000/manufacturers/${manufacturerId}/categories`);
-        const result = await response.json();
-        if (result.success) {
-          setCategories(result.categories);
+        if(!response.ok){
+          const errorData = await response.json()
+          throw new Error(errorData.detail || 'Failed to fetch manufacturer categories')
         }
+        
+        const result = await response.json();
+        setCategories(result.categories);
       } catch (err) {
         console.error("Failed to load categories:", err);
       } finally {
