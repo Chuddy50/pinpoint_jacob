@@ -148,16 +148,6 @@ export default function Profile() {
             {/* Horizontal divider */}
             <hr className="border-t border-gray-400 mb-2 mx-2" />
 
-            {/* User Info */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  User ID
-                </label>
-                <p className="text-sm text-gray-500 font-mono">{user.id}</p>
-              </div>
-            </div>
-
             {/* designs saved by this user */}
             <SavedDesignsProfile userId={user.id}/>
 

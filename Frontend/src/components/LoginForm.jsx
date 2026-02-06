@@ -6,6 +6,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [error, setError] = useState(null);
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const { login, signup } = useAuth();
 
@@ -13,10 +14,15 @@ export default function LoginForm() {
     e.preventDefault();
     setError(null);
 
+    if(!email || !password) { 
+      setError("Please fill in all fields")
+      return
+    }
+
     try{
-      await login(email, password); // call directly, no backend
+      await login(email, password);
     } catch (err) {
-      setError('Login failed: ', err.message);
+      setError('Login failed: ' + err.message);
     }
   }
 
@@ -24,15 +30,20 @@ export default function LoginForm() {
     e.preventDefault();
     setError(null);
 
+    if(!email || !password || !username) {
+      setError("Please fill in all fields")
+      return
+    }
+
     try {
-      await signup(email, password)
+      await signup(username, email, password);
     } catch (err) {
-      setError("Signup failed: ", err.message);
+      setError("Signup failed: " + err.message);
     }
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex overflow-hidden">
       {/* left side */}
       <div className="hidden lg:flex lg:w-1/2 p-12 items-center justify-center">
         <div className="max-w-md">
@@ -45,12 +56,16 @@ export default function LoginForm() {
         </div>
       </div>
 
-      {/* form side */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
+      {/* right side (form) */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <div className="w-full max-w-sm">
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">Sign Up</h2>
-            <p className="text-gray-600 mb-6 text-sm">Create an account to get started</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">
+              {isSignUp ? 'Sign Up' : 'Sign In'}
+            </h2>
+            <p className="text-gray-600 mb-6 text-sm">
+              {isSignUp ? 'Create an account to get started' : 'Welcome back to PinPoint'}
+            </p>
 
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
@@ -58,20 +73,23 @@ export default function LoginForm() {
               </div>
             )}
 
-            {/* Form */}
+            {/* main form */}
             <form className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-              </div>
+              {/* username field - only show on signup */}
+              {isSignUp && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -100,23 +118,31 @@ export default function LoginForm() {
               </div>
 
               <button
-                type="button"
-                onClick={userSignup}
-                className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors text-sm"
+                type="submit"
+                onClick={isSignUp ? userSignup : userLogin}
+                className="w-full !bg-black border-0 !text-white py-3 rounded font-semibold !hover:text-blue-500"
               >
-                Sign Up
-              </button>
-
-              <button
-                type="button"
-                onClick={userLogin}
-                className="w-full bg-white text-indigo-600 border-2 border-indigo-600 py-2.5 rounded-lg font-medium hover:bg-indigo-50 transition-colors text-sm"
-              >
-                Login
+                {isSignUp ? 'Sign Up' : 'Sign In'}
               </button>
             </form>
 
-            {/* Divider */}
+            {/* toggle between sign in and sign up */}
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError(null);
+                }}
+                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+              >
+                {isSignUp 
+                  ? 'Already have an account? Sign in' 
+                  : "Don't have an account? Sign up"}
+              </button>
+            </div>
+
+            {/* divider */}
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
@@ -126,7 +152,7 @@ export default function LoginForm() {
               </div>
             </div>
 
-            {/* Google Sign In Button - Placeholder for future */}
+            {/* google sign in btn for later */}
             <button
               type="button"
               disabled

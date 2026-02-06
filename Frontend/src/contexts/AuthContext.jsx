@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // sign up
-  const signup = async (email, password) => {
+  const signup = async (username, email, password) => {
     const { data, error } = await supabase.auth.signUp({
       email: email,
       password: password
@@ -121,7 +121,7 @@ export const AuthProvider = ({ children }) => {
   
     await supabase.from("users").insert({
       user_id: userId,
-      name: "",
+      name: username,
       profile_pic_url: defaultPfp,
       role: "",
       preferences: {}
@@ -131,7 +131,7 @@ export const AuthProvider = ({ children }) => {
     const fullUser = {
       ...data.user,
       pfp_url: defaultPfp,
-      username: "",
+      username: username,
     };
     
     setUser(fullUser);

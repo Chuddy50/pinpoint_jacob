@@ -146,10 +146,8 @@ async def get_manufacturers_reviews(manufacturer_id: str):
             try:
                 user_response = supabase.table('users').select('name').eq('user_id', review['user_id']).single().execute()
                 user_name = user_response.data.get('name', '').strip() if user_response.data else ''
-                # use "Jane Doe" if name is empty, None, or whitespace
                 if not user_name or user_name == '':
-                    #TODO: Change
-                    user_name = "Jane Doe"
+                    user_name = "Unnamed user"
             except:
                 #TODO: Change
                 user_name = "Jane Doe"
