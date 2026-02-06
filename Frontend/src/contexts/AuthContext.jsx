@@ -54,6 +54,8 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
       }
 
+      console.log('User from session:', session?.user);
+
       setToken(session?.access_token ?? null);
 
       if (session?.access_token) {
@@ -87,6 +89,8 @@ export const AuthProvider = ({ children }) => {
       } else {
         setUser(null);
       }
+
+      console.log('User from auth state change:', session?.user);
 
       setToken(session?.access_token ?? null);
 

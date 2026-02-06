@@ -6,7 +6,7 @@ import { useSendEmailMessage } from "../mutations/email";
 
 //    const { username, id, headers } = useContext(AuthContext);
 export default function Messages() {
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
   const [threads, setThreads] = useState([]);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
@@ -28,7 +28,7 @@ export default function Messages() {
   }, []);
 
   useEffect(() => {
-    if (!user?.user_id) return;
+    if (!user?.id) return;
     let isActive = true;
 
     async function fetchThreads() {
@@ -36,8 +36,9 @@ export default function Messages() {
       setError("");
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/rfq/conversations/${user.user_id}`
-        );
+          `http://127.0.0.1:8000/rfq/conversations`, {
+            headers: authHeaders
+          });
         const data = await response.json();
         if (!response.ok) {
           throw new Error(data.detail || "Failed to load RFQs");
@@ -63,7 +64,7 @@ export default function Messages() {
     return () => {
       isActive = false;
     };
-  }, [user?.user_id]);
+  }, [user?.id]);
 
   const selectedThread = useMemo(
     () => threads.find((thread) => thread.id === selectedThreadId) || null,

@@ -21,7 +21,7 @@ const initialForm = {
 export default function RequestQuote() {
   const [formData, setFormData] = useState(initialForm);
   const [submitted, setSubmitted] = useState(false);
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const location = useLocation();
   const manufacturer = location.state?.manufacturer || null;
 
@@ -51,7 +51,7 @@ export default function RequestQuote() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          buyer_id: user.user_id,
+          buyer_id: user.id,
           manufacturer_id: null,
           contact_name: formData.name,
           contact_email: formData.email,
