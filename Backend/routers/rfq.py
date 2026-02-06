@@ -25,13 +25,42 @@ def _parse_optional_int(value):
     
 
 @router.post("/submit")
-async def submit_rfq(payload: dict):
+async def submit_rfq(payload: dict, authorization: str = Header(...)):
     try:
+
+        print("inside of submit rfq")
+
+        #new get buyer id:
+        #1 extract jwt
+        try:
+            token = authorization.replace("Bearer ", "")
+        except:
+            print("missing authorization header")
+            raise HTTPException(status_code=401, detail="Missing authorization header")
+        
+        #2 verify jwt
+        try:
+            user_response = supabase.auth.get_user(token)
+            buyer_id = user_response.user.id #extract user_id from VERIFIED token
+        except:
+            print("invalid token")
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        #3 make sure looks like uuid
+        if not _looks_like_uuid(buyer_id):
+            print("buyer id must be a UUID")
+            raise HTTPException(status_code=400, detail="buyer_id must be a UUID")
+        
+        print("RFQ extracted buyer id")
+
+        """
+        # old get buyer id
         buyer_id = payload.get("buyer_id")
         if not buyer_id:
             raise HTTPException(status_code=401, detail="User not authenticated")
         if not _looks_like_uuid(buyer_id):
             raise HTTPException(status_code=400, detail="buyer_id must be a UUID")
+        """
 
         manufacturer_id = _parse_optional_int(payload.get("manufacturer_id"))
         status = payload.get("status") or "draft"
@@ -52,6 +81,7 @@ async def submit_rfq(payload: dict):
             missing_fields.append("quantity")
 
         if missing_fields:
+            print("RFQ missing fields")
             raise HTTPException(
                 status_code=400,
                 detail=f"Missing required fields: {', '.join(missing_fields)}",
@@ -64,6 +94,7 @@ async def submit_rfq(payload: dict):
         }).execute()
 
         if not conversations_response.data:
+            print("failed to create RFQ convo")
             raise HTTPException(status_code=500, detail="Failed to create RFQ conversation")
 
         rfq_conversation_id = (
@@ -71,13 +102,16 @@ async def submit_rfq(payload: dict):
             or conversations_response.data[0].get("rfq_conversation_id")
         )
         if not rfq_conversation_id:
+            print("RFQ convo id missing")
             raise HTTPException(status_code=500, detail="RFQ conversation id missing")
 
         try:
             quantity = int(quantity_raw)
         except ValueError:
+            print("quantity must be a num")
             raise HTTPException(status_code=400, detail="Quantity must be a number")
         if quantity <= 0:
+            print("quantity must be greater than 0")
             raise HTTPException(status_code=400, detail="Quantity must be greater than 0")
 
         details_payload = {
@@ -96,6 +130,7 @@ async def submit_rfq(payload: dict):
 
         details_response = supabase.table("rfq_details").insert(details_payload).execute()
         if details_response.data is None:
+            print("failed to save rfq details")
             raise HTTPException(status_code=500, detail="Failed to save RFQ details")
 
         return {
@@ -105,6 +140,7 @@ async def submit_rfq(payload: dict):
     except HTTPException:
         raise
     except Exception as e:
+        print("failed to submit rfq")
         raise HTTPException(status_code=500, detail=f"Failed to submit RFQ: {e}")
 
 

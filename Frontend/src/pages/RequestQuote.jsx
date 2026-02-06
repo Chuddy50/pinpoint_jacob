@@ -43,13 +43,16 @@ export default function RequestQuote() {
     event.preventDefault();
 
     try {
-      if (!user?.user_id) {
+      if (!user?.id) {
         throw new Error("User not authenticated");
       }
 
       const response = await fetch("http://127.0.0.1:8000/rfq/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...authHeaders 
+        },
         body: JSON.stringify({
           buyer_id: user.id,
           manufacturer_id: null,
