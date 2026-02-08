@@ -475,7 +475,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     const quat = new THREE.Quaternion().setFromUnitVectors(up, normal.normalize());
     const orientation = new THREE.Euler().setFromQuaternion(quat);
 
-    const size = new THREE.Vector3(0.3, 0.3, 0.3);
+    const size = new THREE.Vector3(0.5, 0.5, 0.5);
     const decalGeo = new DecalGeometry(mesh, hit.point, orientation, size);
     const decalMat = new THREE.MeshPhongMaterial({
       map: logoTextureRef.current,
@@ -487,7 +487,11 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     });
 
     const decalMesh = new THREE.Mesh(decalGeo, decalMat);
-    mesh.add(decalMesh);
+    //mesh.add(decalMesh);
+    sceneRef.current.add(decalMesh);
+
+    console.log('Decal mesh added to parent:', mesh.name || mesh.type);
+    console.log('Decal world position:', decalMesh.getWorldPosition(new THREE.Vector3()));
 
     setPlacingLogo(false);
     placingLogoRef.current = false;
