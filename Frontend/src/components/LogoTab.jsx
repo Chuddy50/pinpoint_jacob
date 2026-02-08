@@ -1,7 +1,9 @@
 // LogoTab.jsx
-import React from 'react';
+import React, { useRef, useEffect} from 'react';
 
 const LogoTab = ({ onLogoUpload, placingLogo, onCancelPlacement }) => {
+
+  const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -9,6 +11,12 @@ const LogoTab = ({ onLogoUpload, placingLogo, onCancelPlacement }) => {
       onLogoUpload(file);
     }
   };
+
+  useEffect(() => {
+    if(!placingLogo && fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  }, [placingLogo]);
 
   return (
     <div className="p-6 space-y-8">
@@ -24,6 +32,7 @@ const LogoTab = ({ onLogoUpload, placingLogo, onCancelPlacement }) => {
         <div className="space-y-3">
           <label className="block">
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/png,image/jpeg,image/jpg"
               onChange={handleFileChange}

@@ -415,6 +415,8 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       img.onload = () => {
         const texture = new THREE.Texture(img);
         texture.needsUpdate = true;
+        texture.format = THREE.RGBAFormat;  // <-- Add this
+        texture.premultiplyAlpha = false;
         logoTextureRef.current = texture;
         setPlacingLogo(true);
         placingLogoRef.current = true;
@@ -431,34 +433,21 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
   // place logo on the 3d model at click location
   const placeLogo = (event) => {
-    console.log('Starting placeLogo function');
-    console.log('placingLogo:', placingLogoRef);
-    console.log('logoTextureRef.current:', logoTextureRef.current);
-    console.log('modelRef.current:', modelRef.current);
       
     if (!placingLogoRef.current || !logoTextureRef.current || !modelRef.current) return;
-
-    console.log('Passed initial checks, calculating mouse position');
 
     const rect = rendererRef.current.domElement.getBoundingClientRect();
     mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    console.log('Mouse coords:', mouseRef.current);
-
     raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
     const intersects = raycasterRef.current.intersectObject(modelRef.current, true);
-
-    console.log('Intersects length:', intersects.length);
-    console.log('Intersects:', intersects);
 
 
     if (intersects.length === 0) {
       console.log('No hit on model for logo placement');
       return;
     }
-
-    console.log('Hit detected, creating decal...');
 
     const hit = intersects[0];
     const mesh = hit.object;
@@ -487,12 +476,8 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     });
 
     const decalMesh = new THREE.Mesh(decalGeo, decalMat);
-    //mesh.add(decalMesh);
     sceneRef.current.add(decalMesh);
-
-    console.log('Decal mesh added to parent:', mesh.name || mesh.type);
-    console.log('Decal world position:', decalMesh.getWorldPosition(new THREE.Vector3()));
-
+  
     setPlacingLogo(false);
     placingLogoRef.current = false;
     showNotification('Logo placed successfully', 'success');
