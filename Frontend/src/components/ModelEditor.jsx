@@ -4,11 +4,13 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'; // used for saving 3d models
+import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry.js'; // used for logo placement
 import { useAuth } from "../contexts/AuthContext"
 import Notification from './Notification';
 import ColorTab from './ColorTab';
 import MaterialTab from './MaterialTab';
 import ExportTab from './ExportTab';
+import LogoTab from './LogoTab';
 
 const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
@@ -26,6 +28,13 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
   // track the currently used material so when we save, we can store what they have selected for that model
   const [currentMaterial, setCurrentMaterial] = React.useState(initialMaterial);
+
+  // logo placement state
+  const [placingLogo, setPlacingLogo ] = useState(false);
+  const placingLogoRef = useRef(false)
+  const logoTextureRef = useRef(null);
+  const raycasterRef = useRef(new THREE.Raycaster());
+  const mouseRef = useRef(new THREE.Vector2());
 
   // refs to persist threeJS objects across renders
   const containerRef = useRef(null);  
@@ -94,8 +103,8 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
   // load the 3d model from file
   const loadModel = (url) => {
-    console.log('Loading url:', url);
-    console.log('URL type: ', typeof url);
+    //console.log('Loading url:', url);
+    //console.log('URL type: ', typeof url);
 
     // reset loading progress when starting to load
     setLoadingProgress(0);
@@ -105,7 +114,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       url, 
       (gltf) => {
 
-        console.log("Model loaded successfully: ", url);
+        //console.log("Model loaded successfully: ", url);
 
         // get the scene from the loaded 3d model
         const model = gltf.scene;
@@ -152,7 +161,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
         // update loading progress
         const percentComplete = (progress.loaded / progress.total * 100);
         setLoadingProgress(percentComplete);
-        console.log("Loading progress: ", percentComplete.toFixed(2) + '%');
+        //console.log("Loading progress: ", percentComplete.toFixed(2) + '%');
       },
       (error) => {
         console.log('Error loading model:', url);
@@ -256,6 +265,11 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     loadModel(modelUrl);
     animate();
 
+    // add click listener for logo placement
+    const handleCanvasClick = (event) => placeLogo(event);
+    rendererRef.current?.domElement.addEventListener('click', handleCanvasClick);
+    console.log('ModelEditor click listener added')
+
     // cleanup when component unmounts or modelType changes
     return () => {
       // stop animation loop
@@ -264,6 +278,8 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       controlsRef.current?.dispose();  
       // free renderer
       rendererRef.current?.dispose();  
+      // remove logo click listener
+      rendererRef.current?.domElement.removeEventListener('click', handleCanvasClick);
       if (container && rendererRef.current?.domElement) {
         // remove canvas from dom
         container.removeChild(rendererRef.current.domElement);
@@ -391,6 +407,102 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     );
   };
 
+  // handle logo file upload
+  const handleLogoUpload = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const texture = new THREE.Texture(img);
+        texture.needsUpdate = true;
+        logoTextureRef.current = texture;
+        setPlacingLogo(true);
+        placingLogoRef.current = true;
+        console.log('setPlacingLogo(true) called');
+        showNotification('Logo loaded! Click on the model to place it.', 'success');
+      };
+      img.onerror = () => {
+        showNotification('Could not load the image file', 'error');
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // place logo on the 3d model at click location
+  const placeLogo = (event) => {
+    console.log('Starting placeLogo function');
+    console.log('placingLogo:', placingLogoRef);
+    console.log('logoTextureRef.current:', logoTextureRef.current);
+    console.log('modelRef.current:', modelRef.current);
+      
+    if (!placingLogoRef.current || !logoTextureRef.current || !modelRef.current) return;
+
+    console.log('Passed initial checks, calculating mouse position');
+
+    const rect = rendererRef.current.domElement.getBoundingClientRect();
+    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    console.log('Mouse coords:', mouseRef.current);
+
+    raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
+    const intersects = raycasterRef.current.intersectObject(modelRef.current, true);
+
+    console.log('Intersects length:', intersects.length);
+    console.log('Intersects:', intersects);
+
+
+    if (intersects.length === 0) {
+      console.log('No hit on model for logo placement');
+      return;
+    }
+
+    console.log('Hit detected, creating decal...');
+
+    const hit = intersects[0];
+    const mesh = hit.object;
+
+    // compute orientation so decal lays flush with surface
+    let normal = new THREE.Vector3();
+    if (hit.face) {
+      normal.copy(hit.face.normal).transformDirection(mesh.matrixWorld);
+    } else {
+      normal.set(0, 0, 1);
+    }
+
+    const up = new THREE.Vector3(0, 0, 1);
+    const quat = new THREE.Quaternion().setFromUnitVectors(up, normal.normalize());
+    const orientation = new THREE.Euler().setFromQuaternion(quat);
+
+    const size = new THREE.Vector3(0.3, 0.3, 0.3);
+    const decalGeo = new DecalGeometry(mesh, hit.point, orientation, size);
+    const decalMat = new THREE.MeshPhongMaterial({
+      map: logoTextureRef.current,
+      transparent: true,
+      depthTest: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+    });
+
+    const decalMesh = new THREE.Mesh(decalGeo, decalMat);
+    mesh.add(decalMesh);
+
+    setPlacingLogo(false);
+    placingLogoRef.current = false;
+    showNotification('Logo placed successfully', 'success');
+    console.log('Placed logo decal on mesh:', mesh.name || mesh.id);
+  };
+
+  // cancel logo placement
+  const cancelLogoPlacement = () => {
+    setPlacingLogo(false);
+    placingLogoRef.current = false;
+    logoTextureRef.current = null;
+    showNotification('Logo placement cancelled', 'success');
+  };
+
   // return the layout for the threeJS div + controls for customization
   return (
     <div className="h-screen flex bg-white">
@@ -465,6 +577,16 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
               Material
             </button>
             <button 
+              onClick={() => setActiveTab('logo')}
+              className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
+                activeTab === 'logo' 
+                  ? 'text-slate-900 border-b-2 border-slate-900 bg-white' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50/50'
+              }`}
+            >
+              Logo
+            </button>
+            <button 
               onClick={() => setActiveTab('export')}
               className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
                 activeTab === 'export' 
@@ -494,6 +616,15 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
               materials={materials}
               currentMaterial={currentMaterial}
               onMaterialChange={changeMaterial}
+            />
+          )}
+
+          {/* logo Tab */}
+          {activeTab === 'logo' && (
+            <LogoTab 
+              onLogoUpload={handleLogoUpload}
+              placingLogo={placingLogo}
+              onCancelPlacement={cancelLogoPlacement}
             />
           )}
 
