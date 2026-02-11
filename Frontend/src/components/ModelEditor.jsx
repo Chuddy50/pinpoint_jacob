@@ -66,7 +66,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     const camera = new THREE.PerspectiveCamera(
       60, 
       container.clientWidth / container.clientHeight, 
-      0.001, 
+      0.1, 
       100
     );
 
@@ -467,16 +467,29 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
     const size = new THREE.Vector3(0.5, 0.5, 0.5);
     const decalGeo = new DecalGeometry(mesh, hit.point, orientation, size);
+
+    // Offset all vertices of the decal geometry slightly along the normal
+    const positions = decalGeo.attributes.position;
+    for (let i = 0; i < positions.count; i++) {
+      const vertex = new THREE.Vector3(
+        positions.getX(i),
+        positions.getY(i),
+        positions.getZ(i)
+      );
+      vertex.add(normal.clone().multiplyScalar(0.0005)); // Tiny offset per vertex
+      positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    }
+    positions.needsUpdate = true;
+
     const decalMat = new THREE.MeshPhongMaterial({
       map: logoTextureRef.current,
       transparent: true,
       depthTest: true,
       depthWrite: false,
-      polygonOffset: true,
-      polygonOffsetFactor: -4,
     });
 
     const decalMesh = new THREE.Mesh(decalGeo, decalMat);
+    decalMesh.renderOrder = 1;
     sceneRef.current.add(decalMesh);
   
     setPlacingLogo(false);
