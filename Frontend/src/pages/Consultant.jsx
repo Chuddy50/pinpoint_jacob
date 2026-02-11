@@ -1,7 +1,9 @@
 import NavBar from "../components/NavBar";
 import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Consultant() {
+  const { authHeaders } = useAuth();
 
   useEffect(() => {
     document.title = "Consultant - PinPoint";
@@ -41,7 +43,10 @@ export default function Consultant() {
       // 
       const res = await fetch("http://127.0.0.1:8000/consultant/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...authHeaders
+        },
         body: JSON.stringify({
           messages: nextMessages, // this is the context akaa chat history
         }),

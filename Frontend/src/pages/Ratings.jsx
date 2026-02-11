@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 function Ratings() {
-  const { user } = useAuth()
+  const { authHeaders } = useAuth()
   const { id } = useParams();
 
   const navigate = useNavigate();
@@ -73,18 +73,18 @@ function Ratings() {
     try {
       const response = await fetch("http://localhost:8000/reviews", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...authHeaders
+         },
         body: JSON.stringify({
-          user_id: user.user_id,
           manufacturer_id: Number(id),
           rating,
           review,
         }),
       });
 
-      const data = await response.json();
-
-      if (!data.success) {
+      if(!response.ok){
         setMessage({
           text: data.message || "Failed to submit review",
           type: "error",

@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../api/supabaseClient";
+import { useState, useEffect } from "react";
 
 export default function ManufacturerCard({
   manufacturer_id,
@@ -7,6 +9,36 @@ export default function ManufacturerCard({
   rating,
 }) {
   const navigate = useNavigate();
+  const [imageUrl, setImageUrl] = useState(null);
+
+  useEffect(() => {
+    async function loadManufacturerImage() {
+      if (!manufacturer_id) return;
+
+      const extensions = ['jpg', 'jpeg', 'png', 'webp', 'svg'];
+      
+      for (const ext of extensions) {
+        const { data } = supabase.storage
+          .from('manufacturer-logos')
+          .getPublicUrl(`${manufacturer_id}.${ext}`);
+        
+        // Check if image actually exists
+        try {
+          const response = await fetch(data.publicUrl, { method: 'HEAD' });
+          if (response.ok) {
+            setImageUrl(data.publicUrl);
+            return;
+          }
+        } catch (error) {
+          // Continue to next extension
+        }
+      }
+      
+      // No image found, imageUrl remains null and placeholder will show
+    }
+
+    loadManufacturerImage();
+  }, [manufacturer_id]);
 
   function handleViewProfile() {
     if (!manufacturer_id) return;
@@ -14,9 +46,6 @@ export default function ManufacturerCard({
   }
 
   return (
-
-
-
     // color and styling of the card 
     <article className="rounded-2xl bg-white border border-[#E6E6E6]
                         shadow-[0_4px_12px_rgba(0,0,0,0.05)]
@@ -24,17 +53,24 @@ export default function ManufacturerCard({
                         transition-shadow cursor-pointer">
       {/* For now we have no images, but this is where images would go.*/}
 
-
       <div className="p-5 space-y-3">
         {/*This is where ratings are added */}
         <div className="flex text-[#FFC043] gap-[2px]">
           {"★".repeat(Math.floor(rating))}
           {"☆".repeat(5 - Math.floor(rating))}
         </div>
-              <div className="w-full h-40 bg-[#EDEDED] flex items-center justify-center text-sm text-gray-500">
-        Images Placeholder
-      </div>
-
+        
+        <div className="w-full h-40 bg-[#EDEDED] flex items-center justify-center text-sm text-gray-500">
+          {imageUrl ? (
+            <img 
+              src={imageUrl} 
+              alt={`${name} logo`}
+              className="w-full h-full object-contain p-4"
+            />
+          ) : (
+            "Images Placeholder"
+          )}
+        </div>
 
         {/* Manufacturer Name and Location */}
         <h2 className="text-lg font-medium text-[#2A2A2A]">{name}</h2>

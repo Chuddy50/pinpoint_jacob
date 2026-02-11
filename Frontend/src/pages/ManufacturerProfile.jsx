@@ -40,20 +40,16 @@ export default function ManufacturerProfile() {
       try {
         const response = await fetch(`http://localhost:8000/manufacturers/${id}`);
         if (!response.ok) {
+          setError(data.message || "We couldnt find that manufacturer yet")
+          setManufacturer(null)
           throw new Error("Failed to fetch manufacturers");
         }
         const data = await response.json();
         
         if (!isActive) return;
-        
-        //check if api returned error
-        if (data.success === false) {
-          setError(data.message || "We couldnt find that manufacturer yet")
-          setManufacturer(null)
-        } else {
-          setManufacturer(data)
-          setError("")
-        }
+
+        setManufacturer(data)
+        setError("")
       } catch (err) {
         if (isActive) {
           setError("Unable to load manufacturer right now.");
@@ -146,10 +142,6 @@ export default function ManufacturerProfile() {
                 </span>
                 <span>{ratingDisplay}</span>
               </div>
-              <p className="text-sm text-gray-500">
-                If something looks empty, it just means we don&apos;t have that
-                data yet.
-              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

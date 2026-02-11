@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from './contexts/AuthContext'
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Filter from "./pages/Filter";
@@ -11,8 +13,11 @@ import Ratings from "./pages/Ratings";
 import ManufacturerProfile from "./pages/ManufacturerProfile";
 import RequestQuote from "./pages/RequestQuote";
 
+
+const queryClient = new QueryClient();
 export default function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <BrowserRouter>
           <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -30,5 +35,6 @@ export default function App() {
           </main>
       </BrowserRouter>
     </AuthProvider>
+    </QueryClientProvider>
   );
 }

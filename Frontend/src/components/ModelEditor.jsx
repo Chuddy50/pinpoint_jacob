@@ -4,18 +4,21 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'; // used for saving 3d models
+import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry.js'; // used for logo placement
 import { useAuth } from "../contexts/AuthContext"
 import Notification from './Notification';
 import ColorTab from './ColorTab';
 import MaterialTab from './MaterialTab';
 import ExportTab from './ExportTab';
+import LogoTab from './LogoTab';
 
 const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
 
   // tab state
   const [activeTab, setActiveTab] = useState('color');
+  const activeTabRef = useRef('color'); // ref to avoid closure issues in event handlers
   const [designName, setDesignName] = useState('');
 
   // notification state
@@ -26,6 +29,21 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
   // track the currently used material so when we save, we can store what they have selected for that model
   const [currentMaterial, setCurrentMaterial] = React.useState(initialMaterial);
+
+  // logo placement state
+  const [placingLogo, setPlacingLogo ] = useState(false);
+  const placingLogoRef = useRef(false)
+  const logoTextureRef = useRef(null);
+  const raycasterRef = useRef(new THREE.Raycaster());
+  const mouseRef = useRef(new THREE.Vector2());
+
+  // logo selection and editing state
+  const [selectedLogo, setSelectedLogo] = useState(null);
+  const selectedLogoRef = useRef(null); // ref for accessing in event handlers
+  const [logoScaleUI, setLogoScaleUI] = useState(1.0); // UI state for slider
+  const [isDraggingLogo, setIsDraggingLogo] = useState(false);
+  const isDraggingLogoRef = useRef(false);
+  const logosRef = useRef([]); // track all placed logo decal meshes
 
   // refs to persist threeJS objects across renders
   const containerRef = useRef(null);  
@@ -57,12 +75,11 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     const camera = new THREE.PerspectiveCamera(
       60, 
       container.clientWidth / container.clientHeight, 
-      0.001, 
+      0.1, 
       100
     );
 
     // position camera away from origin
-    // TODO: maybe wanna mess with this to determine the best angle ???
     camera.position.set(0, 1.2, 3);
     cameraRef.current = camera;
 
@@ -95,8 +112,8 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
   // load the 3d model from file
   const loadModel = (url) => {
-    console.log('Loading url:', url);
-    console.log('URL type: ', typeof url);
+    //console.log('Loading url:', url);
+    //console.log('URL type: ', typeof url);
 
     // reset loading progress when starting to load
     setLoadingProgress(0);
@@ -106,7 +123,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       url, 
       (gltf) => {
 
-        console.log("Model loaded successfully: ", url);
+        //console.log("Model loaded successfully: ", url);
 
         // get the scene from the loaded 3d model
         const model = gltf.scene;
@@ -145,6 +162,54 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
           changeMaterial(initialMaterial)
         }
 
+        // Find and track any logo decals in the loaded model
+        // This allows editing logos that were saved with the design
+        logosRef.current = [];
+        sceneRef.current.traverse((child) => {
+          if (child.isMesh && child.userData.isLogoDecal) {
+            // Reconstruct Three.js objects from plain objects after GLTF export/import
+            if (child.userData.initialSize && !(child.userData.initialSize instanceof THREE.Vector3)) {
+              const size = child.userData.initialSize;
+              child.userData.initialSize = new THREE.Vector3(size.x, size.y, size.z);
+            }
+            
+            if (child.userData.hitPoint && !(child.userData.hitPoint instanceof THREE.Vector3)) {
+              const point = child.userData.hitPoint;
+              child.userData.hitPoint = new THREE.Vector3(point.x, point.y, point.z);
+            }
+            
+            if (child.userData.orientation && !(child.userData.orientation instanceof THREE.Euler)) {
+              const orient = child.userData.orientation;
+              child.userData.orientation = new THREE.Euler(orient._x, orient._y, orient._z, orient._order);
+            }
+            
+            if (child.userData.normal && !(child.userData.normal instanceof THREE.Vector3)) {
+              const norm = child.userData.normal;
+              child.userData.normal = new THREE.Vector3(norm.x, norm.y, norm.z);
+            }
+            
+            // Find the target mesh by traversing the model
+            // The targetMesh reference is lost during export, so we need to find it again
+            if (child.userData.targetMesh && !child.userData.targetMesh.isMesh) {
+              // Store the original mesh identifier if available
+              const meshId = child.userData.targetMesh.uuid || child.userData.targetMesh.id;
+              // For now, just use the first mesh we find in the model (usually correct for simple models)
+              modelRef.current.traverse((obj) => {
+                if (obj.isMesh && !obj.userData.isLogoDecal) {
+                  child.userData.targetMesh = obj;
+                }
+              });
+            }
+            
+            logosRef.current.push(child);
+            console.log('Reconstructed logo decal with proper Three.js objects');
+          }
+        });
+        
+        if (logosRef.current.length > 0) {
+          console.log(`Loaded ${logosRef.current.length} logo(s) from saved design`);
+        }
+
         //set loading complete
         setLoadingProgress(100);
 
@@ -153,7 +218,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
         // update loading progress
         const percentComplete = (progress.loaded / progress.total * 100);
         setLoadingProgress(percentComplete);
-        console.log("Loading progress: ", percentComplete.toFixed(2) + '%');
+        //console.log("Loading progress: ", percentComplete.toFixed(2) + '%');
       },
       (error) => {
         console.log('Error loading model:', url);
@@ -257,6 +322,55 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     loadModel(modelUrl);
     animate();
 
+    // add click listener for logo placement AND selection
+    const handleCanvasClick = (event) => {
+      if (placingLogoRef.current) {
+        placeLogo(event);
+      } else {
+        selectLogo(event);
+      }
+    };
+    
+    const handleMouseDown = (event) => {
+      // Start dragging if we clicked on the selected logo
+      if (!placingLogoRef.current && selectedLogoRef.current && activeTabRef.current === 'logo') {
+        const rect = rendererRef.current.domElement.getBoundingClientRect();
+        mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
+        const logoIntersects = raycasterRef.current.intersectObjects(logosRef.current, false);
+        
+        if (logoIntersects.length > 0 && logoIntersects[0].object === selectedLogoRef.current) {
+          setIsDraggingLogo(true);
+          isDraggingLogoRef.current = true;
+          controlsRef.current.enabled = false; // disable orbit controls during drag
+          console.log('Started dragging logo');
+        }
+      }
+    };
+    
+    const handleMouseMove = (event) => {
+      if (isDraggingLogoRef.current && selectedLogoRef.current) {
+        repositionLogo(event);
+      }
+    };
+    
+    const handleMouseUp = () => {
+      if (isDraggingLogoRef.current) {
+        setIsDraggingLogo(false);
+        isDraggingLogoRef.current = false;
+        controlsRef.current.enabled = true; // re-enable orbit controls
+        console.log('Stopped dragging logo');
+      }
+    };
+    
+    rendererRef.current?.domElement.addEventListener('click', handleCanvasClick);
+    rendererRef.current?.domElement.addEventListener('mousedown', handleMouseDown);
+    rendererRef.current?.domElement.addEventListener('mousemove', handleMouseMove);
+    rendererRef.current?.domElement.addEventListener('mouseup', handleMouseUp);
+    console.log('ModelEditor click listener added')
+
     // cleanup when component unmounts or modelType changes
     return () => {
       // stop animation loop
@@ -265,6 +379,11 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       controlsRef.current?.dispose();  
       // free renderer
       rendererRef.current?.dispose();  
+      // remove event listeners
+      rendererRef.current?.domElement.removeEventListener('click', handleCanvasClick);
+      rendererRef.current?.domElement.removeEventListener('mousedown', handleMouseDown);
+      rendererRef.current?.domElement.removeEventListener('mousemove', handleMouseMove);
+      rendererRef.current?.domElement.removeEventListener('mouseup', handleMouseUp);
       if (container && rendererRef.current?.domElement) {
         // remove canvas from dom
         container.removeChild(rendererRef.current.domElement);
@@ -273,7 +392,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   }, [modelUrl]);
 
   // save the current 3d model design to supabase
-  // - exports only the 3d model, not lights, camera, etc.
+  // - exports the entire scene including decals/logos
   const handleSave = async () => {
     if(!designName.trim()) {
       showNotification('Please enter a name for your design', 'error');
@@ -286,15 +405,15 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       return;
     }
 
-    if(!modelRef.current){
+    if(!sceneRef.current){
       showNotification('No model to save', 'error');
       return;
     }
 
-    //export the current scene as a .glb file
+    //export the entire scene as a .glb file (includes model + decals)
     const exporter = new GLTFExporter();
     exporter.parse(
-      modelRef.current,
+      sceneRef.current,
       async (result) => {
         let blob;
     
@@ -318,19 +437,22 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     
         try {
           const response = await fetch(
-            `http://localhost:8000/designs/save/${user.user_id}`,
+            `http://localhost:8000/designs/save`,
             {
               method: 'POST',
+              headers: authHeaders,
               body: formData,
             }
           );
     
-          if (response.ok) {
-            showNotification('Design saved successfully', 'success');
-            setDesignName('');
-          } else {
-            showNotification('Failed to save design', 'error');
-          }
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to save design');
+          } 
+
+          showNotification('Design saved successfully', 'success');
+          setDesignName('');
+
         } catch (error) {
           console.error('Error saving design:', error);
           showNotification('Error saving design', 'error');
@@ -344,20 +466,21 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   };
 
   // download the current 3d model design to local computer
+  // - exports the entire scene including decals/logos
   const handleDownload = () => {
     if(!designName.trim()) {
       showNotification('Please enter a name for your design', 'error');
       return;
     }
 
-    if(!modelRef.current){
+    if(!sceneRef.current){
       showNotification('No model to download', 'error');
       return;
     }
 
     const exporter = new GLTFExporter();
     exporter.parse(
-      modelRef.current,
+      sceneRef.current,
       (result) => {
         let blob;
         
@@ -387,6 +510,351 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       },
       { binary: true }
     );
+  };
+
+  // handle logo file upload
+  const handleLogoUpload = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const texture = new THREE.Texture(img);
+        texture.needsUpdate = true;
+        texture.format = THREE.RGBAFormat;  // <-- Add this
+        texture.premultiplyAlpha = false;
+        logoTextureRef.current = texture;
+        setPlacingLogo(true);
+        placingLogoRef.current = true;
+        console.log('setPlacingLogo(true) called');
+        showNotification('Logo loaded! Click on the model to place it.', 'success');
+      };
+      img.onerror = () => {
+        showNotification('Could not load the image file', 'error');
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // clear logo selection when switching away from logo tab
+  useEffect(() => {
+    // sync ref with state for event handlers
+    activeTabRef.current = activeTab;
+    selectedLogoRef.current = selectedLogo;
+    
+    if (activeTab !== 'logo' && selectedLogo) {
+      // remove selection highlight
+      if (selectedLogo.material) {
+        selectedLogo.material.emissive.setHex(0x000000);
+        selectedLogo.material.emissiveIntensity = 0;
+        selectedLogo.material.needsUpdate = true;
+      }
+      setSelectedLogo(null);
+    }
+  }, [activeTab, selectedLogo]);
+
+  // place logo on the 3d model at click location
+  const placeLogo = (event) => {
+      
+    if (!placingLogoRef.current || !logoTextureRef.current || !modelRef.current) return;
+
+    const rect = rendererRef.current.domElement.getBoundingClientRect();
+    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    console.log('PLACING LOGO - Mouse coords:', mouseRef.current.x, mouseRef.current.y);
+
+    raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
+    const intersects = raycasterRef.current.intersectObject(modelRef.current, true);
+
+
+    if (intersects.length === 0) {
+      console.log('No hit on model for logo placement');
+      return;
+    }
+
+    const hit = intersects[0];
+    const mesh = hit.object;
+
+    console.log('PLACING LOGO - Hit point:', hit.point);
+    console.log('PLACING LOGO - Hit mesh:', mesh.name || mesh.id);
+
+    // compute orientation so decal lays flush with surface
+    let normal = new THREE.Vector3();
+    if (hit.face) {
+      normal.copy(hit.face.normal).transformDirection(mesh.matrixWorld);
+    } else {
+      normal.set(0, 0, 1);
+    }
+
+    const up = new THREE.Vector3(0, 0, 1);
+    const quat = new THREE.Quaternion().setFromUnitVectors(up, normal.normalize());
+    const orientation = new THREE.Euler().setFromQuaternion(quat);
+
+    const size = new THREE.Vector3(0.5, 0.5, 0.5);
+    const decalGeo = new DecalGeometry(mesh, hit.point, orientation, size);
+
+    // Offset all vertices of the decal geometry slightly along the normal
+    const positions = decalGeo.attributes.position;
+    for (let i = 0; i < positions.count; i++) {
+      const vertex = new THREE.Vector3(
+        positions.getX(i),
+        positions.getY(i),
+        positions.getZ(i)
+      );
+      vertex.add(normal.clone().multiplyScalar(0.0005)); // Tiny offset per vertex
+      positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    }
+    positions.needsUpdate = true;
+
+    const decalMat = new THREE.MeshPhongMaterial({
+      map: logoTextureRef.current,
+      transparent: true,
+      depthTest: true,
+      depthWrite: false,
+    });
+
+    const decalMesh = new THREE.Mesh(decalGeo, decalMat);
+    decalMesh.renderOrder = 1;
+    
+    // mark this as a logo decal with initial scale and all placement data
+    decalMesh.userData.isLogoDecal = true;
+    decalMesh.userData.scale = 1.0;
+    decalMesh.userData.initialSize = size.clone();
+    decalMesh.userData.targetMesh = mesh;  // store the mesh we placed on
+    decalMesh.userData.hitPoint = hit.point.clone();  // store the hit point
+    decalMesh.userData.orientation = orientation.clone();  // store the orientation
+    decalMesh.userData.normal = normal.clone();  // store the normal
+    
+    sceneRef.current.add(decalMesh);
+    
+    // track this logo
+    logosRef.current.push(decalMesh);
+  
+    console.log('LOGO PLACED - Total logos:', logosRef.current.length);
+    console.log('LOGO PLACED - Decal mesh:', decalMesh);
+
+    setPlacingLogo(false);
+    placingLogoRef.current = false;
+    showNotification('Logo placed successfully', 'success');
+    console.log('Placed logo decal on mesh:', mesh.name || mesh.id);
+  };
+
+  // cancel logo placement
+  const cancelLogoPlacement = () => {
+    setPlacingLogo(false);
+    placingLogoRef.current = false;
+    logoTextureRef.current = null;
+    showNotification('Logo placement cancelled', 'success');
+  };
+
+  // select a logo by clicking on it
+  const selectLogo = (event) => {
+    console.log('=== SELECTLOGO CALLED ===');
+    console.log('activeTab state:', activeTab);
+    console.log('activeTabRef.current:', activeTabRef.current);
+    console.log('placingLogoRef.current:', placingLogoRef.current);
+    
+    // only allow selection when we're on logo tab and not placing a logo
+    if (activeTabRef.current !== 'logo' || placingLogoRef.current) {
+      console.log('Selection blocked - wrong tab or placing logo');
+      return;
+    }
+
+    const rect = rendererRef.current.domElement.getBoundingClientRect();
+    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    console.log('SELECTING - Mouse coords:', mouseRef.current.x, mouseRef.current.y);
+    console.log('SELECTING - Total logos in array:', logosRef.current.length);
+    console.log('SELECTING - Logos array:', logosRef.current);
+
+    raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
+    
+    // raycast against all logo decals
+    const logoIntersects = raycasterRef.current.intersectObjects(logosRef.current, false);
+
+    console.log('SELECTING - Logo intersects:', logoIntersects.length);
+    if (logoIntersects.length > 0) {
+      console.log('SELECTING - First intersect:', logoIntersects[0]);
+      console.log('SELECTING - Hit point:', logoIntersects[0].point);
+    }
+
+    // clear previous selection highlight
+    if (selectedLogoRef.current && selectedLogoRef.current.material) {
+      console.log('SELECTING - Clearing previous selection');
+      selectedLogoRef.current.material.emissive.setHex(0x000000);
+      selectedLogoRef.current.material.emissiveIntensity = 0;
+      selectedLogoRef.current.material.needsUpdate = true;
+    }
+
+    if (logoIntersects.length > 0) {
+      const clickedLogo = logoIntersects[0].object;
+      
+      console.log('SELECTING - Clicked logo:', clickedLogo);
+      
+      // deselect if clicking same logo
+      if (selectedLogoRef.current === clickedLogo) {
+        console.log('SELECTING - Deselecting same logo');
+        clickedLogo.material.emissive.setHex(0x000000);
+        clickedLogo.material.emissiveIntensity = 0;
+        clickedLogo.material.needsUpdate = true;
+        setSelectedLogo(null);
+      } else {
+        // highlight the selected logo with a subtle glow
+        console.log('SELECTING - Setting new selection');
+        clickedLogo.material.emissive.setHex(0x44ff44);
+        clickedLogo.material.emissiveIntensity = 0.3;
+        clickedLogo.material.needsUpdate = true;
+        setSelectedLogo(clickedLogo);
+        setLogoScaleUI(clickedLogo.userData.scale ?? 1.0); // sync UI state
+      }
+    } else {
+      // clicked empty space - deselect
+      console.log('SELECTING - No logo hit, deselecting');
+      
+      // Clear the highlight from the previously selected logo
+      if (selectedLogoRef.current && selectedLogoRef.current.material) {
+        selectedLogoRef.current.material.emissive.setHex(0x000000);
+        selectedLogoRef.current.material.emissiveIntensity = 0;
+        selectedLogoRef.current.material.needsUpdate = true;
+      }
+      
+      setSelectedLogo(null);
+      setLogoScaleUI(1.0); // reset UI state
+    }
+  };
+
+  // delete selected logo
+  const deleteLogo = () => {
+    if (!selectedLogo) return;
+
+    // remove from scene
+    sceneRef.current.remove(selectedLogo);
+    
+    // remove from tracking array
+    logosRef.current = logosRef.current.filter(logo => logo !== selectedLogo);
+    
+    // clear selection
+    setSelectedLogo(null);
+    
+    showNotification('Logo deleted', 'success');
+  };
+
+  // reposition logo by dragging
+  const repositionLogo = (event) => {
+    if (!selectedLogoRef.current || !modelRef.current) return;
+
+    const rect = rendererRef.current.domElement.getBoundingClientRect();
+    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
+    const intersects = raycasterRef.current.intersectObject(modelRef.current, true);
+
+    if (intersects.length === 0) return;
+
+    const hit = intersects[0];
+    const mesh = hit.object;
+
+    // Compute orientation so decal lays flush with surface
+    let normal = new THREE.Vector3();
+    if (hit.face) {
+      normal.copy(hit.face.normal).transformDirection(mesh.matrixWorld);
+    } else {
+      normal.set(0, 0, 1);
+    }
+
+    const up = new THREE.Vector3(0, 0, 1);
+    const quat = new THREE.Quaternion().setFromUnitVectors(up, normal.normalize());
+    const orientation = new THREE.Euler().setFromQuaternion(quat);
+
+    // Get current scale from userData
+    const currentScale = selectedLogoRef.current.userData.scale || 1.0;
+    const initialSize = selectedLogoRef.current.userData.initialSize;
+    const size = initialSize.clone().multiplyScalar(currentScale);
+
+    // Create new decal geometry at new position
+    const newDecalGeo = new DecalGeometry(mesh, hit.point, orientation, size);
+
+    // Offset vertices
+    const positions = newDecalGeo.attributes.position;
+    for (let i = 0; i < positions.count; i++) {
+      const vertex = new THREE.Vector3(
+        positions.getX(i),
+        positions.getY(i),
+        positions.getZ(i)
+      );
+      vertex.add(normal.clone().multiplyScalar(0.0005));
+      positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    }
+    positions.needsUpdate = true;
+
+    // Update geometry
+    selectedLogoRef.current.geometry.dispose();
+    selectedLogoRef.current.geometry = newDecalGeo;
+
+    // Update stored placement data
+    selectedLogoRef.current.userData.targetMesh = mesh;
+    selectedLogoRef.current.userData.hitPoint = hit.point.clone();
+    selectedLogoRef.current.userData.orientation = orientation.clone();
+    selectedLogoRef.current.userData.normal = normal.clone();
+  };
+
+  // resize selected logo
+  const resizeLogo = (newScale) => {
+    console.log('RESIZE - Called with scale:', newScale);
+    
+    if (!selectedLogo) return;
+
+    // Update UI state immediately for smooth slider
+    setLogoScaleUI(newScale);
+
+    // Get the original placement data from userData
+    const initialSize = selectedLogo.userData.initialSize;
+    const mesh = selectedLogo.userData.targetMesh;
+    const point = selectedLogo.userData.hitPoint;
+    const orientation = selectedLogo.userData.orientation;
+    
+    console.log('RESIZE - userData:', selectedLogo.userData);
+    
+    if (!initialSize || !mesh || !point || !orientation) {
+      console.warn('Missing data for logo resize, falling back to simple scale');
+      selectedLogo.scale.setScalar(newScale);
+      selectedLogo.userData.scale = newScale;
+      return;
+    }
+
+    // Calculate new size based on scale
+    const newSize = initialSize.clone().multiplyScalar(newScale);
+    
+    console.log('RESIZE - Creating new decal geometry, old size:', initialSize, 'new size:', newSize);
+    
+    // Recreate the decal geometry with new size
+    const newDecalGeo = new DecalGeometry(mesh, point, orientation, newSize);
+    
+    // Offset vertices (same as placement)
+    const positions = newDecalGeo.attributes.position;
+    const normal = selectedLogo.userData.normal;
+    for (let i = 0; i < positions.count; i++) {
+      const vertex = new THREE.Vector3(
+        positions.getX(i),
+        positions.getY(i),
+        positions.getZ(i)
+      );
+      vertex.add(normal.clone().multiplyScalar(0.0005));
+      positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    }
+    positions.needsUpdate = true;
+
+    // Dispose old geometry and assign new one
+    selectedLogo.geometry.dispose();
+    selectedLogo.geometry = newDecalGeo;
+    
+    // Update stored scale in Three.js object
+    selectedLogo.userData.scale = newScale;
+    
+    console.log('RESIZE - Complete, updated scale to:', newScale);
   };
 
   // return the layout for the threeJS div + controls for customization
@@ -463,6 +931,16 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
               Material
             </button>
             <button 
+              onClick={() => setActiveTab('logo')}
+              className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
+                activeTab === 'logo' 
+                  ? 'text-slate-900 border-b-2 border-slate-900 bg-white' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50/50'
+              }`}
+            >
+              Logo
+            </button>
+            <button 
               onClick={() => setActiveTab('export')}
               className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
                 activeTab === 'export' 
@@ -495,6 +973,21 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
             />
           )}
 
+          {/* logo Tab */}
+          {activeTab === 'logo' && (
+            <LogoTab 
+              onLogoUpload={handleLogoUpload}
+              placingLogo={placingLogo}
+              onCancelPlacement={cancelLogoPlacement}
+              selectedLogo={selectedLogo}
+              logoScaleUI={logoScaleUI}
+              setLogoScaleUI={setLogoScaleUI}
+              isDraggingLogo={isDraggingLogo}
+              onDeleteLogo={deleteLogo}
+              onResizeLogo={resizeLogo}
+            />
+          )}
+
           {/* export Tab */}
           {activeTab === 'export' && (
             <ExportTab 
@@ -504,7 +997,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
               onSaveToSupabase={handleSave}
               onDownload={handleDownload}
             />
-          )}
+          )} 
         </div>
       </div>
     </div>

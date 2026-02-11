@@ -1,13 +1,13 @@
 """
 reviews.py
 
-Last Edited: 1/12/2026
-Developers: Luke Jones
+Last Edited: 2/6/2026
+Developers: Luke Jones, Leo Plute
 Description: Manufacturer reviews endpoints. Allows users to submit ratings
              and written reviews for manufacturers
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header, HTTPException
 from config.database import supabase
 
 router = APIRouter()
@@ -17,14 +17,28 @@ Submit a new review and rating for a manufacturer
 Creates review record in database with rating (1-5 stars) and written feedback
 
 @param review: Dictionary containing manufacturer_id, user_id, rating (int 1-5), and review text
-@return: Dictionary with success status and message
+@return: 204 status code
 '''
-@router.post("")
-async def create_review(review : dict):
+@router.post("", status_code=204)
+async def create_review(review : dict, authorization: str = Header(...)):
     try:
+
+        #1 extract jwt
+        try:
+            token = authorization.replace("Bearer ", "")
+        except:
+            raise HTTPException(status_code=401, detail="Missing authorization header")
+        
+        #2 verify jwt
+        try:
+            user_response = supabase.auth.get_user(token)
+            user_id = user_response.user.id #extract user_id from VERIFIED token
+        except:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
         insertResponse = supabase.table("reviews").insert({
             "manufacturer_id": review['manufacturer_id'],
-            "user_id": review['user_id'],
+            "user_id": user_id,
             "rating": review['rating'],
             "review":  review['review'],
             #supabase automatically will make the created_at col bc of the
@@ -32,8 +46,8 @@ async def create_review(review : dict):
         }).execute()
 
         # Now update the average rating for this manufacturer
-        print("Updating average rating for a manufacturer.")
-        print("Wassup")
+        #print("Updating average rating for a manufacturer.")
+        #print("Wassup")
 
         # Get all ratings for manufacturer.
         ratingsResponse = (
@@ -43,11 +57,11 @@ async def create_review(review : dict):
             .eq("manufacturer_id", review['manufacturer_id'])
             .execute()
         )
-        print("Got all ratings for manufacturer.")
+        #print("Got all ratings for manufacturer.")
         # Calculate average rating.
         ratings = [r["rating"] for r in ratingsResponse.data]
         avgRating = sum(ratings) / len(ratings)
-        print("Calculated the average")
+        #print("Calculated the average")
 
         # Save average rating in the database.
         avgRatingResponse = (
@@ -58,28 +72,37 @@ async def create_review(review : dict):
             .execute()
         )
 
-        print("Saved the average rating")
-
-        return {
-            "success": True,
-            "message": "Review sucessfully added"
-        }
+        return 
+    
+    except HTTPException:
+        raise
 
     except Exception as e:
-        return {
-            "success": False,
-            "message": f"Error submitting review in API layer. Error: {str(e)}"
-        }
+        raise HTTPException(status_code=500, detail=f"Internal server error, unexpected exception hit: {e}")
     
 
-@router.get('/user/{user_id}')
-async def get_users_reviews(user_id: str):
+@router.get('/user')
+async def get_users_reviews(authorization: str = Header(...)):
     try:
+
+        #1 extract jwt
+        try:
+            token = authorization.replace("Bearer ", "")
+        except:
+            raise HTTPException(status_code=401, detail="Missing authorization header")
+        
+        #2 verify jwt
+        try:
+            user_response = supabase.auth.get_user(token)
+            user_id = user_response.user.id #extract user_id from VERIFIED token
+        except:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
         # get all reviews by this user
         response = supabase.table('reviews').select('*').eq('user_id', user_id).execute()
         
         if not response.data:
-            return {"success": True, "reviews": []}
+            return { "reviews": [] }
         
         # parse reviews and fetch manufacturer names
         parsed_reviews = []
@@ -97,11 +120,14 @@ async def get_users_reviews(user_id: str):
                 'created_at': review['created_at']
             })
         
-        return {"success": True, "reviews": parsed_reviews}
+        return {"reviews": parsed_reviews}
+    
+    except HTTPException:
+        raise
         
     except Exception as e:
         print(f"Error fetching user reviews: {e}")
-        return {"success": False, "error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Internal server error, unexpected exception hit: {e}")
     
 
 @router.get('/manufacturer/{manufacturer_id}')
@@ -111,7 +137,7 @@ async def get_manufacturers_reviews(manufacturer_id: str):
         response = supabase.table('reviews').select('*').eq('manufacturer_id', manufacturer_id).execute()
         
         if not response.data:
-            return {"success": True, "reviews": []}
+            return {"reviews": []}
         
         # parse reviews and fetch user names
         parsed_reviews = []
@@ -120,10 +146,8 @@ async def get_manufacturers_reviews(manufacturer_id: str):
             try:
                 user_response = supabase.table('users').select('name').eq('user_id', review['user_id']).single().execute()
                 user_name = user_response.data.get('name', '').strip() if user_response.data else ''
-                # use "Jane Doe" if name is empty, None, or whitespace
                 if not user_name or user_name == '':
-                    #TODO: Change
-                    user_name = "Jane Doe"
+                    user_name = "Unnamed user"
             except:
                 #TODO: Change
                 user_name = "Jane Doe"
@@ -136,8 +160,11 @@ async def get_manufacturers_reviews(manufacturer_id: str):
                 'created_at': review['created_at']
             })
         
-        return {"success": True, "reviews": parsed_reviews}
+        return {"reviews": parsed_reviews}
+    
+    except HTTPException:
+        raise
         
     except Exception as e:
         print(f"Error fetching manufacturer reviews: {e}")
-        return {"success": False, "error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Internal server error, unexpected exception hit: {e}")

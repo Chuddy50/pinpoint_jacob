@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { useAuth } from "../contexts/AuthContext";
 
+
 const initialForm = {
   name: "",
   email: "",
@@ -20,7 +21,7 @@ const initialForm = {
 export default function RequestQuote() {
   const [formData, setFormData] = useState(initialForm);
   const [submitted, setSubmitted] = useState(false);
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const location = useLocation();
   const manufacturer = location.state?.manufacturer || null;
 
@@ -42,15 +43,18 @@ export default function RequestQuote() {
     event.preventDefault();
 
     try {
-      if (!user?.user_id) {
+      if (!user?.id) {
         throw new Error("User not authenticated");
       }
 
       const response = await fetch("http://127.0.0.1:8000/rfq/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...authHeaders 
+        },
         body: JSON.stringify({
-          buyer_id: user.user_id,
+          buyer_id: user.id,
           manufacturer_id: null,
           contact_name: formData.name,
           contact_email: formData.email,
@@ -65,9 +69,9 @@ export default function RequestQuote() {
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.detail || data.error || "Failed to submit RFQ");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || errorData.error || "Failed to submit RFQ");
       }
 
       setSubmitted(true);
