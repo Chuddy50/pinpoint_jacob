@@ -66,13 +66,37 @@ export const AuthProvider = ({ children }) => {
     });
 
     // Keep state in sync when Supabase refreshes token
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
 
       const authUser = session?.user ?? null;
 
       if (authUser) {
-        // FETCH custom user data on auth state change too
+        // Check if this is a new Google sign-up
+        if (event === 'SIGNED_IN') {
+          const { data: existingUser } = await supabase
+            .from("users")
+            .select("user_id")
+            .eq("user_id", authUser.id)
+            .single();
+
+          // If no user exists in our table, create one (new Google signup)
+          if (!existingUser) {
+            const defaultPfp = 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/profile_pics/basicPfp.jpg';
+            const username = authUser.user_metadata?.name || authUser.email.split('@')[0];
+            const googleAvatar = authUser.user_metadata?.avatar_url;
+
+            await supabase.from("users").insert({
+              user_id: authUser.id,
+              name: username,
+              profile_pic_url: googleAvatar || defaultPfp,
+              role: "",
+              preferences: {}
+            });
+          }
+        }
+
+        // FETCH custom user data on auth state change
         const { data: userData } = await supabase
           .from("users")
           .select("profile_pic_url, name")
@@ -185,6 +209,19 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem(TOKEN_KEY);
   };
 
+  // sign in/up via google thru supabase
+  const signInWithGoogle = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/`
+      }
+    });
+    
+    if (error) throw error;
+    return data;
+  };
+
   // used when new pfp is selected to refresh the image
   const refreshUser = async () => {
     if (!user?.id) return;
@@ -207,7 +244,7 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const value = useMemo(
-    () => ({ user, token, isUserLoggedIn, authHeaders, login, logout, signup, refreshUser }),
+    () => ({ user, token, isUserLoggedIn, authHeaders, login, logout, signup, refreshUser, signInWithGoogle }),
     [user, token, isUserLoggedIn, authHeaders]
   );
 
