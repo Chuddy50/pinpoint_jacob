@@ -8,7 +8,7 @@ export default function LoginForm() {
   const [error, setError] = useState(null);
   const [isSignUp, setIsSignUp] = useState(false);
 
-  const { login, signup } = useAuth();
+  const { login, signup, signInWithGoogle } = useAuth();
 
   async function userLogin(e) {
     e.preventDefault();
@@ -39,6 +39,15 @@ export default function LoginForm() {
       await signup(username, email, password);
     } catch (err) {
       setError("Signup failed: " + err.message);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setError(null);
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setError('Google sign-in failed: ' + err.message);
     }
   }
 
@@ -155,8 +164,8 @@ export default function LoginForm() {
             {/* google sign in btn for later */}
             <button
               type="button"
-              disabled
-              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors opacity-50 cursor-not-allowed text-sm"
+              onClick={handleGoogleSignIn}
+              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
