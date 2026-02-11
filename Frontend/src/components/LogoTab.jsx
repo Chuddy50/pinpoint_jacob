@@ -1,7 +1,14 @@
 // LogoTab.jsx
 import React, { useRef, useEffect} from 'react';
 
-const LogoTab = ({ onLogoUpload, placingLogo, onCancelPlacement }) => {
+const LogoTab = ({ 
+  onLogoUpload, 
+  placingLogo, 
+  onCancelPlacement,
+  selectedLogo,
+  onDeleteLogo,
+  onResizeLogo 
+}) => {
 
   const fileInputRef = useRef(null);
 
@@ -71,6 +78,61 @@ const LogoTab = ({ onLogoUpload, placingLogo, onCancelPlacement }) => {
           >
             Cancel Placement
           </button>
+        </div>
+      )}
+
+      {/* selection mode - edit selected logo */}
+      {!placingLogo && selectedLogo && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">✓</span>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-green-900 mb-1">Logo Selected</h4>
+              <p className="text-sm text-green-700">
+                Adjust size or remove this logo from your design.
+              </p>
+            </div>
+          </div>
+
+          {/* resize slider */}
+          <div className="space-y-2">
+            <label className="flex items-center justify-between text-sm font-medium text-slate-700">
+              <span>Size</span>
+              <span className="text-xs text-slate-500">{selectedLogo.userData?.scale?.toFixed(2) || '1.00'}x</span>
+            </label>
+            <input
+              type="range"
+              min="0.5"
+              max="3.0"
+              step="0.1"
+              value={selectedLogo.userData?.scale || 1.0}
+              onChange={(e) => onResizeLogo(parseFloat(e.target.value))}
+              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+            />
+            <div className="flex justify-between text-xs text-slate-500">
+              <span>0.5x</span>
+              <span>3.0x</span>
+            </div>
+          </div>
+
+          {/* delete button */}
+          <button
+            onClick={onDeleteLogo}
+            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            Delete Logo
+          </button>
+        </div>
+      )}
+
+      {/* selection mode hint */}
+      {!placingLogo && !selectedLogo && (
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <p className="text-sm text-slate-600">
+            Click on a logo in the 3D model to select and edit it.
+          </p>
         </div>
       )}
 

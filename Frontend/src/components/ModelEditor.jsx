@@ -18,6 +18,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
   // tab state
   const [activeTab, setActiveTab] = useState('color');
+  const activeTabRef = useRef('color'); // ref to avoid closure issues in event handlers
   const [designName, setDesignName] = useState('');
 
   // notification state
@@ -35,6 +36,10 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   const logoTextureRef = useRef(null);
   const raycasterRef = useRef(new THREE.Raycaster());
   const mouseRef = useRef(new THREE.Vector2());
+
+  // logo selection and editing state
+  const [selectedLogo, setSelectedLogo] = useState(null);
+  const logosRef = useRef([]); // track all placed logo decal meshes
 
   // refs to persist threeJS objects across renders
   const containerRef = useRef(null);  
@@ -265,8 +270,14 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     loadModel(modelUrl);
     animate();
 
-    // add click listener for logo placement
-    const handleCanvasClick = (event) => placeLogo(event);
+    // add click listener for logo placement AND selection
+    const handleCanvasClick = (event) => {
+      if (placingLogoRef.current) {
+        placeLogo(event);
+      } else {
+        selectLogo(event);
+      }
+    };
     rendererRef.current?.domElement.addEventListener('click', handleCanvasClick);
     console.log('ModelEditor click listener added')
 
@@ -432,6 +443,19 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     reader.readAsDataURL(file);
   };
 
+  // clear logo selection when switching away from logo tab
+  useEffect(() => {
+    // sync ref with state for event handlers
+    activeTabRef.current = activeTab;
+    
+    if (activeTab !== 'logo' && selectedLogo) {
+      // remove selection highlight
+      selectedLogo.material.emissive = new THREE.Color(0x000000);
+      selectedLogo.material.emissiveIntensity = 0;
+      setSelectedLogo(null);
+    }
+  }, [activeTab, selectedLogo]);
+
   // place logo on the 3d model at click location
   const placeLogo = (event) => {
       
@@ -440,6 +464,8 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     const rect = rendererRef.current.domElement.getBoundingClientRect();
     mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    console.log('PLACING LOGO - Mouse coords:', mouseRef.current.x, mouseRef.current.y);
 
     raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
     const intersects = raycasterRef.current.intersectObject(modelRef.current, true);
@@ -452,6 +478,9 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
     const hit = intersects[0];
     const mesh = hit.object;
+
+    console.log('PLACING LOGO - Hit point:', hit.point);
+    console.log('PLACING LOGO - Hit mesh:', mesh.name || mesh.id);
 
     // compute orientation so decal lays flush with surface
     let normal = new THREE.Vector3();
@@ -490,8 +519,20 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
     const decalMesh = new THREE.Mesh(decalGeo, decalMat);
     decalMesh.renderOrder = 1;
+    
+    // mark this as a logo decal with initial scale
+    decalMesh.userData.isLogoDecal = true;
+    decalMesh.userData.scale = 1.0;
+    decalMesh.userData.initialSize = size.clone();
+    
     sceneRef.current.add(decalMesh);
+    
+    // track this logo
+    logosRef.current.push(decalMesh);
   
+    console.log('LOGO PLACED - Total logos:', logosRef.current.length);
+    console.log('LOGO PLACED - Decal mesh:', decalMesh);
+
     setPlacingLogo(false);
     placingLogoRef.current = false;
     showNotification('Logo placed successfully', 'success');
@@ -504,6 +545,99 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     placingLogoRef.current = false;
     logoTextureRef.current = null;
     showNotification('Logo placement cancelled', 'success');
+  };
+
+  // select a logo by clicking on it
+  const selectLogo = (event) => {
+    console.log('=== SELECTLOGO CALLED ===');
+    console.log('activeTab state:', activeTab);
+    console.log('activeTabRef.current:', activeTabRef.current);
+    console.log('placingLogoRef.current:', placingLogoRef.current);
+    
+    // only allow selection when we're on logo tab and not placing a logo
+    if (activeTabRef.current !== 'logo' || placingLogoRef.current) {
+      console.log('Selection blocked - wrong tab or placing logo');
+      return;
+    }
+
+    const rect = rendererRef.current.domElement.getBoundingClientRect();
+    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    console.log('SELECTING - Mouse coords:', mouseRef.current.x, mouseRef.current.y);
+    console.log('SELECTING - Total logos in array:', logosRef.current.length);
+    console.log('SELECTING - Logos array:', logosRef.current);
+
+    raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
+    
+    // raycast against all logo decals
+    const logoIntersects = raycasterRef.current.intersectObjects(logosRef.current, false);
+
+    console.log('SELECTING - Logo intersects:', logoIntersects.length);
+    if (logoIntersects.length > 0) {
+      console.log('SELECTING - First intersect:', logoIntersects[0]);
+      console.log('SELECTING - Hit point:', logoIntersects[0].point);
+    }
+
+    // clear previous selection highlight
+    if (selectedLogo) {
+      console.log('SELECTING - Clearing previous selection');
+      selectedLogo.material.emissive = new THREE.Color(0x000000);
+      selectedLogo.material.emissiveIntensity = 0;
+    }
+
+    if (logoIntersects.length > 0) {
+      const clickedLogo = logoIntersects[0].object;
+      
+      console.log('SELECTING - Clicked logo:', clickedLogo);
+      
+      // deselect if clicking same logo
+      if (selectedLogo === clickedLogo) {
+        console.log('SELECTING - Deselecting same logo');
+        setSelectedLogo(null);
+      } else {
+        // highlight the selected logo with a subtle glow
+        console.log('SELECTING - Setting new selection');
+        clickedLogo.material.emissive = new THREE.Color(0x44ff44);
+        clickedLogo.material.emissiveIntensity = 0.3;
+        setSelectedLogo(clickedLogo);
+      }
+    } else {
+      // clicked empty space - deselect
+      console.log('SELECTING - No logo hit, deselecting');
+      setSelectedLogo(null);
+    }
+  };
+
+  // delete selected logo
+  const deleteLogo = () => {
+    if (!selectedLogo) return;
+
+    // remove from scene
+    sceneRef.current.remove(selectedLogo);
+    
+    // remove from tracking array
+    logosRef.current = logosRef.current.filter(logo => logo !== selectedLogo);
+    
+    // clear selection
+    setSelectedLogo(null);
+    
+    showNotification('Logo deleted', 'success');
+  };
+
+  // resize selected logo
+  const resizeLogo = (newScale) => {
+    if (!selectedLogo) return;
+
+    // apply new scale to the mesh
+    selectedLogo.scale.setScalar(newScale);
+    
+    // update stored scale
+    selectedLogo.userData.scale = newScale;
+    
+    // trigger re-render by updating state with a new reference
+    // (spread won't work on Three.js objects, so we create a plain object)
+    setSelectedLogo({ ...selectedLogo });
   };
 
   // return the layout for the threeJS div + controls for customization
@@ -628,6 +762,9 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
               onLogoUpload={handleLogoUpload}
               placingLogo={placingLogo}
               onCancelPlacement={cancelLogoPlacement}
+              selectedLogo={selectedLogo}
+              onDeleteLogo={deleteLogo}
+              onResizeLogo={resizeLogo}
             />
           )}
 
@@ -640,7 +777,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
               onSaveToSupabase={handleSave}
               onDownload={handleDownload}
             />
-          )}
+          )} 
         </div>
       </div>
     </div>
