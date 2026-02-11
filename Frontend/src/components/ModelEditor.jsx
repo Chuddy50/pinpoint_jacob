@@ -39,6 +39,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
   // logo selection and editing state
   const [selectedLogo, setSelectedLogo] = useState(null);
+  const selectedLogoRef = useRef(null); // ref for accessing in event handlers
   const logosRef = useRef([]); // track all placed logo decal meshes
 
   // refs to persist threeJS objects across renders
@@ -447,6 +448,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   useEffect(() => {
     // sync ref with state for event handlers
     activeTabRef.current = activeTab;
+    selectedLogoRef.current = selectedLogo;
     
     if (activeTab !== 'logo' && selectedLogo) {
       // remove selection highlight
@@ -587,11 +589,11 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     }
 
     // clear previous selection highlight
-    if (selectedLogo && selectedLogo.material) {
+    if (selectedLogoRef.current && selectedLogoRef.current.material) {
       console.log('SELECTING - Clearing previous selection');
-      selectedLogo.material.emissive.setHex(0x000000);
-      selectedLogo.material.emissiveIntensity = 0;
-      selectedLogo.material.needsUpdate = true;
+      selectedLogoRef.current.material.emissive.setHex(0x000000);
+      selectedLogoRef.current.material.emissiveIntensity = 0;
+      selectedLogoRef.current.material.needsUpdate = true;
     }
 
     if (logoIntersects.length > 0) {
@@ -600,7 +602,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       console.log('SELECTING - Clicked logo:', clickedLogo);
       
       // deselect if clicking same logo
-      if (selectedLogo === clickedLogo) {
+      if (selectedLogoRef.current === clickedLogo) {
         console.log('SELECTING - Deselecting same logo');
         clickedLogo.material.emissive.setHex(0x000000);
         clickedLogo.material.emissiveIntensity = 0;
@@ -619,10 +621,10 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       console.log('SELECTING - No logo hit, deselecting');
       
       // Clear the highlight from the previously selected logo
-      if (selectedLogo && selectedLogo.material) {
-        selectedLogo.material.emissive.setHex(0x000000);
-        selectedLogo.material.emissiveIntensity = 0;
-        selectedLogo.material.needsUpdate = true;
+      if (selectedLogoRef.current && selectedLogoRef.current.material) {
+        selectedLogoRef.current.material.emissive.setHex(0x000000);
+        selectedLogoRef.current.material.emissiveIntensity = 0;
+        selectedLogoRef.current.material.needsUpdate = true;
       }
       
       setSelectedLogo(null);
