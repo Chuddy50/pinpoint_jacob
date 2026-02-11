@@ -288,7 +288,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   }, [modelUrl]);
 
   // save the current 3d model design to supabase
-  // - exports only the 3d model, not lights, camera, etc.
+  // - exports the entire scene including decals/logos
   const handleSave = async () => {
     if(!designName.trim()) {
       showNotification('Please enter a name for your design', 'error');
@@ -301,15 +301,15 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       return;
     }
 
-    if(!modelRef.current){
+    if(!sceneRef.current){
       showNotification('No model to save', 'error');
       return;
     }
 
-    //export the current scene as a .glb file
+    //export the entire scene as a .glb file (includes model + decals)
     const exporter = new GLTFExporter();
     exporter.parse(
-      modelRef.current,
+      sceneRef.current,
       async (result) => {
         let blob;
     
@@ -362,20 +362,21 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   };
 
   // download the current 3d model design to local computer
+  // - exports the entire scene including decals/logos
   const handleDownload = () => {
     if(!designName.trim()) {
       showNotification('Please enter a name for your design', 'error');
       return;
     }
 
-    if(!modelRef.current){
+    if(!sceneRef.current){
       showNotification('No model to download', 'error');
       return;
     }
 
     const exporter = new GLTFExporter();
     exporter.parse(
-      modelRef.current,
+      sceneRef.current,
       (result) => {
         let blob;
         
