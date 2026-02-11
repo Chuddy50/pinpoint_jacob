@@ -40,6 +40,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   // logo selection and editing state
   const [selectedLogo, setSelectedLogo] = useState(null);
   const selectedLogoRef = useRef(null); // ref for accessing in event handlers
+  const [logoScaleUI, setLogoScaleUI] = useState(1.0); // UI state for slider
   const logosRef = useRef([]); // track all placed logo decal meshes
 
   // refs to persist threeJS objects across renders
@@ -615,6 +616,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
         clickedLogo.material.emissiveIntensity = 0.3;
         clickedLogo.material.needsUpdate = true;
         setSelectedLogo(clickedLogo);
+        setLogoScaleUI(clickedLogo.userData.scale ?? 1.0); // sync UI state
       }
     } else {
       // clicked empty space - deselect
@@ -628,6 +630,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       }
       
       setSelectedLogo(null);
+      setLogoScaleUI(1.0); // reset UI state
     }
   };
 
@@ -653,6 +656,9 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     
     if (!selectedLogo) return;
 
+    // Update UI state immediately for smooth slider
+    setLogoScaleUI(newScale);
+
     // Get the original placement data from userData
     const initialSize = selectedLogo.userData.initialSize;
     const mesh = selectedLogo.userData.targetMesh;
@@ -665,8 +671,6 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       console.warn('Missing data for logo resize, falling back to simple scale');
       selectedLogo.scale.setScalar(newScale);
       selectedLogo.userData.scale = newScale;
-      // Force re-render by setting new object
-      setSelectedLogo(selectedLogo);
       return;
     }
 
@@ -696,13 +700,10 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     selectedLogo.geometry.dispose();
     selectedLogo.geometry = newDecalGeo;
     
-    // Update stored scale
+    // Update stored scale in Three.js object
     selectedLogo.userData.scale = newScale;
     
     console.log('RESIZE - Complete, updated scale to:', newScale);
-    
-    // Force re-render by setting new object reference
-    setSelectedLogo(selectedLogo);
   };
 
   // return the layout for the threeJS div + controls for customization
@@ -828,6 +829,8 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
               placingLogo={placingLogo}
               onCancelPlacement={cancelLogoPlacement}
               selectedLogo={selectedLogo}
+              logoScaleUI={logoScaleUI}
+              setLogoScaleUI={setLogoScaleUI}
               onDeleteLogo={deleteLogo}
               onResizeLogo={resizeLogo}
             />

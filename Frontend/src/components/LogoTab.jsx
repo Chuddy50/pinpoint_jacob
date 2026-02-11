@@ -6,6 +6,8 @@ const LogoTab = ({
   placingLogo, 
   onCancelPlacement,
   selectedLogo,
+  logoScaleUI,
+  setLogoScaleUI,
   onDeleteLogo,
   onResizeLogo 
 }) => {
@@ -100,15 +102,19 @@ const LogoTab = ({
           <div className="space-y-2">
             <label className="flex items-center justify-between text-sm font-medium text-slate-700">
               <span>Size</span>
-              <span className="text-xs text-slate-500">{selectedLogo.userData?.scale?.toFixed(2) || '1.00'}x</span>
+              <span className="text-xs text-slate-500">{logoScaleUI?.toFixed(2) ?? '1.00'}x</span>
             </label>
             <input
               type="range"
               min="0.5"
               max="3.0"
               step="0.1"
-              value={selectedLogo.userData?.scale || 1.0}
-              onChange={(e) => onResizeLogo(parseFloat(e.target.value))}
+              value={logoScaleUI ?? 1.0}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                setLogoScaleUI(v);  // instant UI update
+                onResizeLogo(v);    // update Three.js mesh
+              }}
               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-green-600"
             />
             <div className="flex justify-between text-xs text-slate-500">
