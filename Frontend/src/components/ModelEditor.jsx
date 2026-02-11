@@ -162,6 +162,54 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
           changeMaterial(initialMaterial)
         }
 
+        // Find and track any logo decals in the loaded model
+        // This allows editing logos that were saved with the design
+        logosRef.current = [];
+        sceneRef.current.traverse((child) => {
+          if (child.isMesh && child.userData.isLogoDecal) {
+            // Reconstruct Three.js objects from plain objects after GLTF export/import
+            if (child.userData.initialSize && !(child.userData.initialSize instanceof THREE.Vector3)) {
+              const size = child.userData.initialSize;
+              child.userData.initialSize = new THREE.Vector3(size.x, size.y, size.z);
+            }
+            
+            if (child.userData.hitPoint && !(child.userData.hitPoint instanceof THREE.Vector3)) {
+              const point = child.userData.hitPoint;
+              child.userData.hitPoint = new THREE.Vector3(point.x, point.y, point.z);
+            }
+            
+            if (child.userData.orientation && !(child.userData.orientation instanceof THREE.Euler)) {
+              const orient = child.userData.orientation;
+              child.userData.orientation = new THREE.Euler(orient._x, orient._y, orient._z, orient._order);
+            }
+            
+            if (child.userData.normal && !(child.userData.normal instanceof THREE.Vector3)) {
+              const norm = child.userData.normal;
+              child.userData.normal = new THREE.Vector3(norm.x, norm.y, norm.z);
+            }
+            
+            // Find the target mesh by traversing the model
+            // The targetMesh reference is lost during export, so we need to find it again
+            if (child.userData.targetMesh && !child.userData.targetMesh.isMesh) {
+              // Store the original mesh identifier if available
+              const meshId = child.userData.targetMesh.uuid || child.userData.targetMesh.id;
+              // For now, just use the first mesh we find in the model (usually correct for simple models)
+              modelRef.current.traverse((obj) => {
+                if (obj.isMesh && !obj.userData.isLogoDecal) {
+                  child.userData.targetMesh = obj;
+                }
+              });
+            }
+            
+            logosRef.current.push(child);
+            console.log('Reconstructed logo decal with proper Three.js objects');
+          }
+        });
+        
+        if (logosRef.current.length > 0) {
+          console.log(`Loaded ${logosRef.current.length} logo(s) from saved design`);
+        }
+
         //set loading complete
         setLoadingProgress(100);
 
