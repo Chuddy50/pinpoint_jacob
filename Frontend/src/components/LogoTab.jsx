@@ -8,6 +8,7 @@ const LogoTab = ({
   selectedLogo,
   logoScaleUI,
   setLogoScaleUI,
+  isDraggingLogo,
   onDeleteLogo,
   onResizeLogo 
 }) => {
@@ -93,9 +94,24 @@ const LogoTab = ({
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-green-900 mb-1">Logo Selected</h4>
               <p className="text-sm text-green-700">
-                Adjust size or remove this logo from your design.
+                Edit your logo using the controls below.
               </p>
             </div>
+          </div>
+
+          {/* drag to move instruction */}
+          <div className="bg-white/60 border border-green-300 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <svg className="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+              </svg>
+              <span className="text-sm font-semibold text-green-900">Move Logo</span>
+            </div>
+            <p className="text-xs text-green-700">
+              {isDraggingLogo 
+                ? "Dragging... move your mouse to reposition" 
+                : "Click and drag the logo on the 3D model to move it"}
+            </p>
           </div>
 
           {/* resize slider */}

@@ -41,6 +41,8 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   const [selectedLogo, setSelectedLogo] = useState(null);
   const selectedLogoRef = useRef(null); // ref for accessing in event handlers
   const [logoScaleUI, setLogoScaleUI] = useState(1.0); // UI state for slider
+  const [isDraggingLogo, setIsDraggingLogo] = useState(false);
+  const isDraggingLogoRef = useRef(false);
   const logosRef = useRef([]); // track all placed logo decal meshes
 
   // refs to persist threeJS objects across renders
@@ -280,7 +282,45 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
         selectLogo(event);
       }
     };
+    
+    const handleMouseDown = (event) => {
+      // Start dragging if we clicked on the selected logo
+      if (!placingLogoRef.current && selectedLogoRef.current && activeTabRef.current === 'logo') {
+        const rect = rendererRef.current.domElement.getBoundingClientRect();
+        mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
+        const logoIntersects = raycasterRef.current.intersectObjects(logosRef.current, false);
+        
+        if (logoIntersects.length > 0 && logoIntersects[0].object === selectedLogoRef.current) {
+          setIsDraggingLogo(true);
+          isDraggingLogoRef.current = true;
+          controlsRef.current.enabled = false; // disable orbit controls during drag
+          console.log('Started dragging logo');
+        }
+      }
+    };
+    
+    const handleMouseMove = (event) => {
+      if (isDraggingLogoRef.current && selectedLogoRef.current) {
+        repositionLogo(event);
+      }
+    };
+    
+    const handleMouseUp = () => {
+      if (isDraggingLogoRef.current) {
+        setIsDraggingLogo(false);
+        isDraggingLogoRef.current = false;
+        controlsRef.current.enabled = true; // re-enable orbit controls
+        console.log('Stopped dragging logo');
+      }
+    };
+    
     rendererRef.current?.domElement.addEventListener('click', handleCanvasClick);
+    rendererRef.current?.domElement.addEventListener('mousedown', handleMouseDown);
+    rendererRef.current?.domElement.addEventListener('mousemove', handleMouseMove);
+    rendererRef.current?.domElement.addEventListener('mouseup', handleMouseUp);
     console.log('ModelEditor click listener added')
 
     // cleanup when component unmounts or modelType changes
@@ -291,8 +331,11 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       controlsRef.current?.dispose();  
       // free renderer
       rendererRef.current?.dispose();  
-      // remove logo click listener
+      // remove event listeners
       rendererRef.current?.domElement.removeEventListener('click', handleCanvasClick);
+      rendererRef.current?.domElement.removeEventListener('mousedown', handleMouseDown);
+      rendererRef.current?.domElement.removeEventListener('mousemove', handleMouseMove);
+      rendererRef.current?.domElement.removeEventListener('mouseup', handleMouseUp);
       if (container && rendererRef.current?.domElement) {
         // remove canvas from dom
         container.removeChild(rendererRef.current.domElement);
@@ -650,6 +693,66 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     showNotification('Logo deleted', 'success');
   };
 
+  // reposition logo by dragging
+  const repositionLogo = (event) => {
+    if (!selectedLogoRef.current || !modelRef.current) return;
+
+    const rect = rendererRef.current.domElement.getBoundingClientRect();
+    mouseRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouseRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
+    const intersects = raycasterRef.current.intersectObject(modelRef.current, true);
+
+    if (intersects.length === 0) return;
+
+    const hit = intersects[0];
+    const mesh = hit.object;
+
+    // Compute orientation so decal lays flush with surface
+    let normal = new THREE.Vector3();
+    if (hit.face) {
+      normal.copy(hit.face.normal).transformDirection(mesh.matrixWorld);
+    } else {
+      normal.set(0, 0, 1);
+    }
+
+    const up = new THREE.Vector3(0, 0, 1);
+    const quat = new THREE.Quaternion().setFromUnitVectors(up, normal.normalize());
+    const orientation = new THREE.Euler().setFromQuaternion(quat);
+
+    // Get current scale from userData
+    const currentScale = selectedLogoRef.current.userData.scale || 1.0;
+    const initialSize = selectedLogoRef.current.userData.initialSize;
+    const size = initialSize.clone().multiplyScalar(currentScale);
+
+    // Create new decal geometry at new position
+    const newDecalGeo = new DecalGeometry(mesh, hit.point, orientation, size);
+
+    // Offset vertices
+    const positions = newDecalGeo.attributes.position;
+    for (let i = 0; i < positions.count; i++) {
+      const vertex = new THREE.Vector3(
+        positions.getX(i),
+        positions.getY(i),
+        positions.getZ(i)
+      );
+      vertex.add(normal.clone().multiplyScalar(0.0005));
+      positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    }
+    positions.needsUpdate = true;
+
+    // Update geometry
+    selectedLogoRef.current.geometry.dispose();
+    selectedLogoRef.current.geometry = newDecalGeo;
+
+    // Update stored placement data
+    selectedLogoRef.current.userData.targetMesh = mesh;
+    selectedLogoRef.current.userData.hitPoint = hit.point.clone();
+    selectedLogoRef.current.userData.orientation = orientation.clone();
+    selectedLogoRef.current.userData.normal = normal.clone();
+  };
+
   // resize selected logo
   const resizeLogo = (newScale) => {
     console.log('RESIZE - Called with scale:', newScale);
@@ -831,6 +934,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
               selectedLogo={selectedLogo}
               logoScaleUI={logoScaleUI}
               setLogoScaleUI={setLogoScaleUI}
+              isDraggingLogo={isDraggingLogo}
               onDeleteLogo={deleteLogo}
               onResizeLogo={resizeLogo}
             />
