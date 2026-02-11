@@ -450,8 +450,11 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     
     if (activeTab !== 'logo' && selectedLogo) {
       // remove selection highlight
-      selectedLogo.material.emissive = new THREE.Color(0x000000);
-      selectedLogo.material.emissiveIntensity = 0;
+      if (selectedLogo.material) {
+        selectedLogo.material.emissive.setHex(0x000000);
+        selectedLogo.material.emissiveIntensity = 0;
+        selectedLogo.material.needsUpdate = true;
+      }
       setSelectedLogo(null);
     }
   }, [activeTab, selectedLogo]);
@@ -520,10 +523,14 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     const decalMesh = new THREE.Mesh(decalGeo, decalMat);
     decalMesh.renderOrder = 1;
     
-    // mark this as a logo decal with initial scale
+    // mark this as a logo decal with initial scale and all placement data
     decalMesh.userData.isLogoDecal = true;
     decalMesh.userData.scale = 1.0;
     decalMesh.userData.initialSize = size.clone();
+    decalMesh.userData.targetMesh = mesh;  // store the mesh we placed on
+    decalMesh.userData.hitPoint = hit.point.clone();  // store the hit point
+    decalMesh.userData.orientation = orientation.clone();  // store the orientation
+    decalMesh.userData.normal = normal.clone();  // store the normal
     
     sceneRef.current.add(decalMesh);
     
@@ -580,10 +587,11 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     }
 
     // clear previous selection highlight
-    if (selectedLogo) {
+    if (selectedLogo && selectedLogo.material) {
       console.log('SELECTING - Clearing previous selection');
-      selectedLogo.material.emissive = new THREE.Color(0x000000);
+      selectedLogo.material.emissive.setHex(0x000000);
       selectedLogo.material.emissiveIntensity = 0;
+      selectedLogo.material.needsUpdate = true;
     }
 
     if (logoIntersects.length > 0) {
@@ -594,17 +602,29 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       // deselect if clicking same logo
       if (selectedLogo === clickedLogo) {
         console.log('SELECTING - Deselecting same logo');
+        clickedLogo.material.emissive.setHex(0x000000);
+        clickedLogo.material.emissiveIntensity = 0;
+        clickedLogo.material.needsUpdate = true;
         setSelectedLogo(null);
       } else {
         // highlight the selected logo with a subtle glow
         console.log('SELECTING - Setting new selection');
-        clickedLogo.material.emissive = new THREE.Color(0x44ff44);
+        clickedLogo.material.emissive.setHex(0x44ff44);
         clickedLogo.material.emissiveIntensity = 0.3;
+        clickedLogo.material.needsUpdate = true;
         setSelectedLogo(clickedLogo);
       }
     } else {
       // clicked empty space - deselect
       console.log('SELECTING - No logo hit, deselecting');
+      
+      // Clear the highlight from the previously selected logo
+      if (selectedLogo && selectedLogo.material) {
+        selectedLogo.material.emissive.setHex(0x000000);
+        selectedLogo.material.emissiveIntensity = 0;
+        selectedLogo.material.needsUpdate = true;
+      }
+      
       setSelectedLogo(null);
     }
   };
@@ -627,17 +647,60 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
   // resize selected logo
   const resizeLogo = (newScale) => {
+    console.log('RESIZE - Called with scale:', newScale);
+    
     if (!selectedLogo) return;
 
-    // apply new scale to the mesh
-    selectedLogo.scale.setScalar(newScale);
+    // Get the original placement data from userData
+    const initialSize = selectedLogo.userData.initialSize;
+    const mesh = selectedLogo.userData.targetMesh;
+    const point = selectedLogo.userData.hitPoint;
+    const orientation = selectedLogo.userData.orientation;
     
-    // update stored scale
+    console.log('RESIZE - userData:', selectedLogo.userData);
+    
+    if (!initialSize || !mesh || !point || !orientation) {
+      console.warn('Missing data for logo resize, falling back to simple scale');
+      selectedLogo.scale.setScalar(newScale);
+      selectedLogo.userData.scale = newScale;
+      // Force re-render by setting new object
+      setSelectedLogo(selectedLogo);
+      return;
+    }
+
+    // Calculate new size based on scale
+    const newSize = initialSize.clone().multiplyScalar(newScale);
+    
+    console.log('RESIZE - Creating new decal geometry, old size:', initialSize, 'new size:', newSize);
+    
+    // Recreate the decal geometry with new size
+    const newDecalGeo = new DecalGeometry(mesh, point, orientation, newSize);
+    
+    // Offset vertices (same as placement)
+    const positions = newDecalGeo.attributes.position;
+    const normal = selectedLogo.userData.normal;
+    for (let i = 0; i < positions.count; i++) {
+      const vertex = new THREE.Vector3(
+        positions.getX(i),
+        positions.getY(i),
+        positions.getZ(i)
+      );
+      vertex.add(normal.clone().multiplyScalar(0.0005));
+      positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    }
+    positions.needsUpdate = true;
+
+    // Dispose old geometry and assign new one
+    selectedLogo.geometry.dispose();
+    selectedLogo.geometry = newDecalGeo;
+    
+    // Update stored scale
     selectedLogo.userData.scale = newScale;
     
-    // trigger re-render by updating state with a new reference
-    // (spread won't work on Three.js objects, so we create a plain object)
-    setSelectedLogo({ ...selectedLogo });
+    console.log('RESIZE - Complete, updated scale to:', newScale);
+    
+    // Force re-render by setting new object reference
+    setSelectedLogo(selectedLogo);
   };
 
   // return the layout for the threeJS div + controls for customization
