@@ -35,7 +35,7 @@ export default function Home() {
       <div className="flex-1 rounded-3xl bg-white p-6 shadow-sm md:p-10">
 
         {/* search and filter bar */}
-         <div className="mb-6 flex items-start gap-4 pr-4">
+         <div className="mb-0 flex items-start gap-4 pr-4">
            {/* filter panel */}
            <div className="flex-1">
              <FilterPanel onFiltersChange={setFilters} />
