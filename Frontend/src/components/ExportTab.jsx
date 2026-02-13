@@ -1,7 +1,7 @@
 // ExportTab.jsx
 import React from 'react';
 
-const ExportTab = ({ designName, onDesignNameChange, currentMaterial, onSaveToSupabase, onDownload, onTechPack }) => {
+const ExportTab = ({ designName, onDesignNameChange, currentMaterial, onSaveToSupabase, onDownload }) => {
   return (
     <div className="p-6 space-y-8">
       {/* header section */}
@@ -46,13 +46,6 @@ const ExportTab = ({ designName, onDesignNameChange, currentMaterial, onSaveToSu
           className="w-full px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-900 font-semibold rounded-lg border-2 border-slate-900 transition-colors"
         >
           Download to Computer
-        </button>
-
-        <button
-          onClick={onTechPack}
-          className="w-full px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-900 font-semibold rounded-lg border-2 border-slate-900 transition-colors"
-        >
-          Export as Tech Pack
         </button>
       </div>
     </div>

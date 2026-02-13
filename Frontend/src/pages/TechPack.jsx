@@ -6,15 +6,17 @@ export default function TechPack() {
   const [techPackData, setTechPackData] = useState({
     productName: "",
     brandName: "",
-    styleNumber: "",
-    season: "",
     garmentType: "",
-    description: "",
-    colors: [],
+    mainFabric: "",
     sizeRange: [],
     moq: "",
-    mainFabric: "",
-    stitchingNotes: "",
+    colors: "",
+    necklineType: "",
+    sleeveType: "",
+    hemType: "",
+    stitchType: "",
+    measurements: "",
+    description: "",
     specialInstructions: "",
     sketchImages: [],
   });
@@ -27,262 +29,306 @@ export default function TechPack() {
     setActiveField(fieldName);
   };
 
-  const handleClickOutside = () => {
-    setActiveField(null);
-  };
-
   return (
-    <div className="flex">
+    <div className="flex h-screen overflow-hidden bg-gray-100">
       <NavBar />
       
-      {/* Main content area - offset for navbar */}
-      <div className="ml-64 flex-1 min-h-screen bg-white p-8">
+      {/* Main content - minimal padding */}
+      <div className="ml-54 flex-1 flex flex-col p-1">
         
-        {/* Tech Pack Document */}
-        <div 
-          className="max-w-5xl mx-auto bg-white border border-gray-300 shadow-lg p-12"
-          onClick={(e) => {
-            // Only close if clicking the background, not a field
-            if (e.target === e.currentTarget) {
-              handleClickOutside();
-            }
-          }}
-        >
+        {/* The tech pack document - takes up available space */}
+        <div className="flex-1 bg-white shadow-2xl border-4 border-black flex flex-col">
           
-          {/* Header */}
-          <h1 className="text-5xl font-bold text-center mb-8 uppercase tracking-wide">
-            Tech Pack
-          </h1>
-
-          {/* Top Info Row */}
-          <div className="grid grid-cols-2 gap-4 mb-8 border-b border-gray-300 pb-4">
-            <EditableField
-              label="Brand"
-              value={techPackData.brandName}
-              placeholder="Brand Name"
-              isActive={activeField === 'brandName'}
-              onClick={() => handleFieldClick('brandName')}
-              onChange={(val) => updateField('brandName', val)}
-            />
-            <EditableField
-              label="Style Name"
-              value={techPackData.productName}
-              placeholder="Product Name"
-              isActive={activeField === 'productName'}
-              onClick={() => handleFieldClick('productName')}
-              onChange={(val) => updateField('productName', val)}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-8 border-b border-gray-300 pb-4">
-            <EditableField
-              label="Season"
-              value={techPackData.season}
-              placeholder="Fall/Winter 2025"
-              isActive={activeField === 'season'}
-              onClick={() => handleFieldClick('season')}
-              onChange={(val) => updateField('season', val)}
-            />
-            <EditableField
-              label="Style Number"
-              value={techPackData.styleNumber}
-              placeholder="H2025-001"
-              isActive={activeField === 'styleNumber'}
-              onClick={() => handleFieldClick('styleNumber')}
-              onChange={(val) => updateField('styleNumber', val)}
-            />
-          </div>
-
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-2 gap-8 mb-8">
+          {/* Header section */}
+          <div className="border-b-4 border-black grid grid-cols-2 h-14">
+            {/* Left side - Title */}
+            <div className="border-r-4 border-black flex items-center justify-center bg-black text-white">
+              <h1 className="text-xl font-bold tracking-widest">TECH PACK</h1>
+            </div>
             
-            {/* Left: Sketches */}
-            <div className="border border-gray-300 p-4">
-              <h3 className="font-semibold mb-4 text-sm uppercase tracking-wide">Technical Sketches</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="aspect-square border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
-                  Front View
+            {/* Right side - Brand and Style */}
+            <div className="grid grid-cols-2">
+              {/* Brand Name */}
+              <div className="border-r-4 border-black grid grid-cols-5">
+                <div className="col-span-2 bg-gray-100 border-r-2 border-black flex items-center px-3">
+                  <span className="text-xs font-bold">BRAND</span>
                 </div>
-                <div className="aspect-square border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
-                  Back View
+                <div className="col-span-3 flex items-center px-3">
+                  <GridInput
+                    value={techPackData.brandName}
+                    isActive={activeField === 'brandName'}
+                    onClick={() => handleFieldClick('brandName')}
+                    onChange={(val) => updateField('brandName', val)}
+                  />
+                </div>
+              </div>
+              
+              {/* Style Name */}
+              <div className="grid grid-cols-5">
+                <div className="col-span-2 bg-gray-100 border-r-2 border-black flex items-center px-3">
+                  <span className="text-xs font-bold">STYLE NAME</span>
+                </div>
+                <div className="col-span-3 flex items-center px-3">
+                  <GridInput
+                    value={techPackData.productName}
+                    isActive={activeField === 'productName'}
+                    onClick={() => handleFieldClick('productName')}
+                    onChange={(val) => updateField('productName', val)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main content grid */}
+          <div className="flex-1 grid grid-cols-2 border-b-4 border-black min-h-0">
+            
+            {/* LEFT: Technical Sketches */}
+            <div className="border-r-4 border-black flex flex-col">
+              <div className="bg-gray-100 border-b-4 border-black px-4 py-2">
+                <h2 className="text-sm font-bold tracking-wide">TECHNICAL SKETCHES</h2>
+              </div>
+              <div className="flex-1 grid grid-cols-2">
+                {/* Front view */}
+                <div className="border-r-2 border-black bg-gray-50 flex flex-col items-center justify-center p-6">
+                  <div className="w-full h-full border-2 border-dashed border-gray-400 flex flex-col items-center justify-center">
+                    <svg className="w-16 h-16 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-xs font-bold text-gray-400">FRONT VIEW</span>
+                  </div>
+                </div>
+                {/* Back view */}
+                <div className="bg-gray-50 flex flex-col items-center justify-center p-6">
+                  <div className="w-full h-full border-2 border-dashed border-gray-400 flex flex-col items-center justify-center">
+                    <svg className="w-16 h-16 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-xs font-bold text-gray-400">BACK VIEW</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Right: Specs Table */}
-            <div className="border border-gray-300">
-              <div className="border-b border-gray-300 p-3 bg-gray-50">
-                <h3 className="font-semibold text-sm uppercase tracking-wide">Specifications</h3>
+            {/* RIGHT: Specifications */}
+            <div className="flex flex-col">
+              <div className="bg-gray-100 border-b-4 border-black px-4 py-2">
+                <h2 className="text-sm font-bold tracking-wide">SPECIFICATIONS</h2>
               </div>
               
-              <div className="divide-y divide-gray-300">
-                <SpecRow
-                  label="Garment Type"
+              {/* Specs grid */}
+              <div className="flex-1 overflow-auto">
+                <SpecGridRow
+                  label="GARMENT TYPE"
                   value={techPackData.garmentType}
-                  placeholder="Select or type..."
                   isActive={activeField === 'garmentType'}
                   onClick={() => handleFieldClick('garmentType')}
                   onChange={(val) => updateField('garmentType', val)}
                 />
-                <SpecRow
-                  label="Main Fabric"
+                <SpecGridRow
+                  label="MAIN FABRIC"
                   value={techPackData.mainFabric}
-                  placeholder="e.g., 80% Cotton / 20% Polyester"
                   isActive={activeField === 'mainFabric'}
                   onClick={() => handleFieldClick('mainFabric')}
                   onChange={(val) => updateField('mainFabric', val)}
                 />
-                <SpecRow
-                  label="Size Range"
+                <SpecGridRow
+                  label="SIZE RANGE"
                   value={techPackData.sizeRange.join(', ')}
-                  placeholder="Select sizes..."
                   isActive={activeField === 'sizeRange'}
                   onClick={() => handleFieldClick('sizeRange')}
                   onChange={(val) => updateField('sizeRange', val)}
                 />
-                <SpecRow
+                <SpecGridRow
+                  label="COLORS"
+                  value={techPackData.colors}
+                  isActive={activeField === 'colors'}
+                  onClick={() => handleFieldClick('colors')}
+                  onChange={(val) => updateField('colors', val)}
+                />
+                <SpecGridRow
                   label="MOQ"
                   value={techPackData.moq}
-                  placeholder="Minimum order quantity"
                   isActive={activeField === 'moq'}
                   onClick={() => handleFieldClick('moq')}
                   onChange={(val) => updateField('moq', val)}
+                />
+                <SpecGridRow
+                  label="NECKLINE"
+                  value={techPackData.necklineType}
+                  isActive={activeField === 'necklineType'}
+                  onClick={() => handleFieldClick('necklineType')}
+                  onChange={(val) => updateField('necklineType', val)}
+                />
+                <SpecGridRow
+                  label="SLEEVES"
+                  value={techPackData.sleeveType}
+                  isActive={activeField === 'sleeveType'}
+                  onClick={() => handleFieldClick('sleeveType')}
+                  onChange={(val) => updateField('sleeveType', val)}
+                />
+                <SpecGridRow
+                  label="HEM TYPE"
+                  value={techPackData.hemType}
+                  isActive={activeField === 'hemType'}
+                  onClick={() => handleFieldClick('hemType')}
+                  onChange={(val) => updateField('hemType', val)}
+                />
+                <SpecGridRow
+                  label="STITCH TYPE"
+                  value={techPackData.stitchType}
+                  isActive={activeField === 'stitchType'}
+                  onClick={() => handleFieldClick('stitchType')}
+                  onChange={(val) => updateField('stitchType', val)}
+                />
+                <SpecGridRow
+                  label="MEASUREMENTS"
+                  value={techPackData.measurements}
+                  isActive={activeField === 'measurements'}
+                  onClick={() => handleFieldClick('measurements')}
+                  onChange={(val) => updateField('measurements', val)}
                 />
               </div>
             </div>
           </div>
 
-          {/* Description Section */}
-          <div className="border border-gray-300 mb-8">
-            <div className="border-b border-gray-300 p-3 bg-gray-50">
-              <h3 className="font-semibold text-sm uppercase tracking-wide">Description</h3>
+          {/* Bottom section - Description and Notes */}
+          <div className="grid grid-cols-2 h-28">
+            {/* Description */}
+            <div className="border-r-4 border-black flex flex-col">
+              <div className="bg-gray-100 border-b-2 border-black px-4 py-1">
+                <h3 className="text-xs font-bold tracking-wide">DESCRIPTION</h3>
+              </div>
+              <div className="flex-1 p-2">
+                <GridTextArea
+                  value={techPackData.description}
+                  isActive={activeField === 'description'}
+                  onClick={() => handleFieldClick('description')}
+                  onChange={(val) => updateField('description', val)}
+                />
+              </div>
             </div>
-            <EditableTextArea
-              value={techPackData.description}
-              placeholder="Describe the garment, special features, construction notes..."
-              isActive={activeField === 'description'}
-              onClick={() => handleFieldClick('description')}
-              onChange={(val) => updateField('description', val)}
-            />
-          </div>
-
-          {/* Special Instructions */}
-          <div className="border border-gray-300">
-            <div className="border-b border-gray-300 p-3 bg-gray-50">
-              <h3 className="font-semibold text-sm uppercase tracking-wide">Special Instructions</h3>
+            
+            {/* Special Instructions */}
+            <div className="flex flex-col">
+              <div className="bg-gray-100 border-b-2 border-black px-4 py-1">
+                <h3 className="text-xs font-bold tracking-wide">SPECIAL INSTRUCTIONS</h3>
+              </div>
+              <div className="flex-1 p-2">
+                <GridTextArea
+                  value={techPackData.specialInstructions}
+                  isActive={activeField === 'specialInstructions'}
+                  onClick={() => handleFieldClick('specialInstructions')}
+                  onChange={(val) => updateField('specialInstructions', val)}
+                />
+              </div>
             </div>
-            <EditableTextArea
-              value={techPackData.specialInstructions}
-              placeholder="Any additional notes for the manufacturer..."
-              isActive={activeField === 'specialInstructions'}
-              onClick={() => handleFieldClick('specialInstructions')}
-              onChange={(val) => updateField('specialInstructions', val)}
-            />
           </div>
         </div>
 
-        {/* Export Button */}
-        <div className="max-w-5xl mx-auto mt-6 flex justify-end">
-          <button className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
-            Export as PDF
+        {/* Bottom bar - Suggestions + Export */}
+        <div className="h-16 bg-white border-4 border-t-0 border-black flex items-center justify-between px-4 mt-0">
+          {/* Left side - Suggestions (only when field is active) */}
+          <div className="flex-1 flex items-center gap-3 overflow-x-auto">
+            {activeField && (
+              <ContextualToolbar
+                activeField={activeField}
+                currentValue={techPackData[activeField]}
+                onSelect={(value) => {
+                  updateField(activeField, value);
+                  setActiveField(null);
+                }}
+              />
+            )}
+          </div>
+
+          {/* Right side - Export button (always visible) */}
+          <button className="ml-4 px-8 py-2 bg-black text-white font-bold text-sm tracking-widest hover:bg-gray-800 transition flex-shrink-0">
+            EXPORT
           </button>
         </div>
       </div>
-
-      {/* Contextual Toolbar - appears at bottom when field is active */}
-      {activeField && (
-        <ContextualToolbar
-          activeField={activeField}
-          currentValue={techPackData[activeField]}
-          onSelect={(value) => {
-            updateField(activeField, value);
-            setActiveField(null);
-          }}
-        />
-      )}
     </div>
   );
 }
 
-// Reusable editable field component
-function EditableField({ label, value, placeholder, isActive, onClick, onChange }) {
+// Simple grid input - no styling, just text
+function GridInput({ value, isActive, onClick, onChange }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="font-semibold text-sm">{label}:</span>
-      <input
-        type="text"
-        value={value}
-        placeholder={placeholder}
-        onClick={onClick}
-        onChange={(e) => onChange(e.target.value)}
-        className={`flex-1 px-2 py-1 border-b-2 transition outline-none ${
-          isActive ? 'border-blue-500 bg-blue-50' : 'border-transparent hover:border-gray-300'
-        }`}
-      />
-    </div>
-  );
-}
-
-// Spec table row
-function SpecRow({ label, value, placeholder, isActive, onClick, onChange }) {
-  return (
-    <div className="grid grid-cols-2">
-      <div className="p-3 bg-gray-50 font-semibold text-sm">{label}</div>
-      <input
-        type="text"
-        value={value}
-        placeholder={placeholder}
-        onClick={onClick}
-        onChange={(e) => onChange(e.target.value)}
-        className={`p-3 outline-none transition ${
-          isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-gray-50'
-        }`}
-      />
-    </div>
-  );
-}
-
-// Editable text area
-function EditableTextArea({ value, placeholder, isActive, onClick, onChange }) {
-  return (
-    <textarea
+    <input
+      type="text"
       value={value}
-      placeholder={placeholder}
       onClick={onClick}
       onChange={(e) => onChange(e.target.value)}
-      rows={4}
-      className={`w-full p-3 outline-none transition resize-none ${
-        isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'hover:bg-gray-50'
+      className={`w-full text-sm font-medium bg-transparent outline-none ${
+        isActive ? 'text-black' : 'text-gray-700'
       }`}
+      style={{ caretColor: 'black' }}
     />
   );
 }
 
-// Contextual toolbar that appears at bottom
+// Spec row with heavy borders
+function SpecGridRow({ label, value, isActive, onClick, onChange }) {
+  return (
+    <div className="grid grid-cols-5 border-b-2 border-black h-9">
+      <div className="col-span-2 bg-gray-100 border-r-2 border-black flex items-center px-3">
+        <span className="text-xs font-bold">{label}</span>
+      </div>
+      <div className="col-span-3 flex items-center px-3">
+        <GridInput
+          value={value}
+          isActive={isActive}
+          onClick={onClick}
+          onChange={onChange}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Grid text area
+function GridTextArea({ value, isActive, onClick, onChange }) {
+  return (
+    <textarea
+      value={value}
+      onClick={onClick}
+      onChange={(e) => onChange(e.target.value)}
+      className={`w-full h-full text-xs font-medium bg-transparent outline-none resize-none ${
+        isActive ? 'text-black' : 'text-gray-700'
+      }`}
+      style={{ caretColor: 'black' }}
+    />
+  );
+}
+
+// Contextual toolbar - inline, no extra wrapper
 function ContextualToolbar({ activeField, currentValue, onSelect }) {
   const suggestions = {
-    garmentType: ['T-Shirt', 'Hoodie', 'Sweatshirt', 'Pants', 'Jacket', 'Shorts'],
+    garmentType: ['T-Shirt', 'Hoodie', 'Sweatshirt', 'Pants', 'Jacket', 'Shorts', 'Tank Top'],
     sizeRange: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
     mainFabric: ['100% Cotton', '80% Cotton / 20% Polyester', '100% Polyester', 'French Terry', 'Fleece'],
+    necklineType: ['Crew Neck', 'V-Neck', 'Scoop Neck', 'Henley', 'Collar'],
+    sleeveType: ['Short Sleeve', 'Long Sleeve', 'Sleeveless', '3/4 Sleeve', 'Cap Sleeve'],
+    hemType: ['Straight Hem', 'Curved Hem', 'Raw Edge', 'Ribbed Hem'],
+    stitchType: ['Single Needle', 'Double Needle', 'Flatlock', 'Coverstitch', 'Overlock'],
   };
 
   const options = suggestions[activeField] || [];
-
   if (options.length === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-300 shadow-lg p-4 z-50">
-      <div className="max-w-5xl mx-auto flex gap-3 flex-wrap">
-        {options.map((option) => (
-          <button
-            key={option}
-            onClick={() => onSelect(option)}
-            className="px-4 py-2 bg-gray-100 hover:bg-blue-100 border border-gray-300 rounded-lg transition"
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-    </div>
+    <>
+      <span className="text-xs font-bold text-gray-500 tracking-widest flex-shrink-0">SUGGESTIONS:</span>
+      {options.map((option) => (
+        <button
+          key={option}
+          onClick={() => onSelect(option)}
+          className="px-4 py-1.5 text-xs font-bold tracking-wide bg-gray-100 hover:bg-black hover:text-white border-2 border-black transition flex-shrink-0"
+        >
+          {option}
+        </button>
+      ))}
+    </>
   );
 }
