@@ -53,7 +53,6 @@ Backend/
    SUPABASE_KEY=your_supabase_key
    GROQ_API_KEY=your_groq_api_key
    GROQ_MODEL=mixtral-8x7b-32768
-   CONSULTANT_SYSTEM_PROMPT="You are PinPoint's consulting assistant. Be concise and actionable."
 ```
 
 ## Activating Virtual Environment
