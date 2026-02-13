@@ -9,9 +9,34 @@ Description: FastAPI endpoints for fetching manufacturer data, including
 """
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 from config.database import supabase
 
 router = APIRouter()
+
+class ManufacturerCreateRequest(BaseModel):
+    """Request model for creating a new manufacturer account"""
+    # Page 1 - Account info
+    username: str
+    email: str
+    password: str
+    # Page 2 - Manufacturer info
+    manufacturer_name: str
+    street: str
+    city: str
+    state: str
+    zip: str
+    phone: str
+    manufacturer_email: str
+    contactee: str
+    description: str
+    # Page 3 - Services
+    services: list[int]
+    # Page 4 - Product categories
+    product_categories: list[int]
+    # Page 5 - Price levels and minimums
+    price_levels: list[int]
+    minimums: list[int]
 
 '''
 Fetch all manufacturers with calculated average ratings
@@ -449,3 +474,50 @@ async def get_manufacturer(manufacturer_id: str):
     except Exception as e:
         # this except block is for unexpected exceptions
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+
+
+@router.post("/create")
+async def create_manufacturer(request: ManufacturerCreateRequest):
+    """
+    Create a new manufacturer account with all details from the multi-page form.
+    
+    This endpoint receives data from all 5 pages of the manufacturer creation form:
+    - Page 1: Account credentials (username, email, password)
+    - Page 2: Manufacturer basic info (name, street, city, state, zip, phone, email, contactee, description)
+    - Page 3: Services provided (list of service IDs)
+    - Page 4: Product categories supported (list of category IDs)
+    - Page 5: Price levels and MOQ options (list of price level IDs and minimum IDs)
+    
+    TODO: Implement actual creation logic
+    - Create user account in Supabase Auth
+    - Create manufacturer record in database
+    - Link services to manufacturer
+    - Link product categories to manufacturer
+    - Link price levels to manufacturer
+    - Link MOQ options to manufacturer
+    """
+    try:
+        print(f"Received manufacturer creation request:")
+        print(f"  Username: {request.username}")
+        print(f"  Email: {request.email}")
+        print(f"  Manufacturer Name: {request.manufacturer_name}")
+        print(f"  Street: {request.street}")
+        print(f"  City: {request.city}")
+        print(f"  State: {request.state}")
+        print(f"  Zip: {request.zip}")
+        print(f"  Phone: {request.phone}")
+        print(f"  Manufacturer Email: {request.manufacturer_email}")
+        print(f"  Contactee: {request.contactee}")
+        print(f"  Description: {request.description}")
+        print(f"  Services: {request.services}")
+        print(f"  Product Categories: {request.product_categories}")
+        print(f"  Price Levels: {request.price_levels}")
+        print(f"  Minimums: {request.minimums}")
+        
+        # TODO: Implement actual creation logic here
+        
+        return {"message": "Manufacturer creation endpoint received data successfully"}
+    
+    except Exception as e:
+        print(f"Error in manufacturer creation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create manufacturer: {str(e)}")
