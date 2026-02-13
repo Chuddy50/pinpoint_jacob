@@ -13,6 +13,7 @@ const links = [
   { to: "/prototype", label: "Prototype", icon: protoIcon },
   { to: "/consultant", label: "Consulting", icon: consultantIcon },
   { to: "/messages", label: "Messages", icon: messagesIcon },
+  { to: "/techpack", label: "Tech Pack"},
   // { to: "/ratings", label: "Ratings"},
 ];
 
