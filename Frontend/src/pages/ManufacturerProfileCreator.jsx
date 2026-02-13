@@ -18,7 +18,7 @@ export default function ManufacturerProfileCreator() {
     verifyPassword: "",
     // Page 2
     manufacturerName: "",
-    address: "",
+    street: "",
     city: "",
     state: "",
     zip: "",
@@ -157,8 +157,8 @@ export default function ManufacturerProfileCreator() {
       setError("Manufacturer name is required");
       return false;
     }
-    if (!formData.address.trim()) {
-      setError("Address is required");
+    if (!formData.street.trim()) {
+      setError("Street is required");
       return false;
     }
     if (!formData.city.trim()) {
@@ -275,7 +275,7 @@ export default function ManufacturerProfileCreator() {
           email: formData.email,
           password: formData.password,
           manufacturer_name: formData.manufacturerName,
-          address: formData.address,
+          street: formData.street,
           city: formData.city,
           state: formData.state,
           zip: formData.zip,
@@ -408,14 +408,13 @@ export default function ManufacturerProfileCreator() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Address (Street, State, Zip)
+                      Street
                     </label>
                     <input
                       type="text"
-                      name="address"
-                      value={formData.address}
+                      name="street"
+                      value={formData.street}
                       onChange={handleInputChange}
-                      placeholder="e.g., 123 Main St, UT, 84101"
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                       required
                     />
