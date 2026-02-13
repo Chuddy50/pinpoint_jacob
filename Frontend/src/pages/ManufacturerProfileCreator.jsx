@@ -452,7 +452,7 @@ export default function ManufacturerProfileCreator() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Select Services
+                      Which services do you provide?
                     </label>
                     <div className="border border-gray-300 rounded-lg p-3 max-h-64 overflow-y-auto bg-white">
                       {services.length > 0 ? (
@@ -487,7 +487,7 @@ export default function ManufacturerProfileCreator() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Select Product Categories
+                      Which product categories do you support?
                     </label>
                     <div className="border border-gray-300 rounded-lg p-3 max-h-64 overflow-y-auto bg-white">
                       {productCategories.length > 0 ? (
