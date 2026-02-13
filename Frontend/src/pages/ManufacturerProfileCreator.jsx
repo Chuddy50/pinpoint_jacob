@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import { useQuery } from "@tanstack/react-query";
 
 export default function ManufacturerProfileCreator() {
   const navigate = useNavigate();
@@ -24,6 +25,30 @@ export default function ManufacturerProfileCreator() {
     manufacturerEmail: "",
     contactee: "",
     description: "",
+    // Page 3
+    services: [],
+    // Page 4
+    productCategories: [],
+  });
+
+  // Fetch services
+  const { data: services = [] } = useQuery({
+    queryKey: ["services"],
+    queryFn: async () => {
+      const response = await fetch("http://127.0.0.1:8000/manufacturers/services");
+      if (!response.ok) throw new Error("Failed to fetch services");
+      return response.json();
+    },
+  });
+
+  // Fetch product categories
+  const { data: productCategories = [] } = useQuery({
+    queryKey: ["productCategories"],
+    queryFn: async () => {
+      const response = await fetch("http://127.0.0.1:8000/manufacturers/product-categories");
+      if (!response.ok) throw new Error("Failed to fetch product categories");
+      return response.json();
+    },
   });
 
   useEffect(() => {
@@ -35,6 +60,26 @@ export default function ManufacturerProfileCreator() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+    setError(null);
+  };
+
+  const handleServiceToggle = (serviceId) => {
+    setFormData((prev) => ({
+      ...prev,
+      services: prev.services.includes(serviceId)
+        ? prev.services.filter((id) => id !== serviceId)
+        : [...prev.services, serviceId],
+    }));
+    setError(null);
+  };
+
+  const handleProductCategoryToggle = (categoryId) => {
+    setFormData((prev) => ({
+      ...prev,
+      productCategories: prev.productCategories.includes(categoryId)
+        ? prev.productCategories.filter((id) => id !== categoryId)
+        : [...prev.productCategories, categoryId],
     }));
     setError(null);
   };
@@ -103,9 +148,29 @@ export default function ManufacturerProfileCreator() {
     return true;
   };
 
+  const validatePage3 = () => {
+    if (formData.services.length === 0) {
+      setError("Please select at least one service");
+      return false;
+    }
+    return true;
+  };
+
+  const validatePage4 = () => {
+    if (formData.productCategories.length === 0) {
+      setError("Please select at least one product category");
+      return false;
+    }
+    return true;
+  };
+
   const handleNext = () => {
     if (currentPage === 1 && validatePage1()) {
       setCurrentPage(2);
+    } else if (currentPage === 2 && validatePage2()) {
+      setCurrentPage(3);
+    } else if (currentPage === 3 && validatePage3()) {
+      setCurrentPage(4);
     }
   };
 
@@ -119,7 +184,7 @@ export default function ManufacturerProfileCreator() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validatePage2()) {
+    if (!validatePage4()) {
       return;
     }
 
@@ -146,6 +211,8 @@ export default function ManufacturerProfileCreator() {
           manufacturer_email: formData.manufacturerEmail,
           contactee: formData.contactee,
           description: formData.description,
+          services: formData.services,
+          product_categories: formData.productCategories,
         }),
       });
 
@@ -176,7 +243,7 @@ export default function ManufacturerProfileCreator() {
               Create Manufacturer Profile
             </h2>
             <p className="text-gray-600 mb-6 text-sm">
-              Page {currentPage} of 2
+              Page {currentPage} of 4
             </p>
 
             {error && (
@@ -380,9 +447,83 @@ export default function ManufacturerProfileCreator() {
                 </>
               )}
 
+              {/* Page 3 - Services */}
+              {currentPage === 3 && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Select Services
+                    </label>
+                    <div className="border border-gray-300 rounded-lg p-3 max-h-64 overflow-y-auto bg-white">
+                      {services.length > 0 ? (
+                        services.map((service) => (
+                          <label
+                            key={service.service_id}
+                            className="flex items-center gap-2 mb-3 cursor-pointer hover:bg-gray-50 p-2 rounded"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.services.includes(service.service_id)}
+                              onChange={() => handleServiceToggle(service.service_id)}
+                              className="w-4 h-4 accent-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {service.service_name}
+                            </span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Loading services...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Page 4 - Product Categories */}
+              {currentPage === 4 && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Select Product Categories
+                    </label>
+                    <div className="border border-gray-300 rounded-lg p-3 max-h-64 overflow-y-auto bg-white">
+                      {productCategories.length > 0 ? (
+                        productCategories.map((category) => (
+                          <label
+                            key={category.product_category_id}
+                            className="flex items-center gap-2 mb-3 cursor-pointer hover:bg-gray-50 p-2 rounded"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.productCategories.includes(
+                                category.product_category_id
+                              )}
+                              onChange={() =>
+                                handleProductCategoryToggle(category.product_category_id)
+                              }
+                              className="w-4 h-4 accent-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {category.category_name}
+                            </span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Loading product categories...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
               {/* Navigation Buttons */}
               <div className="flex gap-3 pt-4">
-                {currentPage === 2 && (
+                {currentPage > 1 && (
                   <button
                     type="button"
                     onClick={handlePrevious}
@@ -391,7 +532,7 @@ export default function ManufacturerProfileCreator() {
                     Previous
                   </button>
                 )}
-                {currentPage === 1 && (
+                {currentPage < 4 && (
                   <button
                     type="button"
                     onClick={handleNext}
@@ -400,7 +541,7 @@ export default function ManufacturerProfileCreator() {
                     Next
                   </button>
                 )}
-                {currentPage === 2 && (
+                {currentPage === 4 && (
                   <button
                     type="submit"
                     disabled={loading}
