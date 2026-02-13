@@ -8,6 +8,7 @@ export default function ManufacturerProfileCreator() {
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [scrollDirection, setScrollDirection] = useState(null);
 
   const [formData, setFormData] = useState({
     // Page 1
@@ -166,20 +167,33 @@ export default function ManufacturerProfileCreator() {
 
   const handleNext = () => {
     if (currentPage === 1 && validatePage1()) {
+      setScrollDirection("next");
       setCurrentPage(2);
     } else if (currentPage === 2 && validatePage2()) {
+      setScrollDirection("next");
       setCurrentPage(3);
     } else if (currentPage === 3 && validatePage3()) {
+      setScrollDirection("next");
       setCurrentPage(4);
     }
   };
 
   const handlePrevious = () => {
     if (currentPage > 1) {
+      setScrollDirection("previous");
       setCurrentPage(currentPage - 1);
       setError(null);
     }
   };
+
+  useEffect(() => {
+    if (scrollDirection === "next") {
+      window.scrollTo(0, 0);
+    } else if (scrollDirection === "previous") {
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+    setScrollDirection(null);
+  }, [currentPage, scrollDirection]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -454,7 +468,7 @@ export default function ManufacturerProfileCreator() {
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Which services do you provide?
                     </label>
-                    <div className="border border-gray-300 rounded-lg p-4 min-h-96 overflow-y-auto bg-white">
+                    <div className="border border-gray-300 rounded-lg p-4 max-h-80 overflow-y-auto bg-white">
                       {services.length > 0 ? (
                         services.map((service) => (
                           <label
@@ -489,7 +503,7 @@ export default function ManufacturerProfileCreator() {
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Which product categories do you support?
                     </label>
-                    <div className="border border-gray-300 rounded-lg p-4 min-h-96 overflow-y-auto bg-white">
+                    <div className="border border-gray-300 rounded-lg p-4 max-h-80 overflow-y-auto bg-white">
                       {productCategories.length > 0 ? (
                         productCategories.map((category) => (
                           <label
