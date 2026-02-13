@@ -338,7 +338,7 @@ export default function ManufacturerProfileCreator() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email
+                      Manufacturer Email
                     </label>
                     <input
                       type="email"
