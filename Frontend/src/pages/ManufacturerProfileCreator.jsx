@@ -299,6 +299,7 @@ export default function ManufacturerProfileCreator() {
       navigate("/profile");
     } catch (err) {
       setError(err.message || "An error occurred while creating your profile");
+      window.scrollTo(0, 0);
     } finally {
       setLoading(false);
     }
