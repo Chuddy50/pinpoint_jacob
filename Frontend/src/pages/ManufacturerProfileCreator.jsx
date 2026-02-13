@@ -602,7 +602,7 @@ export default function ManufacturerProfileCreator() {
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Which price levels do you offer?
                     </label>
-                    <div className="border border-gray-300 rounded-lg p-4 max-h-48 overflow-y-auto bg-white">
+                    <div className="border border-gray-300 rounded-lg p-4 bg-white">
                       {priceLevels.length > 0 ? (
                         priceLevels.map((price) => (
                           <label
@@ -632,7 +632,7 @@ export default function ManufacturerProfileCreator() {
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Which MOQ (Minimum Order Quantity) options do you support?
                     </label>
-                    <div className="border border-gray-300 rounded-lg p-4 max-h-48 overflow-y-auto bg-white">
+                    <div className="border border-gray-300 rounded-lg p-4 bg-white">
                       {minimums.length > 0 ? (
                         minimums.map((minimum) => (
                           <label
