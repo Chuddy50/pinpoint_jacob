@@ -30,6 +30,9 @@ export default function ManufacturerProfileCreator() {
     services: [],
     // Page 4
     productCategories: [],
+    // Page 5
+    priceLevels: [],
+    minimums: [],
   });
 
   // Fetch services
@@ -48,6 +51,26 @@ export default function ManufacturerProfileCreator() {
     queryFn: async () => {
       const response = await fetch("http://127.0.0.1:8000/manufacturers/product-categories");
       if (!response.ok) throw new Error("Failed to fetch product categories");
+      return response.json();
+    },
+  });
+
+  // Fetch price levels
+  const { data: priceLevels = [] } = useQuery({
+    queryKey: ["priceLevels"],
+    queryFn: async () => {
+      const response = await fetch("http://127.0.0.1:8000/manufacturers/prices");
+      if (!response.ok) throw new Error("Failed to fetch price levels");
+      return response.json();
+    },
+  });
+
+  // Fetch minimums (MOQ)
+  const { data: minimums = [] } = useQuery({
+    queryKey: ["minimums"],
+    queryFn: async () => {
+      const response = await fetch("http://127.0.0.1:8000/manufacturers/minimums");
+      if (!response.ok) throw new Error("Failed to fetch minimums");
       return response.json();
     },
   });
@@ -81,6 +104,26 @@ export default function ManufacturerProfileCreator() {
       productCategories: prev.productCategories.includes(categoryId)
         ? prev.productCategories.filter((id) => id !== categoryId)
         : [...prev.productCategories, categoryId],
+    }));
+    setError(null);
+  };
+
+  const handlePriceLevelToggle = (priceId) => {
+    setFormData((prev) => ({
+      ...prev,
+      priceLevels: prev.priceLevels.includes(priceId)
+        ? prev.priceLevels.filter((id) => id !== priceId)
+        : [...prev.priceLevels, priceId],
+    }));
+    setError(null);
+  };
+
+  const handleMinimumToggle = (minimumId) => {
+    setFormData((prev) => ({
+      ...prev,
+      minimums: prev.minimums.includes(minimumId)
+        ? prev.minimums.filter((id) => id !== minimumId)
+        : [...prev.minimums, minimumId],
     }));
     setError(null);
   };
@@ -165,6 +208,18 @@ export default function ManufacturerProfileCreator() {
     return true;
   };
 
+  const validatePage5 = () => {
+    if (formData.priceLevels.length === 0) {
+      setError("Please select at least one price level");
+      return false;
+    }
+    if (formData.minimums.length === 0) {
+      setError("Please select at least one MOQ option");
+      return false;
+    }
+    return true;
+  };
+
   const handleNext = () => {
     if (currentPage === 1 && validatePage1()) {
       setScrollDirection("next");
@@ -175,6 +230,9 @@ export default function ManufacturerProfileCreator() {
     } else if (currentPage === 3 && validatePage3()) {
       setScrollDirection("next");
       setCurrentPage(4);
+    } else if (currentPage === 4 && validatePage4()) {
+      setScrollDirection("next");
+      setCurrentPage(5);
     }
   };
 
@@ -198,7 +256,7 @@ export default function ManufacturerProfileCreator() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validatePage4()) {
+    if (!validatePage5()) {
       return;
     }
 
@@ -227,6 +285,8 @@ export default function ManufacturerProfileCreator() {
           description: formData.description,
           services: formData.services,
           product_categories: formData.productCategories,
+          price_levels: formData.priceLevels,
+          minimums: formData.minimums,
         }),
       });
 
@@ -257,7 +317,7 @@ export default function ManufacturerProfileCreator() {
               Create Manufacturer Profile
             </h2>
             <p className="text-gray-600 mb-6 text-sm">
-              Page {currentPage} of 4
+              Page {currentPage} of 5
             </p>
 
             {error && (
@@ -535,6 +595,71 @@ export default function ManufacturerProfileCreator() {
                 </>
               )}
 
+              {/* Page 5 - Price Levels and MOQ */}
+              {currentPage === 5 && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Which price levels do you offer?
+                    </label>
+                    <div className="border border-gray-300 rounded-lg p-4 max-h-48 overflow-y-auto bg-white">
+                      {priceLevels.length > 0 ? (
+                        priceLevels.map((price) => (
+                          <label
+                            key={price.price_id}
+                            className="flex items-center gap-2 mb-3 cursor-pointer hover:bg-gray-50 p-2 rounded"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.priceLevels.includes(price.price_id)}
+                              onChange={() => handlePriceLevelToggle(price.price_id)}
+                              className="w-4 h-4 accent-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {price.price_level}
+                            </span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Loading price levels...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Which MOQ (Minimum Order Quantity) options do you support?
+                    </label>
+                    <div className="border border-gray-300 rounded-lg p-4 max-h-48 overflow-y-auto bg-white">
+                      {minimums.length > 0 ? (
+                        minimums.map((minimum) => (
+                          <label
+                            key={minimum.minimum_id}
+                            className="flex items-center gap-2 mb-3 cursor-pointer hover:bg-gray-50 p-2 rounded"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.minimums.includes(minimum.minimum_id)}
+                              onChange={() => handleMinimumToggle(minimum.minimum_id)}
+                              className="w-4 h-4 accent-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {minimum.minimum_range}
+                            </span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Loading MOQ options...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
               {/* Navigation Buttons */}
               <div className="flex gap-3 pt-4">
                 {currentPage > 1 && (
@@ -546,7 +671,7 @@ export default function ManufacturerProfileCreator() {
                     Previous
                   </button>
                 )}
-                {currentPage < 4 && (
+                {currentPage < 5 && (
                   <button
                     type="button"
                     onClick={handleNext}
@@ -555,7 +680,7 @@ export default function ManufacturerProfileCreator() {
                     Next
                   </button>
                 )}
-                {currentPage === 4 && (
+                {currentPage === 5 && (
                   <button
                     type="submit"
                     disabled={loading}
