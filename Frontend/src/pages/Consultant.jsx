@@ -1,6 +1,7 @@
 import NavBar from "../components/NavBar";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useChat } from "../contexts/ChatContext";
 
 export default function Consultant() {
   const { authHeaders } = useAuth();
@@ -9,8 +10,7 @@ export default function Consultant() {
     document.title = "Consultant - PinPoint";
   }, []);
 
-  // store chat history here 
-  const [messages, setMessages] = useState([]);
+  const { messages, setMessages } = useChat();
 
   // store current input here 
   const [draft, setDraft] = useState("");
@@ -64,7 +64,7 @@ export default function Consultant() {
       const reply = data.reply || "No reply received.";
 
       // add assistant message to chat history 
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+    setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch (err) {
       setError(err.message || "Failed to send message.");
     } finally {
