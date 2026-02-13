@@ -454,7 +454,7 @@ export default function ManufacturerProfileCreator() {
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Which services do you provide?
                     </label>
-                    <div className="border border-gray-300 rounded-lg p-3 max-h-64 overflow-y-auto bg-white">
+                    <div className="border border-gray-300 rounded-lg p-4 min-h-96 overflow-y-auto bg-white">
                       {services.length > 0 ? (
                         services.map((service) => (
                           <label
@@ -489,7 +489,7 @@ export default function ManufacturerProfileCreator() {
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Which product categories do you support?
                     </label>
-                    <div className="border border-gray-300 rounded-lg p-3 max-h-64 overflow-y-auto bg-white">
+                    <div className="border border-gray-300 rounded-lg p-4 min-h-96 overflow-y-auto bg-white">
                       {productCategories.length > 0 ? (
                         productCategories.map((category) => (
                           <label
