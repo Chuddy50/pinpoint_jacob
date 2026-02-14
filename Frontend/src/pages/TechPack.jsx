@@ -3,19 +3,23 @@ import NavBar from "../components/NavBar";
 
 export default function TechPack() {
   const [activeField, setActiveField] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [techPackData, setTechPackData] = useState({
     productName: "",
     brandName: "",
-    garmentType: "",
-    mainFabric: "",
-    sizeRange: [],
-    moq: "",
-    colors: "",
-    necklineType: "",
-    sleeveType: "",
-    hemType: "",
-    stitchType: "",
+    productType: "",
+    primaryColor: "",
+    accentColors: "",
+    material: "",
+    weight: "",
+    finishTexture: "",
+    printMethod: "",
+    specialFeatures: "",
     measurements: "",
+    sizes: "",
+    sampleQuantity: "",
+    orderQuantity: "",
+    targetPrice: "",
     description: "",
     specialInstructions: "",
     sketchImages: [],
@@ -34,10 +38,13 @@ export default function TechPack() {
       <NavBar />
       
       {/* Main content - minimal padding */}
-      <div className="ml-54 flex-1 flex flex-col p-1">
+      <div className="ml-[245px] flex-1 flex flex-col p-1">
         
         {/* The tech pack document - takes up available space */}
-        <div className="flex-1 bg-white shadow-2xl border-4 border-black flex flex-col">
+        <div 
+          id="tech-pack-document"
+          className="flex-1 bg-white shadow-2xl border-4 border-black flex flex-col"
+        >
           
           {/* Header section */}
           <div className="border-b-4 border-black grid grid-cols-2 h-14">
@@ -119,74 +126,95 @@ export default function TechPack() {
               {/* Specs grid */}
               <div className="flex-1 overflow-auto">
                 <SpecGridRow
-                  label="GARMENT TYPE"
-                  value={techPackData.garmentType}
-                  isActive={activeField === 'garmentType'}
-                  onClick={() => handleFieldClick('garmentType')}
-                  onChange={(val) => updateField('garmentType', val)}
+                  label="Product Type"
+                  value={techPackData.productType}
+                  isActive={activeField === 'productType'}
+                  onClick={() => handleFieldClick('productType')}
+                  onChange={(val) => updateField('productType', val)}
                 />
                 <SpecGridRow
-                  label="MAIN FABRIC"
-                  value={techPackData.mainFabric}
-                  isActive={activeField === 'mainFabric'}
-                  onClick={() => handleFieldClick('mainFabric')}
-                  onChange={(val) => updateField('mainFabric', val)}
+                  label="Primary Color"
+                  value={techPackData.primaryColor}
+                  isActive={activeField === 'primaryColor'}
+                  onClick={() => handleFieldClick('primaryColor')}
+                  onChange={(val) => updateField('primaryColor', val)}
                 />
                 <SpecGridRow
-                  label="SIZE RANGE"
-                  value={techPackData.sizeRange.join(', ')}
-                  isActive={activeField === 'sizeRange'}
-                  onClick={() => handleFieldClick('sizeRange')}
-                  onChange={(val) => updateField('sizeRange', val)}
+                  label="* Accent Color(s)"
+                  value={techPackData.accentColors}
+                  isActive={activeField === 'accentColors'}
+                  onClick={() => handleFieldClick('accentColors')}
+                  onChange={(val) => updateField('accentColors', val)}
                 />
                 <SpecGridRow
-                  label="COLORS"
-                  value={techPackData.colors}
-                  isActive={activeField === 'colors'}
-                  onClick={() => handleFieldClick('colors')}
-                  onChange={(val) => updateField('colors', val)}
+                  label="Material"
+                  value={techPackData.material}
+                  isActive={activeField === 'material'}
+                  onClick={() => handleFieldClick('material')}
+                  onChange={(val) => updateField('material', val)}
                 />
                 <SpecGridRow
-                  label="MOQ"
-                  value={techPackData.moq}
-                  isActive={activeField === 'moq'}
-                  onClick={() => handleFieldClick('moq')}
-                  onChange={(val) => updateField('moq', val)}
+                  label="Weight"
+                  value={techPackData.weight}
+                  isActive={activeField === 'weight'}
+                  onClick={() => handleFieldClick('weight')}
+                  onChange={(val) => updateField('weight', val)}
                 />
                 <SpecGridRow
-                  label="NECKLINE"
-                  value={techPackData.necklineType}
-                  isActive={activeField === 'necklineType'}
-                  onClick={() => handleFieldClick('necklineType')}
-                  onChange={(val) => updateField('necklineType', val)}
+                  label="Finish/Texture"
+                  value={techPackData.finishTexture}
+                  isActive={activeField === 'finishTexture'}
+                  onClick={() => handleFieldClick('finishTexture')}
+                  onChange={(val) => updateField('finishTexture', val)}
                 />
                 <SpecGridRow
-                  label="SLEEVES"
-                  value={techPackData.sleeveType}
-                  isActive={activeField === 'sleeveType'}
-                  onClick={() => handleFieldClick('sleeveType')}
-                  onChange={(val) => updateField('sleeveType', val)}
+                  label="Print Method"
+                  value={techPackData.printMethod}
+                  isActive={activeField === 'printMethod'}
+                  onClick={() => handleFieldClick('printMethod')}
+                  onChange={(val) => updateField('printMethod', val)}
                 />
                 <SpecGridRow
-                  label="HEM TYPE"
-                  value={techPackData.hemType}
-                  isActive={activeField === 'hemType'}
-                  onClick={() => handleFieldClick('hemType')}
-                  onChange={(val) => updateField('hemType', val)}
+                  label="Special Features"
+                  value={techPackData.specialFeatures}
+                  isActive={activeField === 'specialFeatures'}
+                  onClick={() => handleFieldClick('specialFeatures')}
+                  onChange={(val) => updateField('specialFeatures', val)}
                 />
                 <SpecGridRow
-                  label="STITCH TYPE"
-                  value={techPackData.stitchType}
-                  isActive={activeField === 'stitchType'}
-                  onClick={() => handleFieldClick('stitchType')}
-                  onChange={(val) => updateField('stitchType', val)}
-                />
-                <SpecGridRow
-                  label="MEASUREMENTS"
+                  label="Measurements"
                   value={techPackData.measurements}
                   isActive={activeField === 'measurements'}
                   onClick={() => handleFieldClick('measurements')}
                   onChange={(val) => updateField('measurements', val)}
+                />
+                <SpecGridRow
+                  label="Sizes"
+                  value={techPackData.sizes}
+                  isActive={activeField === 'sizes'}
+                  onClick={() => handleFieldClick('sizes')}
+                  onChange={(val) => updateField('sizes', val)}
+                />
+                <SpecGridRow
+                  label="Sample Quantity"
+                  value={techPackData.sampleQuantity}
+                  isActive={activeField === 'sampleQuantity'}
+                  onClick={() => handleFieldClick('sampleQuantity')}
+                  onChange={(val) => updateField('sampleQuantity', val)}
+                />
+                <SpecGridRow
+                  label="Order Quantity"
+                  value={techPackData.orderQuantity}
+                  isActive={activeField === 'orderQuantity'}
+                  onClick={() => handleFieldClick('orderQuantity')}
+                  onChange={(val) => updateField('orderQuantity', val)}
+                />
+                <SpecGridRow
+                  label="Target Price"
+                  value={techPackData.targetPrice}
+                  isActive={activeField === 'targetPrice'}
+                  onClick={() => handleFieldClick('targetPrice')}
+                  onChange={(val) => updateField('targetPrice', val)}
                 />
               </div>
             </div>
@@ -243,8 +271,11 @@ export default function TechPack() {
           </div>
 
           {/* Right side - Export button (always visible) */}
-          <button className="ml-4 px-8 py-2 bg-black text-white font-bold text-sm tracking-widest hover:bg-gray-800 transition flex-shrink-0">
-            EXPORT
+          <button 
+            disabled={isExporting}
+            className="ml-4 px-8 py-2 bg-black text-white font-bold text-sm tracking-widest hover:bg-gray-800 transition flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? 'EXPORTING...' : 'EXPORT'}
           </button>
         </div>
       </div>
@@ -302,16 +333,16 @@ function GridTextArea({ value, isActive, onClick, onChange }) {
   );
 }
 
-// Contextual toolbar - inline, no extra wrapper
+// Contextual toolbar - updated suggestions
 function ContextualToolbar({ activeField, currentValue, onSelect }) {
   const suggestions = {
-    garmentType: ['T-Shirt', 'Hoodie', 'Sweatshirt', 'Pants', 'Jacket', 'Shorts', 'Tank Top'],
-    sizeRange: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
-    mainFabric: ['100% Cotton', '80% Cotton / 20% Polyester', '100% Polyester', 'French Terry', 'Fleece'],
-    necklineType: ['Crew Neck', 'V-Neck', 'Scoop Neck', 'Henley', 'Collar'],
-    sleeveType: ['Short Sleeve', 'Long Sleeve', 'Sleeveless', '3/4 Sleeve', 'Cap Sleeve'],
-    hemType: ['Straight Hem', 'Curved Hem', 'Raw Edge', 'Ribbed Hem'],
-    stitchType: ['Single Needle', 'Double Needle', 'Flatlock', 'Coverstitch', 'Overlock'],
+    productType: ['T-Shirt', 'Hoodie', 'Sweatshirt', 'Pants', 'Jacket', 'Shorts', 'Tank Top'],
+    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+    material: ['100% Cotton', '80% Cotton / 20% Polyester', '100% Polyester', 'French Terry', 'Fleece'],
+    weight: ['Lightweight (4-5 oz)', 'Medium (6-7 oz)', 'Heavy (8+ oz)'],
+    finishTexture: ['Matte', 'Glossy', 'Brushed', 'Distressed', 'Soft Hand'],
+    printMethod: ['Screen Print', 'DTG', 'Embroidery', 'Heat Transfer', 'Sublimation', 'None'],
+    specialFeatures: ['Pockets', 'Hood', 'Drawstrings', 'Zipper', 'Elastic Waist', 'Ribbed Cuffs'],
   };
 
   const options = suggestions[activeField] || [];
