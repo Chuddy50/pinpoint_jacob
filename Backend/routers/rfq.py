@@ -283,6 +283,32 @@ async def submit_rfq(payload: dict, user=Depends(get_current_user)):
         if details_response.data is None:
             raise HTTPException(status_code=500, detail="Failed to save RFQ details")
 
+        initial_message_parts = [
+            "Quote request",
+            f"Type: {clothing_type}",
+            f"Quantity: {quantity}",
+        ]
+        if payload.get("deadline"):
+            initial_message_parts.append(f"Deadline: {payload.get('deadline')}")
+        if payload.get("notes"):
+            initial_message_parts.append(f"Notes: {payload.get('notes')}")
+
+        initial_message = ". ".join(initial_message_parts)
+        message_response = (
+            supabase.table("rfq_messages")
+            .insert(
+                {
+                    "rfq_conversation_id": rfq_conversation_id,
+                    "sender_type": "buyer",
+                    "source": "web",
+                    "body": initial_message,
+                }
+            )
+            .execute()
+        )
+        if message_response.data is None:
+            raise HTTPException(status_code=500, detail="Failed to create initial RFQ message")
+
         return {
             "rfq_conversation_id": rfq_conversation_id,
         }

@@ -77,6 +77,10 @@ async def list_email_conversations(
             return {"conversations": []}
 
         conversation_ids = [c.get("id") for c in conversations if c.get("id")]
+        manufacturer_ids = list(
+            {c.get("manufacturer_id") for c in conversations if c.get("manufacturer_id")}
+        )
+
         messages_response = (
             supabase.table("rfq_messages")
             .select("rfq_conversation_id,body,created_at")
@@ -84,11 +88,30 @@ async def list_email_conversations(
             .order("created_at", desc=True)
             .execute()
         )
+
+        manufacturer_map: Dict[int, str] = {}
+        if manufacturer_ids:
+            manufacturer_response = (
+                supabase.table("manufacturers")
+                .select("manufacturer_id,name")
+                .in_("manufacturer_id", manufacturer_ids)
+                .execute()
+            )
+            manufacturer_map = {
+                row.get("manufacturer_id"): row.get("name")
+                for row in (manufacturer_response.data or [])
+            }
+
         last_message_map: Dict[str, Dict[str, Any]] = {}
+        first_message_map: Dict[str, Dict[str, Any]] = {}
         for row in (messages_response.data or []):
             convo_id = row.get("rfq_conversation_id")
-            if convo_id and convo_id not in last_message_map:
+            if not convo_id:
+                continue
+            if convo_id not in last_message_map:
                 last_message_map[convo_id] = row
+            # Rows are descending; last assignment becomes oldest/first message.
+            first_message_map[convo_id] = row
 
         normalized: List[Dict[str, Any]] = []
         for row in conversations:
@@ -102,26 +125,36 @@ async def list_email_conversations(
                 manufacturer_name = manufacturer.get("name")
             elif isinstance(manufacturer, list) and manufacturer and isinstance(manufacturer[0], dict):
                 manufacturer_name = manufacturer[0].get("name")
+            if not manufacturer_name:
+                manufacturer_name = manufacturer_map.get(row.get("manufacturer_id"))
 
-            last_msg = last_message_map.get(row.get("id"), {})
+            conversation_id = row.get("id")
+            last_msg = last_message_map.get(conversation_id, {})
+            first_msg = first_message_map.get(conversation_id, {})
             normalized.append(
                 {
+                    "conversation_id": conversation_id,
                     "id": row.get("id"),
                     "buyer_id": row.get("buyer_id"),
                     "manufacturer_id": row.get("manufacturer_id"),
                     "manufacturer_name": manufacturer_name,
                     "status": row.get("status"),
                     "created_at": row.get("created_at"),
+                    "preview_text": _extract_message_text(first_msg),
+                    "last_message_at": last_msg.get("created_at") or row.get("created_at"),
                     "details_summary": {
                         "clothing_type": details.get("clothing_type") if details else None,
                         "quantity": details.get("quantity") if details else None,
                         "deadline": details.get("deadline") if details else None,
                     },
                     "last_message_preview": _extract_message_text(last_msg),
-                    "last_message_at": last_msg.get("created_at"),
                 }
             )
 
+        normalized.sort(
+            key=lambda x: x.get("last_message_at") or x.get("created_at") or "",
+            reverse=True,
+        )
         return {"conversations": normalized}
     except HTTPException:
         raise
@@ -135,7 +168,7 @@ async def list_conversation_messages(
     user=Depends(get_current_user),
     limit: int = Query(50, ge=1, le=200),
     before: Optional[str] = Query(default=None),
-    order: str = Query(default="desc", pattern="^(asc|desc)$"),
+    order: str = Query(default="asc", pattern="^(asc|desc)$"),
 ):
     try:
         if not _looks_like_uuid(conversation_id):

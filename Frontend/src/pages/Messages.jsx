@@ -46,7 +46,7 @@ export default function Messages() {
 
         setThreads(conversations);
         if (!selectedThreadId && conversations.length > 0) {
-          setSelectedThreadId(conversations[0].id);
+          setSelectedThreadId(conversations[0].conversation_id || conversations[0].id);
         }
       } catch (err) {
         if (isActive && err.name !== "AbortError") {
@@ -81,7 +81,7 @@ export default function Messages() {
           authHeaders,
           signal: controller.signal,
           limit: 50,
-          order: "desc",
+          order: "asc",
         });
         if (!isActive) return;
         setMessages(response?.messages ?? []);
@@ -103,7 +103,10 @@ export default function Messages() {
   }, [selectedThreadId, user?.id, authHeaders]);
 
   const selectedThread = useMemo(
-    () => threads.find((thread) => thread.id === selectedThreadId) || null,
+    () =>
+      threads.find(
+        (thread) => (thread.conversation_id || thread.id) === selectedThreadId
+      ) || null,
     [threads, selectedThreadId]
   );
 
@@ -122,7 +125,7 @@ export default function Messages() {
   };
 
   const listPreview = (thread) => {
-    if (thread.last_message_preview) return thread.last_message_preview;
+    if (thread.preview_text) return thread.preview_text;
     if (thread.details_summary?.clothing_type || thread.details_summary?.quantity) {
       return `${thread.details_summary?.clothing_type || "RFQ"} · ${
         thread.details_summary?.quantity ?? "—"
@@ -130,6 +133,13 @@ export default function Messages() {
     }
     return "Draft RFQ";
   };
+
+  const sortThreadsByActivity = (threadList) =>
+    [...threadList].sort((a, b) => {
+      const aTs = new Date(a.last_message_at || a.created_at || 0).getTime();
+      const bTs = new Date(b.last_message_at || b.created_at || 0).getTime();
+      return bTs - aTs;
+    });
 
   const handleSendMessage = async () => {
     if (!selectedThreadId || !draftMessage.trim() || sendingMessage) return;
@@ -143,16 +153,18 @@ export default function Messages() {
       );
       const inserted = response?.message;
       if (inserted) {
-        setMessages((prev) => [inserted, ...prev]);
+        setMessages((prev) => [...prev, inserted]);
         setThreads((prev) =>
-          prev.map((thread) =>
-            thread.id === selectedThreadId
-              ? {
-                  ...thread,
-                  last_message_preview: inserted.body,
-                  last_message_at: inserted.created_at,
-                }
-              : thread
+          sortThreadsByActivity(
+            prev.map((thread) =>
+              (thread.conversation_id || thread.id) === selectedThreadId
+                ? {
+                    ...thread,
+                    last_message_preview: inserted.body,
+                    last_message_at: inserted.created_at,
+                  }
+                : thread
+            )
           )
         );
       }
@@ -211,17 +223,17 @@ export default function Messages() {
                   </div>
                 ) : threads.length === 0 ? (
                   <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white text-sm text-gray-500">
-                    No conversations yet.
+                    No quote requests yet.
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {threads.map((thread) => (
+                    {sortThreadsByActivity(threads).map((thread) => (
                       <button
-                        key={thread.id}
+                        key={thread.conversation_id || thread.id}
                         type="button"
-                        onClick={() => setSelectedThreadId(thread.id)}
+                        onClick={() => setSelectedThreadId(thread.conversation_id || thread.id)}
                         className={`w-full rounded-xl border px-4 py-3 text-left shadow-sm transition ${
-                          thread.id === selectedThreadId
+                          (thread.conversation_id || thread.id) === selectedThreadId
                             ? "border-gray-300 bg-white"
                             : "border-transparent bg-white hover:border-gray-200"
                         }`}
@@ -303,11 +315,11 @@ export default function Messages() {
                     <div className="space-y-3">
                       {messages.map((messageItem) => (
                         <div
-                          key={messageItem.id ?? `${messageItem.created_at}-${messageItem.message}`}
+                          key={messageItem.id ?? `${messageItem.created_at}-${messageItem.body}`}
                           className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
                         >
                           <p className="text-sm text-gray-800">
-                            {messageItem.message || "(empty message)"}
+                            {messageItem.body || messageItem.message || "(empty message)"}
                           </p>
                           <p className="mt-1 text-xs text-gray-500">
                             {formatDateTime(messageItem.created_at)}
