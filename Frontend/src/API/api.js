@@ -1,45 +1,96 @@
-// helper functions for calling our fastAPI backend
-// literally just to put the fastAPI backend calls in helper functions
-//    to clean up the react components
+const BASE_URL = "http://127.0.0.1:8000";
 
-
-class ApiError extends Error {
-    /**
-     * Error object containing response status, error code, and error message
-     */
-    constructor(status, { error, message }) {
-      super(message);
-      this.status = status;
-      this.code = error;
+const buildUrl = (path, params = {}) => {
+  const url = new URL(`${BASE_URL}${path}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
     }
+  });
+  return url.toString();
+};
+
+const handleResponse = async (response) => {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message =
+      data?.detail ||
+      data?.message ||
+      `Request failed (HTTP ${response.status})`;
+    throw new Error(message);
   }
-  
-   const baseUrl = "http://127.0.0.1:8000"; 
-  
-  /**
-   * Processes response from GET/POST Request
-   * @param {*} response 
-   * @returns JSON response or error if
-   */ 
-  const handleResponse = async (response) => {
-    if (response.ok) {
-      return response.status == 204 ? {} : await response.json();
-    } 
-    else {
-      const error = await response.json();
-      const err = new Error(error.message);
-      err.status = response.status;
-      throw err;
+  return data;
+};
+
+export async function getConversations({
+  authHeaders,
+  signal,
+  limit = 20,
+  before,
+} = {}) {
+  const response = await fetch(
+    buildUrl("/email/conversations", {
+      limit,
+      before,
+    }),
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authHeaders ?? {}),
+      },
+      signal,
     }
-  };
-  
-  /**
-   * Asynchronously creates GET request
-   * @param {*} url destination of request
-   * @param {*} headers 
-   * @returns value from handlResponse
-   */
-  export const get = async (url, headers) => {
-    const response = await fetch(baseUrl + url, { headers });
-    return await handleResponse(response);
-  };
+  );
+
+  const data = await handleResponse(response);
+  return data?.conversations ?? [];
+}
+
+export async function getConversationMessages(
+  conversationId,
+  { authHeaders, signal, limit = 50, before, order = "desc" } = {}
+) {
+  const response = await fetch(
+    buildUrl(`/email/conversations/${conversationId}/messages`, {
+      limit,
+      before,
+      order,
+    }),
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authHeaders ?? {}),
+      },
+      signal,
+    }
+  );
+
+  return await handleResponse(response);
+}
+
+export async function sendConversationMessage(
+  conversationId,
+  body,
+  { authHeaders, signal, senderType = "buyer", source = "web" } = {}
+) {
+  const response = await fetch(
+    buildUrl(`/email/conversations/${conversationId}/messages`),
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authHeaders ?? {}),
+      },
+      body: JSON.stringify({
+        body,
+        sender_type: senderType,
+        source,
+      }),
+      signal,
+    }
+  );
+
+  return await handleResponse(response);
+}

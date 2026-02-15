@@ -170,6 +170,7 @@ export const AuthProvider = ({ children }) => {
       password,
     });
 
+    console.log("Signing in ", email, password, );
     if (error) throw error;
 
     const session = data?.session ?? null;

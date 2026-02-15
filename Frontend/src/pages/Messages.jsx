@@ -2,27 +2,28 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { useAuth } from "../contexts/AuthContext";
-import { useSendEmailMessage } from "../mutations/email"; 
+import {
+  getConversationMessages,
+  getConversations,
+  sendConversationMessage,
+} from "../API/api";
 
-//    const { username, id, headers } = useContext(AuthContext);
 export default function Messages() {
   const { user, authHeaders } = useAuth();
   const navigate = useNavigate();
+
   const [threads, setThreads] = useState([]);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  // usually send with headers
-  const [message, setMessage] = useState("Hle");
-  const {mutate: sendMessage } = useSendEmailMessage("test");
+  const [loadingThreads, setLoadingThreads] = useState(false);
+  const [threadsError, setThreadsError] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    useSendEmailMessage(null, "test messagage");
-}
+  const [messages, setMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messagesError, setMessagesError] = useState("");
+  const [draftMessage, setDraftMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
-  //give tab a title
   useEffect(() => {
     document.title = "Messages - PinPoint";
   }, []);
@@ -30,41 +31,76 @@ export default function Messages() {
   useEffect(() => {
     if (!user?.id) return;
     let isActive = true;
+    const controller = new AbortController();
 
-    async function fetchThreads() {
-      setLoading(true);
-      setError("");
+    async function loadConversations() {
+      setLoadingThreads(true);
+      setThreadsError("");
       try {
-        const response = await fetch(
-          `http://127.0.0.1:8000/rfq/conversations`, {
-            headers: authHeaders
-          });
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.detail || "Failed to load RFQs");
-        }
+        const conversations = await getConversations({
+          authHeaders,
+          signal: controller.signal,
+          limit: 20,
+        });
         if (!isActive) return;
-        const conversations = data.conversations || [];
+
         setThreads(conversations);
-        if (conversations.length > 0 && !selectedThreadId) {
+        if (!selectedThreadId && conversations.length > 0) {
           setSelectedThreadId(conversations[0].id);
         }
       } catch (err) {
-        if (isActive) {
-          setError(err.message || "Failed to load conversations.");
+        if (isActive && err.name !== "AbortError") {
+          setThreadsError(err.message || "Failed to load conversations.");
         }
       } finally {
-        if (isActive) {
-          setLoading(false);
-        }
+        if (isActive) setLoadingThreads(false);
       }
     }
 
-    fetchThreads();
+    loadConversations();
     return () => {
       isActive = false;
+      controller.abort();
     };
-  }, [user?.id]);
+  }, [user?.id, authHeaders]);
+
+  useEffect(() => {
+    if (!selectedThreadId || !user?.id) {
+      setMessages([]);
+      return;
+    }
+
+    let isActive = true;
+    const controller = new AbortController();
+
+    async function loadMessages() {
+      setLoadingMessages(true);
+      setMessagesError("");
+      try {
+        const response = await getConversationMessages(selectedThreadId, {
+          authHeaders,
+          signal: controller.signal,
+          limit: 50,
+          order: "desc",
+        });
+        if (!isActive) return;
+        setMessages(response?.messages ?? []);
+      } catch (err) {
+        if (isActive && err.name !== "AbortError") {
+          setMessagesError(err.message || "Failed to load messages.");
+          setMessages([]);
+        }
+      } finally {
+        if (isActive) setLoadingMessages(false);
+      }
+    }
+
+    loadMessages();
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [selectedThreadId, user?.id, authHeaders]);
 
   const selectedThread = useMemo(
     () => threads.find((thread) => thread.id === selectedThreadId) || null,
@@ -76,6 +112,56 @@ export default function Messages() {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
     return date.toLocaleDateString();
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString();
+  };
+
+  const listPreview = (thread) => {
+    if (thread.last_message_preview) return thread.last_message_preview;
+    if (thread.details_summary?.clothing_type || thread.details_summary?.quantity) {
+      return `${thread.details_summary?.clothing_type || "RFQ"} · ${
+        thread.details_summary?.quantity ?? "—"
+      }`;
+    }
+    return "Draft RFQ";
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedThreadId || !draftMessage.trim() || sendingMessage) return;
+    setSendingMessage(true);
+    setMessagesError("");
+    try {
+      const response = await sendConversationMessage(
+        selectedThreadId,
+        draftMessage.trim(),
+        { authHeaders }
+      );
+      const inserted = response?.message;
+      if (inserted) {
+        setMessages((prev) => [inserted, ...prev]);
+        setThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === selectedThreadId
+              ? {
+                  ...thread,
+                  last_message_preview: inserted.body,
+                  last_message_at: inserted.created_at,
+                }
+              : thread
+          )
+        );
+      }
+      setDraftMessage("");
+    } catch (err) {
+      setMessagesError(err.message || "Failed to send message.");
+    } finally {
+      setSendingMessage(false);
+    }
   };
 
   return (
@@ -115,13 +201,13 @@ export default function Messages() {
 
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[320px_1fr]">
               <section className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                {loading ? (
+                {loadingThreads ? (
                   <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white text-sm text-gray-500">
                     Loading conversations...
                   </div>
-                ) : error ? (
+                ) : threadsError ? (
                   <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-red-200 bg-white text-sm text-red-600">
-                    {error}
+                    {threadsError}
                   </div>
                 ) : threads.length === 0 ? (
                   <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-white text-sm text-gray-500">
@@ -142,17 +228,14 @@ export default function Messages() {
                       >
                         <div className="flex items-center justify-between">
                           <h3 className="text-sm font-semibold text-gray-900">
-                            {thread.manufacturer_name ||
-                              "Unassigned manufacturer"}
+                            {thread.manufacturer_name || "Unassigned manufacturer"}
                           </h3>
                           <span className="text-xs text-gray-400">
-                            {formatDate(thread.created_at)}
+                            {formatDate(thread.last_message_at || thread.created_at)}
                           </span>
                         </div>
                         <p className="mt-2 text-xs text-gray-500 line-clamp-2">
-                          {thread.details
-                            ? `${thread.details.clothing_type} · ${thread.details.quantity}`
-                            : "Draft RFQ"}
+                          {listPreview(thread)}
                         </p>
                       </button>
                     ))}
@@ -164,12 +247,10 @@ export default function Messages() {
                 <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                   <div>
                     <h2 className="text-base font-semibold text-gray-900">
-                      {selectedThread?.manufacturer_name || "Request details"}
+                      {selectedThread?.manufacturer_name || "Conversation"}
                     </h2>
                     <p className="text-xs text-gray-500">
-                      {selectedThread
-                        ? "RFQ details"
-                        : "Messages will appear here."}
+                      {selectedThread ? "Messages" : "Messages will appear here."}
                     </p>
                   </div>
                   <button
@@ -178,9 +259,7 @@ export default function Messages() {
                     disabled={!selectedThread?.manufacturer_id}
                     onClick={() => {
                       if (selectedThread?.manufacturer_id) {
-                        navigate(
-                          `/manufacturers/${selectedThread.manufacturer_id}`
-                        );
+                        navigate(`/manufacturers/${selectedThread.manufacturer_id}`);
                       }
                     }}
                   >
@@ -193,40 +272,48 @@ export default function Messages() {
                     <div className="flex h-full items-center justify-center text-gray-400">
                       No messages to display.
                     </div>
-                  ) : (
+                  ) : loadingMessages ? (
+                    <div className="flex h-full items-center justify-center text-gray-400">
+                      Loading messages...
+                    </div>
+                  ) : messagesError ? (
+                    <div className="flex h-full items-center justify-center text-red-600">
+                      {messagesError}
+                    </div>
+                  ) : messages.length === 0 ? (
                     <div className="space-y-3">
                       <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
                         <p className="text-xs uppercase tracking-wide text-gray-500">
                           Request
                         </p>
                         <p className="text-sm text-gray-800">
-                          {selectedThread.details?.clothing_type || "—"} ·{" "}
-                          {selectedThread.details?.quantity ?? "—"}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Material: {selectedThread.details?.material || "—"} ·
-                          Color: {selectedThread.details?.color || "—"}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Size range:{" "}
-                          {selectedThread.details?.size_range || "—"}
+                          {selectedThread.details_summary?.clothing_type || "—"} ·{" "}
+                          {selectedThread.details_summary?.quantity ?? "—"}
                         </p>
                         <p className="text-xs text-gray-500">
                           Deadline:{" "}
-                          {formatDate(selectedThread.details?.deadline) || "—"}
+                          {formatDate(selectedThread.details_summary?.deadline) || "—"}
                         </p>
                       </div>
-
-                      {selectedThread.details?.notes && (
-                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                          <p className="text-xs uppercase tracking-wide text-gray-500">
-                            Notes
-                          </p>
+                      <div className="text-xs text-gray-400">
+                        No messages yet for this conversation.
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {messages.map((messageItem) => (
+                        <div
+                          key={messageItem.id ?? `${messageItem.created_at}-${messageItem.message}`}
+                          className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+                        >
                           <p className="text-sm text-gray-800">
-                            {selectedThread.details.notes}
+                            {messageItem.message || "(empty message)"}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {formatDateTime(messageItem.created_at)}
                           </p>
                         </div>
-                      )}
+                      ))}
                     </div>
                   )}
                 </div>
@@ -235,6 +322,11 @@ export default function Messages() {
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
+                      value={draftMessage}
+                      onChange={(e) => setDraftMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSendMessage();
+                      }}
                       placeholder={
                         selectedThread
                           ? "Type a message..."
@@ -246,10 +338,11 @@ export default function Messages() {
 
                     <button
                       type="button"
-                      disabled={!selectedThread}
+                      onClick={handleSendMessage}
+                      disabled={!selectedThread || !draftMessage.trim() || sendingMessage}
                       className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition disabled:bg-gray-50 disabled:text-gray-400"
                     >
-                      Send
+                      {sendingMessage ? "Sending..." : "Send"}
                     </button>
                   </div>
                 </div>
