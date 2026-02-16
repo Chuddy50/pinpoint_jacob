@@ -9,7 +9,7 @@ import {
 } from "../API/api";
 
 export default function Messages() {
-  const { user, authHeaders } = useAuth();
+  let { user, authHeaders } = useAuth();
   const navigate = useNavigate();
 
   const [threads, setThreads] = useState([]);
@@ -175,9 +175,8 @@ export default function Messages() {
       setSendingMessage(false);
     }
   };
-
   return (
-    <div className="flex min-h-screen w-full flex-col bg-[#F3F4F6] p-4 gap-4 md:flex-row md:p-6 md:gap-6">
+    <div className="flex min-h-screen w-full flex-col bg-[#F3F4F6] p-4 gap-4 md:flex-row md:p-6 md:gap-6 bg-red-200 overflow-hidden">
       <aside className="w-full md:w-45">
         <NavBar />
       </aside>

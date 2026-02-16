@@ -1,129 +1,127 @@
-// src/contexts/AuthContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { supabase } from "../api/supabaseClient";
+import { supabase } from "../API/supabaseClient";
 
 const TOKEN_KEY = "pinpoint_JWT";
 const AuthContext = createContext(null);
 
-/**
- * Provides application-wide authentication state using Supabase.
- *
- * Restores an existing session on app load, listens for Supabase auth
- * state changes (login, logout, token refresh), and exposes the current
- * user, JWT token, and login/logout helpers via React context.
- */
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   const isUserLoggedIn = !!token;
 
-  // session restore
-  useEffect(() => {
-    let isMounted = true;
+  const clearAuthState = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem(TOKEN_KEY);
+  };
 
-    supabase.auth.getSession().then(async ({ data, error }) => {
-      if (!isMounted) return;
-      if (error) {
-        setUser(null);
-        setToken(null);
-        localStorage.removeItem(TOKEN_KEY);
+  const applyBasicAuthState = (authUser, accessToken) => {
+    if (!authUser) return;
+    setUser((prev) => ({
+      ...(prev || {}),
+      ...authUser,
+      // preserve previously loaded profile fields if available
+      pfp_url: prev?.pfp_url,
+      username: prev?.username,
+    }));
+    setToken(accessToken ?? null);
+    if (accessToken) localStorage.setItem(TOKEN_KEY, accessToken);
+  };
+
+  const tryHydrateFromStoredToken = async () => {
+    const storedToken = localStorage.getItem(TOKEN_KEY);
+    if (!storedToken) return false;
+
+    const { data, error } = await supabase.auth.getUser(storedToken);
+    if (error || !data?.user) return false;
+
+    await applySession({
+      user: data.user,
+      access_token: storedToken,
+    });
+    return true;
+  };
+
+  const applySession = async (session) => {
+    const authUser = session?.user ?? null;
+    const accessToken = session?.access_token ?? null;
+
+    if (!authUser) {
+      setUser(null);
+      setToken(null);
+      return;
+    }
+
+    // Apply auth state immediately so UI updates right after login.
+    applyBasicAuthState(authUser, accessToken);
+
+    try {
+      const { data: userData, error: userErr } = await supabase
+        .from("users")
+        .select("profile_pic_url, name")
+        .eq("user_id", authUser.id)
+        .single();
+
+      if (userErr) {
+        console.warn("users table fetch failed:", userErr);
         return;
       }
 
-      const session = data?.session ?? null;
-      const authUser = session?.user ?? null;
+      setUser((prev) => ({
+        ...(prev || {}),
+        ...authUser,
+        pfp_url: userData?.profile_pic_url,
+        username: userData?.name,
+      }));
+    } catch (error) {
+      console.warn("users profile hydrate failed:", error);
+    }
+  };
 
-      if (authUser) {
-        // FETCH custom user data
-        const { data: userData } = await supabase
-          .from("users")
-          .select("profile_pic_url, name")
-          .eq("user_id", authUser.id)
-          .single();
+  useEffect(() => {
+    let isMounted = true;
 
-        // MERGE auth user with custom data
-        const fullUser = {
-          ...authUser,
-          pfp_url: userData?.profile_pic_url,
-          username: userData?.name,
-        };
-
-        setUser(fullUser);
-      } else {
-        setUser(null);
-      }
-
-      console.log('User from session:', session?.user);
-
-      setToken(session?.access_token ?? null);
-
-      if (session?.access_token) {
-        localStorage.setItem(TOKEN_KEY, session.access_token);
-      } else {
-        localStorage.removeItem(TOKEN_KEY);
-      }
-    });
-
-    // Keep state in sync when Supabase refreshes token
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
-
-      const authUser = session?.user ?? null;
-
-      if (authUser) {
-        // Check if this is a new Google sign-up
-        if (event === 'SIGNED_IN') {
-          const { data: existingUser } = await supabase
-            .from("users")
-            .select("user_id")
-            .eq("user_id", authUser.id)
-            .single();
-
-          // If no user exists in our table, create one (new Google signup)
-          if (!existingUser) {
-            const defaultPfp = 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/profile_pics/basicPfp.jpg';
-            const username = authUser.user_metadata?.name || authUser.email.split('@')[0];
-            const googleAvatar = authUser.user_metadata?.avatar_url;
-
-            await supabase.from("users").insert({
-              user_id: authUser.id,
-              name: username,
-              profile_pic_url: googleAvatar || defaultPfp,
-              role: "",
-              preferences: {}
-            });
-          }
+      try {
+        if (event === "SIGNED_OUT") {
+          clearAuthState();
+          return;
         }
-
-        // FETCH custom user data on auth state change
-        const { data: userData } = await supabase
-          .from("users")
-          .select("profile_pic_url, name")
-          .eq("user_id", authUser.id)
-          .single();
-
-        const fullUser = {
-          ...authUser,
-          pfp_url: userData?.profile_pic_url,
-          username: userData?.name,
-        };
-
-        setUser(fullUser);
-      } else {
-        setUser(null);
-      }
-
-      console.log('User from auth state change:', session?.user);
-
-      setToken(session?.access_token ?? null);
-
-      if (session?.access_token) {
-        localStorage.setItem(TOKEN_KEY, session.access_token);
-      } else {
-        localStorage.removeItem(TOKEN_KEY);
+        await applySession(session);
+      } catch (error) {
+        console.warn("onAuthStateChange error:", error);
+      } finally {
+        if (isMounted) setAuthLoading(false);
       }
     });
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        if (error) {
+          console.warn("getSession error:", error);
+          clearAuthState();
+          return;
+        }
+
+        const session = data?.session ?? null;
+        if (session?.user) {
+          await applySession(session);
+        } else {
+          const restored = await tryHydrateFromStoredToken();
+          if (!restored) clearAuthState();
+        }
+      } catch (error) {
+        console.warn("initial auth hydrate error:", error);
+        clearAuthState();
+      } finally {
+        if (isMounted) setAuthLoading(false);
+      }
+    })();
 
     return () => {
       isMounted = false;
@@ -131,99 +129,64 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  // sign up
   const signup = async (username, email, password) => {
-    const { data, error } = await supabase.auth.signUp({
-      email: email,
-      password: password
-    });
-  
-    if (error) throw error;
-  
-    const userId = data.user.id;
-    const defaultPfp = 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/profile_pics/basicPfp.jpg';
-  
-    await supabase.from("users").insert({
-      user_id: userId,
-      name: username,
-      profile_pic_url: defaultPfp,
-      role: "",
-      preferences: {}
-    });
-  
-    // set user state immediately with default values
-    const fullUser = {
-      ...data.user,
-      pfp_url: defaultPfp,
-      username: username,
-    };
-    
-    setUser(fullUser);
-    setToken(data.session.access_token);
-    localStorage.setItem(TOKEN_KEY, data.session.access_token);
-  };
-
-  // login
-  const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    console.log("Signing in ", email, password, );
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
 
-    const session = data?.session ?? null;
-    const authUser = session?.user;
+    if (data?.user) {
+      const defaultPfp =
+        "https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/profile_pics/basicPfp.jpg";
+      await supabase.from("users").upsert(
+        {
+          user_id: data.user.id,
+          name: username,
+          profile_pic_url: defaultPfp,
+          role: "",
+          preferences: {},
+        },
+        { onConflict: "user_id" }
+      );
+    }
 
-    // fetch custom user data
-    const { data: userData } = await supabase
-      .from("users")
-      .select("profile_pic_url, name")
-      .eq("user_id", authUser.id)
-      .single();
-
-    // combine auth user with custom data
-    const fullUser = {
-      ...authUser,
-      pfp_url: userData?.profile_pic_url,
-      username: userData?.name,
-    };
-
-    setUser(fullUser);
-    setToken(session?.access_token ?? null);
-
-    if (session?.access_token) {
-      localStorage.setItem(TOKEN_KEY, session.access_token);
-    } else {
-      localStorage.removeItem(TOKEN_KEY);
+    if (data?.session?.user) {
+      await applySession(data.session);
     }
 
     return data;
   };
 
-  // logout
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem(TOKEN_KEY);
+  const login = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+
+    if (data?.session?.user) {
+      // Immediately reflect logged-in state in UI.
+      applyBasicAuthState(data.session.user, data.session.access_token);
+      // Ensure Supabase client persists session/refresh token for reloads.
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+      await applySession(data.session);
+    }
+
+    return data;
   };
 
-  // sign in/up via google thru supabase
+  const logout = async () => {
+    await supabase.auth.signOut();
+    clearAuthState();
+  };
+
   const signInWithGoogle = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`
-      }
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/` },
     });
-    
     if (error) throw error;
     return data;
   };
 
-  // used when new pfp is selected to refresh the image
   const refreshUser = async () => {
     if (!user?.id) return;
 
@@ -233,20 +196,32 @@ export const AuthProvider = ({ children }) => {
       .eq("user_id", user.id)
       .single();
 
-    setUser({
-      ...user,
+    setUser((prev) => ({
+      ...prev,
       pfp_url: userData?.profile_pic_url,
       username: userData?.name,
-    });
+    }));
   };
 
-  const authHeaders = useMemo(() => {
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, [token]);
+  const authHeaders = useMemo(
+    () => (token ? { Authorization: `Bearer ${token}` } : {}),
+    [token]
+  );
 
   const value = useMemo(
-    () => ({ user, token, isUserLoggedIn, authHeaders, login, logout, signup, refreshUser, signInWithGoogle }),
-    [user, token, isUserLoggedIn, authHeaders]
+    () => ({
+      user,
+      token,
+      isUserLoggedIn,
+      authLoading,
+      authHeaders,
+      login,
+      logout,
+      signup,
+      refreshUser,
+      signInWithGoogle,
+    }),
+    [user, token, isUserLoggedIn, authLoading, authHeaders]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
