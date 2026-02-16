@@ -13,7 +13,7 @@ export default function Profile() {
     document.title = "Profile - PinPoint";
   }, []);
   
-  const { user, logout, refreshUser, authHeaders } = useAuth()
+  const { user, logout, refreshUser, authHeaders, authLoading } = useAuth()
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
@@ -85,7 +85,11 @@ export default function Profile() {
       </aside>
       
       <div className="flex-1 p-8 max-md:p-4">
-        {user ? (
+        {authLoading && !user ? (
+          <div className="flex h-full min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 text-sm text-gray-600">
+            Restoring session...
+          </div>
+        ) : user ? (
           <div className="">
             {/* confirmation Dialog */}
             {showConfirmDialog && (

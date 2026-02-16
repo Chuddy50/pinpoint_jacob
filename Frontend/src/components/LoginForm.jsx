@@ -83,7 +83,10 @@ export default function LoginForm() {
             )}
 
             {/* main form */}
-            <form className="space-y-3">
+            <form
+              className="space-y-3"
+              onSubmit={isSignUp ? userSignup : userLogin}
+            >
               {/* username field - only show on signup */}
               {isSignUp && (
                 <div>
@@ -128,7 +131,6 @@ export default function LoginForm() {
 
               <button
                 type="submit"
-                onClick={isSignUp ? userSignup : userLogin}
                 className="w-full !bg-black border-0 !text-white py-3 rounded font-semibold !hover:text-blue-500"
               >
                 {isSignUp ? 'Sign Up' : 'Sign In'}

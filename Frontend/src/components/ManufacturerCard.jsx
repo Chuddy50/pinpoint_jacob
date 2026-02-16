@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../api/supabaseClient";
+import { supabase } from "../API/supabaseClient";
 import { useState, useEffect } from "react";
 
 export default function ManufacturerCard({
