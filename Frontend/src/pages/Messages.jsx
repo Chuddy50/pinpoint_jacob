@@ -252,18 +252,18 @@ export default function Messages() {
                       const isSelected = threadId === selectedThreadId;
 
                       return (
-                        <button
+                        <div
                           key={threadId}
                           type="button"
                           onClick={() => setSelectedThreadId(threadId)}
-                          className={`w-full rounded-xl border px-4 py-3 text-left shadow-sm transition ${
+                          className={`w-full rounded-xl border px-4 py-3 text-left shadow-sm transition   ${
                             isSelected
-                              ? "border-gray-300 bg-white"
-                              : "border-transparent bg-white hover:border-gray-200"
+                              ? "border-gray-300 "
+                              : "border-transparent hover:border-gray-200"
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-semibold text-gray-900">
+                            <h3 className="text-sm font-semibold text-gray-900 ">
                               {thread.manufacturer_name || "Unassigned manufacturer"}
                             </h3>
                             <span className="text-xs text-gray-400">
@@ -273,7 +273,7 @@ export default function Messages() {
                           <p className="mt-2 line-clamp-2 text-xs text-gray-500">
                             {getThreadPreview(thread)}
                           </p>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
