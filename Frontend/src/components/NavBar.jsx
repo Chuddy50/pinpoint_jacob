@@ -4,14 +4,12 @@ import homeIcon from "../assets/home.svg";
 import profileIcon from "../assets/profileIcon.svg";
 import protoIcon from "../assets/protoIcon.svg";
 import messagesIcon from  "../assets/messagesIcon.svg";
-import consultantIcon from  "../assets/consultantIcon.svg";
 
 const links = [
   { to: "/", label: "Home", icon: homeIcon },
   { to: "/profile", label: "Profile", icon: profileIcon},
   // { to: "/filter", label: "Filter" },
   { to: "/prototype", label: "Prototype", icon: protoIcon },
-  { to: "/consultant", label: "Consulting", icon: consultantIcon },
   { to: "/messages", label: "Messages", icon: messagesIcon },
   // { to: "/ratings", label: "Ratings"},
 ];
