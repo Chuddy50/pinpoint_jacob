@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import ConsultantChat from "./ConsultantChat";
 
 const DEFAULT_POS = { x: 24, y: 24 };
 const WIDGET_SIZE = { width: 320, height: 420 };
@@ -89,7 +90,7 @@ export default function ChatWidget() {
 
   return (
     <div
-      className="fixed z-50 shadow-xl border border-gray-200 bg-white rounded-xl overflow-hidden select-none"
+      className="fixed z-50 shadow-xl border border-gray-200 bg-white rounded-xl overflow-hidden select-none flex flex-col"
       style={{
         width: WIDGET_SIZE.width,
         height: isOpen ? WIDGET_SIZE.height : COLLAPSED_HEIGHT,
@@ -113,8 +114,8 @@ export default function ChatWidget() {
       </div>
 
       {isOpen && (
-        <div className="h-full bg-white p-4 text-sm text-gray-500">
-          Chat widget shell (empty for now).
+        <div className="flex-1 min-h-0 bg-white p-4">
+          <ConsultantChat showHeader={false} className="h-full" />
         </div>
       )}
     </div>
