@@ -2,6 +2,7 @@ import NavBar from "../components/NavBar";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useChat } from "../contexts/ChatContext";
+import { Link } from "react-router-dom";
 
 export default function Consultant() {
   const { authHeaders } = useAuth();
@@ -20,6 +21,72 @@ export default function Consultant() {
 
   // store error message here 
   const [error, setError] = useState("");
+
+  const ALLOWED_ROUTES = new Set([
+    "/",
+    "/profile",
+    "/filter",
+    "/request-quote",
+    "/consultant",
+    "/prototype",
+    "/messages",
+  ]);
+
+  function renderMessageContent(content) {
+    const parts = [];
+    const linkPattern = /\[([^\]]+)\]\((\/[^)]+)\)/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkPattern.exec(content)) !== null) {
+      const [raw, label, to] = match;
+      const start = match.index;
+
+      if (start > lastIndex) {
+        parts.push({
+          type: "text",
+          value: content.slice(lastIndex, start),
+        });
+      }
+
+      if (ALLOWED_ROUTES.has(to)) {
+        parts.push({
+          type: "link",
+          label,
+          to,
+        });
+      } else {
+        parts.push({
+          type: "text",
+          value: raw,
+        });
+      }
+
+      lastIndex = start + raw.length;
+    }
+
+    if (lastIndex < content.length) {
+      parts.push({
+        type: "text",
+        value: content.slice(lastIndex),
+      });
+    }
+
+    return parts.map((part, index) => {
+      if (part.type === "link") {
+        return (
+          <Link
+            key={`link-${index}`}
+            to={part.to}
+            className="text-blue-600 underline underline-offset-2 hover:text-blue-700"
+          >
+            {part.label}
+          </Link>
+        );
+      }
+      return <span key={`text-${index}`}>{part.value}</span>;
+    });
+  }
 
   // send messages to backend 
   async function handleSend(e) {
@@ -109,7 +176,7 @@ export default function Consultant() {
               <div className="text-[11px] uppercase tracking-wide mb-1 text-gray-500">
                 {msg.role === "user" ? "You" : "Assistant"}
               </div>
-              <div>{msg.content}</div>
+              <div>{renderMessageContent(msg.content)}</div>
             </div>
           ))}
           {messages.length === 0 && (
