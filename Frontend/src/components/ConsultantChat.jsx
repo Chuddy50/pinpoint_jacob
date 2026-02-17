@@ -8,7 +8,6 @@ const ALLOWED_ROUTES = new Set([
   "/profile",
   "/filter",
   "/request-quote",
-  "/consultant",
   "/prototype",
   "/messages",
 ]);
