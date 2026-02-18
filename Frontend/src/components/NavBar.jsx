@@ -11,7 +11,6 @@ const links = [
   { to: "/profile", label: "Profile", icon: profileIcon},
   // { to: "/filter", label: "Filter" },
   { to: "/prototype", label: "Prototype", icon: protoIcon },
-  { to: "/consultant", label: "Consulting", icon: consultantIcon },
   { to: "/messages", label: "Messages", icon: messagesIcon },
   { to: "/techpack", label: "Tech Pack", icon: techPackIcon},
   // { to: "/ratings", label: "Ratings"},

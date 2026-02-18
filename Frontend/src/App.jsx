@@ -13,6 +13,7 @@ import Messages from "./pages/Messages";
 import Ratings from "./pages/Ratings";
 import ManufacturerProfile from "./pages/ManufacturerProfile";
 import RequestQuote from "./pages/RequestQuote";
+import ChatWidget from "./components/ChatWidget";
 
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ export default function App() {
                 <Route path="/manufacturers/:id" element={<ManufacturerProfile />} />
               </Routes>
             </main>
+            <ChatWidget />
         </BrowserRouter>
       </ChatProvider>
     </AuthProvider>
