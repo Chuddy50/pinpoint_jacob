@@ -5,6 +5,7 @@ import profileIcon from "../assets/profileIcon.svg";
 import protoIcon from "../assets/protoIcon.svg";
 import messagesIcon from  "../assets/messagesIcon.svg";
 import consultantIcon from  "../assets/consultantIcon.svg";
+import techPackIcon from "../assets/techPackIcon.svg"
 
 const links = [
   { to: "/", label: "Home", icon: homeIcon },
@@ -13,7 +14,7 @@ const links = [
   { to: "/prototype", label: "Prototype", icon: protoIcon },
   { to: "/consultant", label: "Consulting", icon: consultantIcon },
   { to: "/messages", label: "Messages", icon: messagesIcon },
-  { to: "/techpack", label: "Tech Pack"},
+  { to: "/techpack", label: "Tech Pack", icon: techPackIcon},
   // { to: "/ratings", label: "Ratings"},
 ];
 

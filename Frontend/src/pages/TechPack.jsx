@@ -45,6 +45,8 @@ export default function TechPack() {
   };
 
   const handleExport = async() => {
+
+    /*
     setIsExporting(true);
 
     try {
@@ -78,6 +80,7 @@ export default function TechPack() {
     } finally {
       setIsExporting(false);
     }
+    */
   };
 
   return (
@@ -85,7 +88,7 @@ export default function TechPack() {
       <NavBar />
       
       {/* Main content - minimal padding */}
-      <div className="ml-[245px] flex-1 flex flex-col p-1">
+      <div className="ml-[245px] flex-1 flex flex-col p-1 overflow-hidden">
         
         {/* The tech pack document - takes up available space */}
         <div 
@@ -301,30 +304,37 @@ export default function TechPack() {
           </div>
         </div>
 
-        {/* Bottom bar - Suggestions + Export */}
-        <div className="h-16 bg-white border-4 border-t-0 border-black flex items-center justify-between px-4 mt-0">
-          {/* Left side - Suggestions (only when field is active) */}
-          <div className="flex-1 flex items-center gap-3 overflow-x-auto">
+        {/* Bottom bar - Suggestions + Export — fixed height, never grows */}
+        <div className="bg-white border-4 border-t-0 border-black flex items-center mt-0" style={{ height: '64px', minHeight: '64px', maxHeight: '64px' }}>
+          {/* Scrollable suggestions area - overflow hidden so it never pushes layout */}
+          <div className="flex-1 min-w-0 flex items-center h-full overflow-hidden">
             {activeField && (
-              <ContextualToolbar
-                activeField={activeField}
-                currentValue={techPackData[activeField]}
-                onSelect={(value) => {
-                  updateField(activeField, value);
-                  setActiveField(null);
-                }}
-              />
+              <div
+                className="flex items-center gap-3 px-4 h-full overflow-x-auto"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                <ContextualToolbar
+                  activeField={activeField}
+                  currentValue={techPackData[activeField]}
+                  onSelect={(value) => {
+                    updateField(activeField, value);
+                    setActiveField(null);
+                  }}
+                />
+              </div>
             )}
           </div>
 
-          {/* Right side - Export button (always visible) */}
-          <button 
-            disabled={isExporting}
-            onClick={handleExport}
-            className="ml-4 px-8 py-2 bg-black text-white font-bold text-sm tracking-widest hover:bg-gray-800 transition flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isExporting ? 'EXPORTING...' : 'EXPORT'}
-          </button>
+          {/* Export button - always visible, never shrinks */}
+          <div className="flex-shrink-0 border-l-4 border-black h-full flex items-center px-4 bg-white">
+            <button 
+              disabled={isExporting}
+              onClick={handleExport}
+              className="px-8 py-2 bg-black text-white font-bold text-sm tracking-widest hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isExporting ? 'EXPORTING...' : 'EXPORT'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -421,6 +431,7 @@ function SketchUploadZone({ label, image, onUpload, onRemove }) {
           </svg>
           <span className="text-xs font-bold text-gray-400">{label}</span>
           <span className="text-xs text-gray-300 mt-1">click or drag & drop</span>
+          <span className="text-xs text-gray-300 mt-2 text-center px-2">Get sketches from the <span className="underline">Prototype</span> page's Export tab</span>
         </div>
       )}
       <input
@@ -438,13 +449,42 @@ function SketchUploadZone({ label, image, onUpload, onRemove }) {
 }
 function ContextualToolbar({ activeField, currentValue, onSelect }) {
   const suggestions = {
-    productType: ['T-Shirt', 'Hoodie', 'Sweatshirt', 'Pants', 'Jacket', 'Shorts', 'Tank Top'],
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
-    material: ['100% Cotton', '80% Cotton / 20% Polyester', '100% Polyester', 'French Terry', 'Fleece'],
-    weight: ['Lightweight (4-5 oz)', 'Medium (6-7 oz)', 'Heavy (8+ oz)'],
-    finishTexture: ['Matte', 'Glossy', 'Brushed', 'Distressed', 'Soft Hand'],
-    printMethod: ['Screen Print', 'DTG', 'Embroidery', 'Heat Transfer', 'Sublimation', 'None'],
-    specialFeatures: ['Pockets', 'Hood', 'Drawstrings', 'Zipper', 'Elastic Waist', 'Ribbed Cuffs'],
+    //brandName: ['My Brand', 'Studio Co.', 'The Label', 'Collective', 'Goods', 'Supply Co.', 'Atelier', 'Workshop', 'Industries', 'Apparel'],
+    //productName: ['Classic Tee', 'Oversized Hoodie', 'Cargo Pants', 'Bomber Jacket', 'Coach Jacket', 'Crewneck', 'Joggers', 'Shorts', 'Quarter Zip', 'Windbreaker', 'Polo', 'Flannel', 'Vest', 'Track Pants'],
+    productType: ['T-Shirt', 'Hoodie', 'Sweatshirt', 'Pants', 'Jacket', 'Shorts', 'Tank Top', 'Polo', 'Long Sleeve', 'Crewneck', 'Zip-Up Hoodie', 'Bomber Jacket', 'Coach Jacket', 'Windbreaker', 'Vest', 'Joggers', 'Track Pants', 'Cargo Pants', 'Flannel Shirt', 'Quarter Zip'],
+    primaryColor: ['Black', 'White', 'Navy', 'Forest Green', 'Burgundy', 'Grey', 'Cream / Off-White', 'Tan / Khaki', 'Olive', 'Royal Blue', 'Red', 'Cobalt', 'Charcoal', 'Sand', 'Brown', 'Pink', 'Purple', 'Orange', 'Yellow', 'Slate Blue'],
+    accentColors: ['None', 'White', 'Black', 'Red', 'Navy', 'Gold', 'Silver', 'Grey', 'Cream', 'Green', 'Tan', 'Orange', 'Pink', 'Blue', 'Brown'],
+    material: ['100% Cotton', '100% Polyester', '80% Cotton / 20% Polyester', '65% Cotton / 35% Polyester', '50% Cotton / 50% Polyester', 'French Terry', 'Fleece', 'Ripstop Nylon', 'Canvas', 'Denim', 'Linen', 'Bamboo', 'Merino Wool', 'Corduroy', 'Twill', 'Mesh', 'Jersey Knit', 'Waffle Knit', 'Modal', 'Pique'],
+    weight: ['Lightweight (3-4 oz)', 'Lightweight (4-5 oz)', 'Medium (5-6 oz)', 'Medium (6-7 oz)', 'Heavy (7-8 oz)', 'Heavy (8-9 oz)', 'Heavy (9+ oz)', 'Ultra Heavy (10+ oz)'],
+    finishTexture: ['Matte', 'Glossy', 'Brushed', 'Distressed', 'Soft Hand', 'Garment Dyed', 'Stone Washed', 'Enzyme Washed', 'Vintage Wash', 'Suede Feel', 'Peached', 'Slub'],
+    printMethod: ['Screen Print', 'DTG (Direct to Garment)', 'Embroidery', 'Heat Transfer', 'Sublimation', 'Puff Print', 'Discharge Print', 'Foil Print', 'Plastisol', 'Water-Based Ink', 'Vinyl Cut', 'Woven Label', 'Rubber Patch', 'None'],
+    specialFeatures: ['Pockets', 'Hood', 'Drawstrings', 'Zipper', 'Elastic Waist', 'Ribbed Cuffs', 'Kangaroo Pocket', 'Cargo Pockets', 'Chest Pocket', 'Side Slits', 'Thumbholes', 'Half Zip', 'Full Zip', 'Button Placket', 'Raglan Sleeves', 'Drop Shoulder', 'Contrast Stitching', 'Reflective Detail', 'Mesh Lining', 'Adjustable Hem'],
+    measurements: ['S: 18"W x 28"L', 'M: 20"W x 29"L', 'L: 22"W x 30"L', 'XL: 24"W x 31"L', 'Run true to size', 'Oversized fit', 'Slim fit', 'Relaxed fit', 'See attached spec sheet'],
+    sizes: ['XS-XL', 'S-XL', 'S-XXL', 'XS-XXL', 'XS-3XL', 'S-3XL', 'One Size', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+    sampleQuantity: ['1', '2', '3', '5', '10'],
+    orderQuantity: ['50', '100', '150', '200', '250', '300', '500', '750', '1000', '1500', '2000', '2500', '5000'],
+    targetPrice: ['$3-5 per unit', '$5-8 per unit', '$8-12 per unit', '$12-18 per unit', '$18-25 per unit', '$25-35 per unit', '$35-50 per unit', 'Open to quote', 'Negotiable'],
+    description: [
+      'Heavyweight oversized tee with dropped shoulders',
+      'Classic fitted crewneck with chest logo',
+      'Relaxed pullover hoodie with kangaroo pocket',
+      'Slim fit jogger with elastic waistband',
+      'Washed coach jacket with snap buttons',
+      'Vintage-style crewneck sweatshirt',
+      'Cargo pants with side pockets and adjustable hem',
+    ],
+    specialInstructions: [
+      'Match Pantone color exactly',
+      'Provide swatch before production',
+      'Include hang tags and labels',
+      'Poly bag each unit individually',
+      'Fold and box pack',
+      'No logo on packaging',
+      'OEKO-TEX certified materials only',
+      'Send pre-production sample for approval',
+      'ISO 9001 compliance required',
+      'Ethical manufacturing certification required',
+    ],
   };
 
   const options = suggestions[activeField] || [];
