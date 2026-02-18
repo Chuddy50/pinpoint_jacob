@@ -45,19 +45,14 @@ export default function TechPack() {
   };
 
   const handleExport = async() => {
-
-    /*
     setIsExporting(true);
 
     try {
-      const formData = new FormData();
-      formData.append('data', JSON.stringify(techPackData));
-      if (sketchImages.front?.file) formData.append('frontSketch', sketchImages.front.file);
-      if (sketchImages.back?.file) formData.append('backSketch', sketchImages.back.file);
 
       const response = await fetch('http://localhost:8000/techpack/generate', {
         method: "POST",
-        body: formData
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(techPackData)
       });
 
       if(!response.ok){
@@ -80,7 +75,6 @@ export default function TechPack() {
     } finally {
       setIsExporting(false);
     }
-    */
   };
 
   return (
