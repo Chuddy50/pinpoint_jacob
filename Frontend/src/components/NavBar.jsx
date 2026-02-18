@@ -4,7 +4,6 @@ import homeIcon from "../assets/home.svg";
 import profileIcon from "../assets/profileIcon.svg";
 import protoIcon from "../assets/protoIcon.svg";
 import messagesIcon from  "../assets/messagesIcon.svg";
-import consultantIcon from  "../assets/consultantIcon.svg";
 import techPackIcon from "../assets/techPackIcon.svg"
 
 const links = [
