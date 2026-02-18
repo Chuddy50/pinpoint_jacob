@@ -512,7 +512,63 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     );
   };
 
-  // handle logo file upload
+  // capture front and back view screenshots and download them for use in the tech pack
+  const handleScreenshots = () => {
+    if (!rendererRef.current || !sceneRef.current || !cameraRef.current) {
+      showNotification('No model loaded', 'error');
+      return;
+    }
+
+    const renderer = rendererRef.current;
+    const scene = sceneRef.current;
+    const camera = cameraRef.current;
+
+    // store original camera state so we can restore it after
+    const origPosition = camera.position.clone();
+    const origTarget = controlsRef.current?.target.clone() || new THREE.Vector3(0, 0, 0);
+
+    // get model bounds to determine a good camera distance
+    const bbox = new THREE.Box3().setFromObject(modelRef.current);
+    const size = bbox.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const dist = maxDim * 2.0;
+    const height = size.y * 0.3;
+
+    const downloadImage = (filename) => {
+      renderer.render(scene, camera);
+      const dataUrl = renderer.domElement.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+
+    const baseName = designName || 'design';
+
+    // front view - download immediately
+    camera.position.set(0, height, dist);
+    camera.lookAt(0, 0, 0);
+    downloadImage(`${baseName}-front.png`);
+
+    // back view - delay so browser processes the first download first
+    setTimeout(() => {
+      camera.position.set(0, height, -dist);
+      camera.lookAt(0, 0, 0);
+      downloadImage(`${baseName}-back.png`);
+
+      // restore original camera position after back shot
+      camera.position.copy(origPosition);
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(origTarget);
+        controlsRef.current.update();
+      }
+      camera.lookAt(origTarget);
+
+      showNotification('Screenshots downloaded!', 'success');
+    }, 200);
+  };
   const handleLogoUpload = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -996,6 +1052,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
               currentMaterial={currentMaterial}
               onSaveToSupabase={handleSave}
               onDownload={handleDownload}
+              onScreenshots={handleScreenshots}
             />
           )} 
         </div>
