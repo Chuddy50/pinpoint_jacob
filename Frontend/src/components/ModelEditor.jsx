@@ -518,23 +518,31 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       showNotification('No model loaded', 'error');
       return;
     }
-
+  
     const renderer = rendererRef.current;
     const scene = sceneRef.current;
     const camera = cameraRef.current;
-
-    // store original camera state so we can restore it after
+  
     const origPosition = camera.position.clone();
     const origTarget = controlsRef.current?.target.clone() || new THREE.Vector3(0, 0, 0);
-
-    // get model bounds to determine a good camera distance
+    const origAspect = camera.aspect;
+  
+    // portrait dimensions (phone-like)
+    const shotWidth = 800;
+    const shotHeight = 1200;
+    const aspect = shotWidth / shotHeight;
+  
+    // get model bounds
     const bbox = new THREE.Box3().setFromObject(modelRef.current);
     const size = bbox.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const dist = maxDim * 2.0;
+    const dist = size.y * 1.2; // tighter — was 2.0x maxDim
     const height = size.y * 0.3;
-
-    const downloadImage = (filename) => {
+  
+    const captureShot = (filename) => {
+      // resize renderer to portrait, render, capture, restore
+      renderer.setSize(shotWidth, shotHeight);
+      camera.aspect = aspect;
+      camera.updateProjectionMatrix();
       renderer.render(scene, camera);
       const dataUrl = renderer.domElement.toDataURL('image/png');
       const a = document.createElement('a');
@@ -544,31 +552,37 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       a.click();
       document.body.removeChild(a);
     };
-
+  
     const baseName = designName || 'design';
-
-    // front view - download immediately
+  
+    // front shot
     camera.position.set(0, height, dist);
     camera.lookAt(0, 0, 0);
-    downloadImage(`${baseName}-front.png`);
-
-    // back view - delay so browser processes the first download first
+    captureShot(`${baseName}-front.png`);
+  
     setTimeout(() => {
+      // back shot
       camera.position.set(0, height, -dist);
       camera.lookAt(0, 0, 0);
-      downloadImage(`${baseName}-back.png`);
-
-      // restore original camera position after back shot
+      captureShot(`${baseName}-back.png`);
+  
+      // restore everything
+      const container = containerRef.current;
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      camera.aspect = origAspect;
+      camera.updateProjectionMatrix();
       camera.position.copy(origPosition);
       if (controlsRef.current) {
         controlsRef.current.target.copy(origTarget);
         controlsRef.current.update();
       }
       camera.lookAt(origTarget);
-
+  
       showNotification('Screenshots downloaded!', 'success');
     }, 200);
   };
+
+
   const handleLogoUpload = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
