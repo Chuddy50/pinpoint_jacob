@@ -33,7 +33,6 @@ export default function TechPack() {
     targetPrice: "",
     description: "",
     specialInstructions: "",
-    sketchImages: [],
   });
 
   const updateField = (field, value) => {
@@ -48,11 +47,15 @@ export default function TechPack() {
     setIsExporting(true);
 
     try {
+      // Send text data as JSON, images as FormData separately
+      const formData = new FormData();
+      formData.append('data', JSON.stringify(techPackData));
+      if (sketchImages.front?.file) formData.append('frontSketch', sketchImages.front.file);
+      if (sketchImages.back?.file) formData.append('backSketch', sketchImages.back.file);
 
       const response = await fetch('http://localhost:8000/techpack/generate', {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(techPackData)
+        body: formData
       });
 
       if(!response.ok){
@@ -441,10 +444,9 @@ function SketchUploadZone({ label, image, onUpload, onRemove }) {
     </div>
   );
 }
+
 function ContextualToolbar({ activeField, currentValue, onSelect }) {
   const suggestions = {
-    //brandName: ['My Brand', 'Studio Co.', 'The Label', 'Collective', 'Goods', 'Supply Co.', 'Atelier', 'Workshop', 'Industries', 'Apparel'],
-    //productName: ['Classic Tee', 'Oversized Hoodie', 'Cargo Pants', 'Bomber Jacket', 'Coach Jacket', 'Crewneck', 'Joggers', 'Shorts', 'Quarter Zip', 'Windbreaker', 'Polo', 'Flannel', 'Vest', 'Track Pants'],
     productType: ['T-Shirt', 'Hoodie', 'Sweatshirt', 'Pants', 'Jacket', 'Shorts', 'Tank Top', 'Polo', 'Long Sleeve', 'Crewneck', 'Zip-Up Hoodie', 'Bomber Jacket', 'Coach Jacket', 'Windbreaker', 'Vest', 'Joggers', 'Track Pants', 'Cargo Pants', 'Flannel Shirt', 'Quarter Zip'],
     primaryColor: ['Black', 'White', 'Navy', 'Forest Green', 'Burgundy', 'Grey', 'Cream / Off-White', 'Tan / Khaki', 'Olive', 'Royal Blue', 'Red', 'Cobalt', 'Charcoal', 'Sand', 'Brown', 'Pink', 'Purple', 'Orange', 'Yellow', 'Slate Blue'],
     accentColors: ['None', 'White', 'Black', 'Red', 'Navy', 'Gold', 'Silver', 'Grey', 'Cream', 'Green', 'Tan', 'Orange', 'Pink', 'Blue', 'Brown'],
