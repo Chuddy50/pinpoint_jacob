@@ -1,9 +1,20 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import NavBar from "../components/NavBar";
 
 export default function TechPack() {
   const [activeField, setActiveField] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [sketchImages, setSketchImages] = useState({ front: null, back: null });
+
+  const handleSketchUpload = (view, file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => setSketchImages(prev => ({ ...prev, [view]: { file, preview: e.target.result } }));
+    reader.readAsDataURL(file);
+  };
+
+  const removeSketch = (view) => setSketchImages(prev => ({ ...prev, [view]: null }));
+
   const [techPackData, setTechPackData] = useState({
     productName: "",
     brandName: "",
@@ -37,12 +48,14 @@ export default function TechPack() {
     setIsExporting(true);
 
     try {
+      const formData = new FormData();
+      formData.append('data', JSON.stringify(techPackData));
+      if (sketchImages.front?.file) formData.append('frontSketch', sketchImages.front.file);
+      if (sketchImages.back?.file) formData.append('backSketch', sketchImages.back.file);
+
       const response = await fetch('http://localhost:8000/techpack/generate', {
         method: "POST",
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(techPackData)
+        body: formData
       });
 
       if(!response.ok){
@@ -131,22 +144,22 @@ export default function TechPack() {
               </div>
               <div className="flex-1 grid grid-cols-2">
                 {/* Front view */}
-                <div className="border-r-2 border-black bg-gray-50 flex flex-col items-center justify-center p-6">
-                  <div className="w-full h-full border-2 border-dashed border-gray-400 flex flex-col items-center justify-center">
-                    <svg className="w-16 h-16 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-xs font-bold text-gray-400">FRONT VIEW</span>
-                  </div>
+                <div className="border-r-2 border-black bg-gray-50 flex flex-col items-center justify-center p-3">
+                  <SketchUploadZone
+                    label="FRONT VIEW"
+                    image={sketchImages.front}
+                    onUpload={(file) => handleSketchUpload('front', file)}
+                    onRemove={() => removeSketch('front')}
+                  />
                 </div>
                 {/* Back view */}
-                <div className="bg-gray-50 flex flex-col items-center justify-center p-6">
-                  <div className="w-full h-full border-2 border-dashed border-gray-400 flex flex-col items-center justify-center">
-                    <svg className="w-16 h-16 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-xs font-bold text-gray-400">BACK VIEW</span>
-                  </div>
+                <div className="bg-gray-50 flex flex-col items-center justify-center p-3">
+                  <SketchUploadZone
+                    label="BACK VIEW"
+                    image={sketchImages.back}
+                    onUpload={(file) => handleSketchUpload('back', file)}
+                    onRemove={() => removeSketch('back')}
+                  />
                 </div>
               </div>
             </div>
@@ -368,7 +381,61 @@ function GridTextArea({ value, isActive, onClick, onChange }) {
   );
 }
 
-// Contextual toolbar - updated suggestions
+// Sketch image upload zone
+function SketchUploadZone({ label, image, onUpload, onRemove }) {
+  const inputRef = useRef(null);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    onUpload(file);
+  };
+
+  return (
+    <div className="w-full h-full relative">
+      {image ? (
+        <div className="w-full h-full relative group">
+          <img
+            src={image.preview}
+            alt={label}
+            className="w-full h-full object-contain"
+          />
+          {/* Remove button */}
+          <button
+            onClick={onRemove}
+            className="absolute top-1 right-1 bg-black text-white text-xs w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+          >
+            ✕
+          </button>
+          <span className="absolute bottom-1 left-0 right-0 text-center text-xs font-bold text-gray-500">{label}</span>
+        </div>
+      ) : (
+        <div
+          className="w-full h-full border-2 border-dashed border-gray-400 flex flex-col items-center justify-center cursor-pointer hover:border-black hover:bg-gray-100 transition"
+          onClick={() => inputRef.current?.click()}
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+        >
+          <svg className="w-10 h-10 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+          </svg>
+          <span className="text-xs font-bold text-gray-400">{label}</span>
+          <span className="text-xs text-gray-300 mt-1">click or drag & drop</span>
+        </div>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          onUpload(e.target.files[0]);
+          e.target.value = '';
+        }}
+      />
+    </div>
+  );
+}
 function ContextualToolbar({ activeField, currentValue, onSelect }) {
   const suggestions = {
     productType: ['T-Shirt', 'Hoodie', 'Sweatshirt', 'Pants', 'Jacket', 'Shorts', 'Tank Top'],
