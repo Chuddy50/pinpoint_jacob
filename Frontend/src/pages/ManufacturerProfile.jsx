@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import NavBar from "../components/NavBar";
 import ManufacturerProducts from "../components/ManufacturerProducts";
 import ManufacturerCategories from "../components/ManufacturerCategories";
@@ -29,27 +30,31 @@ function InfoRow({ label, value }) {
 export default function ManufacturerProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { authHeaders } = useAuth();
   const [manufacturer, setManufacturer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
 
   useEffect(() => {
     let isActive = true;
+
     async function fetchManufacturer() {
       setLoading(true);
       try {
         const response = await fetch(`http://localhost:8000/manufacturers/${id}`);
         if (!response.ok) {
-          setError(data.message || "We couldnt find that manufacturer yet")
-          setManufacturer(null)
+          setError("We couldn't find that manufacturer yet");
+          setManufacturer(null);
           throw new Error("Failed to fetch manufacturers");
         }
         const data = await response.json();
-        
+
         if (!isActive) return;
 
-        setManufacturer(data)
-        setError("")
+        setManufacturer(data);
+        setError("");
       } catch (err) {
         if (isActive) {
           setError("Unable to load manufacturer right now.");
@@ -60,7 +65,23 @@ export default function ManufacturerProfile() {
         }
       }
     }
+
+    async function fetchSaveStatus() {
+      if (!authHeaders) return;
+      try {
+        const res = await fetch(`http://localhost:8000/manufacturers/${id}/save_status`, {
+          headers: authHeaders,
+        });
+        const data = await res.json();
+        if (isActive) setIsSaved(data.saved);
+      } catch (err) {
+        console.error("Failed to fetch save status:", err);
+      }
+    }
+
     fetchManufacturer();
+    fetchSaveStatus();
+
     return () => {
       isActive = false;
     };
@@ -81,6 +102,24 @@ export default function ManufacturerProfile() {
         },
       },
     });
+  }
+
+  async function handleToggleSave() {
+    if (!authHeaders) return navigate("/login");
+
+    setSaveLoading(true);
+    try {
+      const res = await fetch(`http://localhost:8000/manufacturers/${id}/save`, {
+        method: "POST",
+        headers: authHeaders,
+      });
+      const data = await res.json();
+      setIsSaved(data.saved);
+    } catch (err) {
+      console.error("Failed to toggle save:", err);
+    } finally {
+      setSaveLoading(false);
+    }
   }
 
   return (
@@ -131,6 +170,17 @@ export default function ManufacturerProfile() {
                     }
                   >
                     Add Rating
+                  </button>
+                  <button
+                    onClick={handleToggleSave}
+                    disabled={saveLoading}
+                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
+                      isSaved
+                        ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+                        : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {isSaved ? "★ Saved" : "☆ Save"}
                   </button>
                 </div>
               </div>
