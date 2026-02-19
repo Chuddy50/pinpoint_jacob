@@ -147,7 +147,7 @@ export default function Profile() {
 
             {/* Horizontal divider */}
             <hr className="border-t border-gray-400 mb-2 mx-2" />
-
+            
             {/* designs saved by this user */}
             <SavedDesignsProfile userId={user.id}/>
 

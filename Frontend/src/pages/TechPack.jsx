@@ -1,7 +1,12 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import NavBar from "../components/NavBar";
 
 export default function TechPack() {
+
+  useEffect(() => {
+    document.title = "Tech Pack - PinPoint";
+  }, []);
+
   const [activeField, setActiveField] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
   const [sketchImages, setSketchImages] = useState({ front: null, back: null });
