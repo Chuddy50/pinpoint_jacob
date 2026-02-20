@@ -261,6 +261,41 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
 
     if (!sceneRef.current) return;
 
+    // handle texture-based materials
+    if (materialType === 'fabric048') {
+      const loader = new THREE.TextureLoader();
+      const base = '/textures/Fabric048_1K-JPG';
+
+      const albedo    = loader.load(`${base}/Fabric048_1K-JPG_Color.jpg`);
+      const normal    = loader.load(`${base}/Fabric048_1K-JPG_NormalGL.jpg`);
+      const roughness = loader.load(`${base}/Fabric048_1K-JPG_Roughness.jpg`);
+      const ao        = loader.load(`${base}/Fabric048_1K-JPG_AmbientOcclusion.jpg`);
+
+      [albedo, normal, roughness, ao].forEach(t => {
+        t.flipY = false;
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.repeat.set(6, 6);
+      });
+      albedo.colorSpace = THREE.SRGBColorSpace;
+
+      sceneRef.current.traverse((child) => {
+        if (child.isMesh && !child.userData.isLogoDecal) {
+          child.material.map = albedo;
+          child.material.normalMap = normal;
+          child.material.roughnessMap = roughness;
+          child.material.aoMap = ao;
+          child.material.roughness = 1.0;
+          child.material.metalness = 0.0;
+          // aoMap needs uv2 in r128
+          if (!child.geometry.attributes.uv2 && child.geometry.attributes.uv) {
+            child.geometry.setAttribute('uv2', child.geometry.attributes.uv);
+          }
+          child.material.needsUpdate = true;
+        }
+      });
+      return; // skip the old roughness/metalness logic below
+    }
+
     // to simulate fabric types, change:
     //   - roughness = how matte / rough
     //   - metalness = how light bounces off the surface
@@ -307,7 +342,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   ];
 
   // array of available materials
-  const materials = ['cotton', 'denim', 'polyester', 'leather', 'silk'];
+  const materials = ['cotton', 'denim', 'polyester', 'leather', 'silk', 'fabric048'];
 
   // main effect, runs once when component mounts or modelType changes
   useEffect(() => {
