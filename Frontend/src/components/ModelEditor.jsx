@@ -253,38 +253,50 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     });
   };
 
-  // function changes the roughness and metalness properties to simulate different fabrics
+  // function changes material — uses PBR textures for texture-based materials,
+  // falls back to roughness/metalness values for simple materials
   const changeMaterial = (materialType) => {
-
-    //update currently stored material
-    setCurrentMaterial(materialType)
-
+    setCurrentMaterial(materialType);
     if (!sceneRef.current) return;
-
-    // handle texture-based materials
-    if (materialType === 'nylon shell') {
+  
+    const textureMaterials = {
+      'nylon shell': 'Fabric048_1K-JPG',
+      'denim':       'Fabric077_1K-JPG',
+    };
+  
+    const textureFolder = textureMaterials[materialType];
+  
+    if (textureFolder) {
       const loader = new THREE.TextureLoader();
-      const base = '/textures/Fabric048_1K-JPG';
-    
-      // load all 4 textures, then apply once they're all ready
+      const base = `/textures/${textureFolder}`;
+  
+      const loadOptional = (path) => new Promise(res => {
+        loader.load(path, res, undefined, () => {
+          console.warn('Texture not found, skipping:', path);
+          res(null);
+        });
+      });
+  
       Promise.all([
-        new Promise(res => loader.load(`${base}/Fabric048_1K-JPG_Color.jpg`, res)),
-        new Promise(res => loader.load(`${base}/Fabric048_1K-JPG_NormalGL.jpg`, res)),
-        new Promise(res => loader.load(`${base}/Fabric048_1K-JPG_Roughness.jpg`, res)),
-        new Promise(res => loader.load(`${base}/Fabric048_1K-JPG_AmbientOcclusion.jpg`, res)),
-      ]).then(([albedo, normal, roughness, ao]) => {
-    
-        [albedo, normal, roughness, ao].forEach(t => {
+        loadOptional(`${base}/${textureFolder}_NormalGL.jpg`),
+        loadOptional(`${base}/${textureFolder}_Roughness.jpg`),
+        loadOptional(`${base}/${textureFolder}_AmbientOcclusion.jpg`),
+      ]).then(([normal, roughness, ao]) => {
+  
+        console.log('Textures loaded for:', textureFolder, { normal: !!normal, roughness: !!roughness, ao: !!ao });
+  
+        [normal, roughness, ao].forEach(t => {
+          if (!t) return;
           t.flipY = false;
           t.wrapS = t.wrapT = THREE.RepeatWrapping;
           t.repeat.set(6, 6);
         });
-        albedo.colorSpace = THREE.SRGBColorSpace;
-    
+  
         sceneRef.current.traverse((child) => {
           if (child.isMesh && !child.userData.isLogoDecal) {
             child.material = child.material.clone();
-    
+            child.material.color.set(0xffffff); // start white, user controls color via color tab
+  
             // normalize UVs if they're way out of 0-1 range
             const uv = child.geometry.attributes.uv;
             if (uv) {
@@ -297,20 +309,20 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
               }
               const rangeU = maxU - minU;
               const rangeV = maxV - minV;
-              // if UVs are way outside 0-1, normalize them
               if (maxU > 10 || minU < -1 || maxV > 10 || minV < -1) {
-                console.log(`Normalizing UVs for ${child.name}`);
-                for (let i = 0; i < uv.count; i++) {
-                  uv.setXY(i,
-                    (uv.getX(i) - minU) / rangeU,
-                    (uv.getY(i) - minV) / rangeV
-                  );
+                if (!child.geometry.userData.originalUV) {
+                  child.geometry.userData.originalUV = new Float32Array(uv.array);
                 }
-                uv.needsUpdate = true;
+                const newUVArray = new Float32Array(uv.array.length);
+                for (let i = 0; i < uv.count; i++) {
+                  newUVArray[i * 2]     = (uv.getX(i) - minU) / rangeU;
+                  newUVArray[i * 2 + 1] = (uv.getY(i) - minV) / rangeV;
+                }
+                child.geometry.setAttribute('uv', new THREE.BufferAttribute(newUVArray, 2));
               }
             }
-    
-            child.material.map = albedo;
+  
+            child.material.map = null;        // skip albedo — no color from texture
             child.material.normalMap = normal;
             child.material.roughnessMap = roughness;
             child.material.aoMap = ao;
@@ -325,26 +337,29 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
       });
       return;
     }
-
-    // to simulate fabric types, change:
-    //   - roughness = how matte / rough
-    //   - metalness = how light bounces off the surface
-    // TODO: see if these values are correct, these are just some starting values to get it going
+  
+    // simple roughness/metalness fallback for non-texture materials
     const materialProps = {
-      cotton: { roughness: 0.8, metalness: 0.02 }, 
-      denim: { roughness: 0.9, metalness: 0.1 },   
-      polyester: { roughness: 0.4, metalness: 0.25 },
-      leather: { roughness: 0.25, metalness: 0.6 },
-      silk: { roughness: 0.12, metalness: 0.4 },
+      cotton:    { roughness: 0.8,  metalness: 0.02 },
+      polyester: { roughness: 0.4,  metalness: 0.25 },
+      leather:   { roughness: 0.25, metalness: 0.6  },
+      silk:      { roughness: 0.12, metalness: 0.4  },
     };
-
+  
     const props = materialProps[materialType] || { roughness: 0.8, metalness: 0.2 };
-
-    sceneRef.current.traverse( (child) => {
-      if(child.isMesh){
+  
+    sceneRef.current.traverse((child) => {
+      if (child.isMesh) {
+        if (child.geometry.userData.originalUV) {
+          const restored = new THREE.BufferAttribute(
+            new Float32Array(child.geometry.userData.originalUV), 2
+          );
+          child.geometry.setAttribute('uv', restored);
+          delete child.geometry.userData.originalUV;
+        }
+  
         const applyProps = (m) => {
           if (m) {
-            // clear any PBR textures from previous selection
             m.map = null;
             m.normalMap = null;
             m.roughnessMap = null;
@@ -354,13 +369,14 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
             m.needsUpdate = true;
           }
         };
-
+  
         if (Array.isArray(child.material)) {
+          child.material = child.material.map(m => m.clone());
           child.material.forEach(applyProps);
         } else {
+          child.material = child.material.clone();
           applyProps(child.material);
         }
-
       }
     });
   };
