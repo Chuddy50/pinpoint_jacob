@@ -54,6 +54,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   const animationIdRef = useRef(null);
   const modelRef = useRef(null); //ref to the clothing model itself, for export
   const colorPickerRef = useRef(null); // ref for color picker component
+  const currentColorRef = useRef('#ffffff'); // tracks current color so material changes preserve it
 
   // function to show notifications
   const showNotification = (message, type = 'error') => {
@@ -241,6 +242,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   // function to traverse entire scene and changes the color of all mesh materials
   const changeColor = (hexColor) => {
     if (!sceneRef.current) return;
+    currentColorRef.current = hexColor; // save so material switches can preserve the color
 
     sceneRef.current.traverse( (child) => {
       if(child.isMesh) {
@@ -253,44 +255,99 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
     });
   };
 
-  // function changes the roughness and metalness properties to simulate different fabrics
+  // function changes material using downloaded PBR texture sets
   const changeMaterial = (materialType) => {
-
-    //update currently stored material
-    setCurrentMaterial(materialType)
-
+    setCurrentMaterial(materialType);
     if (!sceneRef.current) return;
 
-    // to simulate fabric types, change:
-    //   - roughness = how matte / rough
-    //   - metalness = how light bounces off the surface
-    // TODO: see if these values are correct, these are just some starting values to get it going
-    const materialProps = {
-      cotton: { roughness: 0.8, metalness: 0.02 }, 
-      denim: { roughness: 0.9, metalness: 0.1 },   
-      polyester: { roughness: 0.4, metalness: 0.25 },
-      leather: { roughness: 0.25, metalness: 0.6 },
-      silk: { roughness: 0.12, metalness: 0.4 },
+    // map material names to their texture folder names in /public/textures/
+    //  - downloaded form ambientCG.com
+    const textureMaterials = {
+      'cotton':       'Fabric030_1K-JPG',
+      'heavy cotton': 'Fabric045_1K-JPG',
+      'denim':        'Fabric077_1K-JPG',
+      'polyester':    'Fabric061_1K-JPG',
+      'leather':      'Leather037_1K-JPG',
+      'silk':         'Fabric082A_1K-JPG',
+      'nylon shell':  'Fabric048_1K-JPG',
+      'chunky knit':  'Fabric018_1K-JPG',
+      'fine rib knit':'Fabric079_1K-JPG',
     };
 
-    const props = materialProps[materialType] || { roughness: 0.8, metalness: 0.2 };
+    const textureFolder = textureMaterials[materialType];
+    if (!textureFolder) {
+      console.warn('No texture found for material:', materialType);
+      return;
+    }
 
-    sceneRef.current.traverse( (child) => {
-      if(child.isMesh){
-        const applyProps = (m) => {
-          if (m) {
-            m.roughness = props.roughness;
-            m.metalness = props.metalness;
+    const loader = new THREE.TextureLoader();
+    const base = `/textures/${textureFolder}`;
+
+    // resolve with null on error so missing files (like AO) don't break everything
+    const loadOptional = (path) => new Promise(res => {
+      loader.load(path, res, undefined, () => {
+        console.warn('Texture not found, skipping:', path);
+        res(null);
+      });
+    });
+
+    Promise.all([
+      loadOptional(`${base}/${textureFolder}_NormalGL.jpg`),
+      loadOptional(`${base}/${textureFolder}_Roughness.jpg`),
+      loadOptional(`${base}/${textureFolder}_AmbientOcclusion.jpg`),
+    ]).then(([normal, roughness, ao]) => {
+
+      console.log('Textures loaded for:', textureFolder, { normal: !!normal, roughness: !!roughness, ao: !!ao });
+
+      [normal, roughness, ao].forEach(t => {
+        if (!t) return;
+        t.flipY = false;
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.repeat.set(6, 6);
+      });
+
+      sceneRef.current.traverse((child) => {
+        if (child.isMesh && !child.userData.isLogoDecal) {
+          child.material = child.material.clone();
+          child.material.color.set(currentColorRef.current); // preserve current color
+
+          // normalize UVs if they're way out of 0-1 range
+          const uv = child.geometry.attributes.uv;
+          if (uv) {
+            let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+            for (let i = 0; i < uv.count; i++) {
+              minU = Math.min(minU, uv.getX(i));
+              maxU = Math.max(maxU, uv.getX(i));
+              minV = Math.min(minV, uv.getY(i));
+              maxV = Math.max(maxV, uv.getY(i));
+            }
+            const rangeU = maxU - minU;
+            const rangeV = maxV - minV;
+            if (maxU > 10 || minU < -1 || maxV > 10 || minV < -1) {
+              if (!child.geometry.userData.originalUV) {
+                child.geometry.userData.originalUV = new Float32Array(uv.array);
+              }
+              const newUVArray = new Float32Array(uv.array.length);
+              for (let i = 0; i < uv.count; i++) {
+                newUVArray[i * 2]     = (uv.getX(i) - minU) / rangeU;
+                newUVArray[i * 2 + 1] = (uv.getY(i) - minV) / rangeV;
+              }
+              child.geometry.setAttribute('uv', new THREE.BufferAttribute(newUVArray, 2));
+            }
           }
-        };
 
-        if (Array.isArray(child.material)) {
-          child.material.forEach(applyProps);
-        } else {
-          applyProps(child.material);
+          child.material.map = null;        // skip albedo — color comes from color picker
+          child.material.normalMap = normal;
+          child.material.roughnessMap = roughness;
+          child.material.aoMap = ao;
+          child.material.roughness = 1.0;
+          child.material.metalness = 0.0;
+          if (!child.geometry.attributes.uv2 && child.geometry.attributes.uv) {
+            child.geometry.setAttribute('uv2', child.geometry.attributes.uv);
+          }
+          child.material.needsUpdate = true;
         }
-
-      }
+      });
     });
   };
 
@@ -307,7 +364,7 @@ const ModelEditor = ({ modelUrl, initialMaterial = 'cotton', onBack }) => {
   ];
 
   // array of available materials
-  const materials = ['cotton', 'denim', 'polyester', 'leather', 'silk'];
+  const materials = ['cotton', 'heavy cotton', 'denim', 'polyester', 'leather', 'silk', 'nylon shell', 'chunky knit', 'fine rib knit'];
 
   // main effect, runs once when component mounts or modelType changes
   useEffect(() => {
