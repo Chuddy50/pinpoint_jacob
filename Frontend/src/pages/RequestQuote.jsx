@@ -24,6 +24,8 @@ export default function RequestQuote() {
   const { user, authHeaders } = useAuth();
   const location = useLocation();
   const manufacturer = location.state?.manufacturer || null;
+  const manufacturerId =
+    manufacturer?.manufacturer_id ?? manufacturer?.id ?? null;
 
   useEffect(() => {
     document.title = "Request Quote - PinPoint";
@@ -55,7 +57,7 @@ export default function RequestQuote() {
         },
         body: JSON.stringify({
           buyer_id: user.id,
-          manufacturer_id: null,
+          manufacturer_id: manufacturerId,
           contact_name: formData.name,
           contact_email: formData.email,
           contact_phone: formData.phone || null,
