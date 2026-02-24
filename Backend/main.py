@@ -1,16 +1,16 @@
 """
 main.py
 
-Last Edited: 1/21/2026
+Last Edited: 2/14/2026
 Developers: Leo Plute, Jacob Nguyen, Luke Jones, Jacob Dietz
 Description: FastAPI application entry point. Configures CORS middleware,
              and includes all API routers for auth, manufacturers, reviews
-             consultant, and designs.
+             consultant, designs, rfq's, and tech packs.
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth, manufacturers, reviews, consultant, designs, rfq
+from routers import auth, manufacturers, reviews, consultant, designs, rfq, tech_pack
 
 # Create FastAPI application instance
 app = FastAPI()
@@ -35,3 +35,4 @@ app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 app.include_router(consultant.router, prefix="/consultant", tags=["consultant"])
 app.include_router(designs.router, prefix="/designs", tags=["designs"])
 app.include_router(rfq.router, prefix="/rfq", tags=["rfq"])
+app.include_router(tech_pack.router, prefix="/techpack", tags=["techpack"])

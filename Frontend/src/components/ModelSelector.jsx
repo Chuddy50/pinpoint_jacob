@@ -17,16 +17,16 @@ const ModelSelector = ({ onSelect }) => {
           url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/short_tshirt.glb'
         },
         {
-          id: 'long_tshirt', 
+          id: 'white_long_tshirt', 
           name: 'Long Sleeved T-Shirt',
           description: 'Full sleeve crew neck for cooler weather',
-          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/long_tshirt.glb'
+          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/white_long_tshirt.glb'
         },
         {
-          id: 'pants', 
+          id: 'white_pants', 
           name: 'Pants',
           description: 'Versatile straight-leg trousers',
-          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/pants.glb'
+          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/white_pants.glb'
         },
         {
           id: 'hoodie', 
@@ -35,11 +35,41 @@ const ModelSelector = ({ onSelect }) => {
           url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/hoodie.glb'
         },
         {
+          id: 'jacket', 
+          name: 'Jacket',
+          description: 'Insulated outer jacket',
+          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/white_jacket.glb'
+        },
+        {
+          id: 'shorts',
+          name: 'Shorts',
+          description: 'Casual everyday shorts',
+          url: "https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/white_shorts.glb"
+        },
+        {
+          id: 'sweatpants',
+          name: 'Sweatpants',
+          description: 'Comfy lounge sweatpants',
+          url: "https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/white_sweats.glb"
+        },
+        {
+          id: 'beanie',
+          name: 'Beanie',
+          description: 'Warm knit beanie',
+          url: "https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/white_beanie.glb"
+        },
+        {
           id: 'bucket_hat', 
           name: 'Bucket Hat',
           description: 'Wide-brim casual headwear',
-          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/bucket_hat.glb'
-        }
+          url: 'https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/white_hat.glb'
+        },
+        {
+          id: 'tie',
+          name: "Tie",
+          description: "Classic men's formal necktie",
+          url: "https://nsxnjccttoutxxagdlai.supabase.co/storage/v1/object/public/base-models/white_tie.glb"
+        },
     ];
     
     

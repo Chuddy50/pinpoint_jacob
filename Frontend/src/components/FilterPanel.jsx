@@ -118,7 +118,7 @@ export default function FilterPanel({ onFiltersChange }) {
   const hasActiveFilters = Object.values(filters).some((v) => v !== "" && (Array.isArray(v) ? v.length > 0 : true));
 
   return (
-    <div className={`mb-6 bg-gray-50 rounded-lg border border-gray-200 ${!isExpanded ? "h-[2.75rem]" : ""}`}>
+    <div className={`mb-0.5 bg-gray-50 rounded-lg border border-gray-200 ${!isExpanded ? "h-[2.75rem]" : ""}`}>
       {/* Collapsible Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
