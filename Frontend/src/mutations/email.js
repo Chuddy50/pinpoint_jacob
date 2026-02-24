@@ -1,3 +1,23 @@
+/**
+ * RFQ Email React Query Hooks
+ * -------------------------------------------------------------
+ * This module provides React Query hooks for working with
+ * RFQ email conversations and messages.
+ *
+ * Responsibilities:
+ * - Fetch and cache conversation lists
+ * - Fetch and cache messages per conversation
+ * - Send new messages via mutations
+ * - Optimistically update the React Query cache after sends
+ *
+ * Query Keys:
+ * - ["email", "conversations", userId]
+ * - ["email", "messages", conversationId]
+ *
+ * This layer connects the API client (../API/email)
+ * to React components using @tanstack/react-query.
+ */
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchRfqConversations,

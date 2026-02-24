@@ -1,3 +1,30 @@
+/**
+ * RFQ Email API Client
+ * ------------------------------------------------------------------
+ * This module provides low-level HTTP helpers for interacting with
+ * the backend RFQ email messaging endpoints.
+ *
+ * Responsibilities:
+ * - Construct properly formatted URLs with query parameters
+ * - Perform authenticated GET and POST requests
+ * - Normalize and centralize error handling
+ * - Return parsed JSON responses to the caller
+ *
+ * Endpoints Covered:
+ * - GET    /email/conversations
+ * - GET    /email/conversations/{conversationId}/messages
+ * - POST   /email/conversations/{conversationId}/messages
+ *
+ * Design Notes:
+ * - This file contains NO React or UI logic.
+ * - It is framework-agnostic and can be reused outside React.
+ * - Error handling prioritizes backend `detail` or `message` fields.
+ * - Query parameters omit undefined, null, or empty values.
+ *
+ * Used by:
+ * - React Query hooks (mutations/email.js)
+ * - Any frontend module requiring RFQ email communication
+ */
 const BASE_URL = "http://127.0.0.1:8000";
 
 const buildUrl = (path, params = {}) => {
