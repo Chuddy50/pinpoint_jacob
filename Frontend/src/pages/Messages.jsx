@@ -4,10 +4,10 @@ import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { useAuth } from "../contexts/AuthContext";
 import {
-  getConversationMessages,
-  getConversations,
-  sendConversationMessage,
-} from "../API/api";
+  useRfqConversationsQuery,
+  useRfqMessagesQuery,
+  useSendRfqMessageMutation,
+} from "../mutations/email";
 
 // Tailwind class groups for readability.
 const ui = {
@@ -63,98 +63,47 @@ export default function Messages() {
   const navigate = useNavigate();
   const messagesScrollRef = useRef(null);
 
-  // Thread list state.
-  const [threads, setThreads] = useState([]);
+  // Thread + message local UI state.
   const [selectedThreadId, setSelectedThreadId] = useState(null);
-  const [loadingThreads, setLoadingThreads] = useState(false);
-  const [threadsError, setThreadsError] = useState("");
-
-  // Message panel state.
-  const [messages, setMessages] = useState([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [messagesError, setMessagesError] = useState("");
   const [draftMessage, setDraftMessage] = useState("");
-  const [sendingMessage, setSendingMessage] = useState(false);
+
+  const conversationsQuery = useRfqConversationsQuery({
+    userId: user?.id,
+    authHeaders,
+    limit: 20,
+  });
+
+  const threads = conversationsQuery.data ?? [];
+  const loadingThreads = conversationsQuery.isLoading;
+  const threadsError = conversationsQuery.error?.message ?? "";
 
   useEffect(() => {
     document.title = "Messages - PinPoint";
   }, []);
 
-  // Fetch RFQ conversations for the signed-in buyer.
+  // Auto-select first thread once conversations load.
   useEffect(() => {
-    if (!user?.id) return;
-    let isActive = true;
-    const controller = new AbortController();
-
-    const loadConversations = async () => {
-      setLoadingThreads(true);
-      setThreadsError("");
-      try {
-        const conversations = await getConversations({
-          authHeaders,
-          signal: controller.signal,
-          limit: 20,
-        });
-        if (!isActive) return;
-
-        setThreads(conversations);
-        if (!selectedThreadId && conversations.length > 0) {
-          setSelectedThreadId(getConversationKey(conversations[0]));
-        }
-      } catch (err) {
-        if (isActive && err.name !== "AbortError") {
-          setThreadsError(err.message || "Failed to load conversations.");
-        }
-      } finally {
-        if (isActive) setLoadingThreads(false);
-      }
-    };
-
-    loadConversations();
-    return () => {
-      isActive = false;
-      controller.abort();
-    };
-  }, [user?.id, authHeaders, selectedThreadId]);
-
-  // Fetch messages for the currently selected conversation.
-  useEffect(() => {
-    if (!selectedThreadId || !user?.id) {
-      setMessages([]);
-      return;
+    if (!selectedThreadId && threads.length > 0) {
+      setSelectedThreadId(getConversationKey(threads[0]));
     }
+  }, [threads, selectedThreadId]);
 
-    let isActive = true;
-    const controller = new AbortController();
+  const messagesQuery = useRfqMessagesQuery({
+    conversationId: selectedThreadId,
+    authHeaders,
+    limit: 50,
+    order: "asc",
+  });
 
-    const loadMessages = async () => {
-      setLoadingMessages(true);
-      setMessagesError("");
-      try {
-        const response = await getConversationMessages(selectedThreadId, {
-          authHeaders,
-          signal: controller.signal,
-          limit: 50,
-          order: "asc",
-        });
-        if (!isActive) return;
-        setMessages(response?.messages ?? []);
-      } catch (err) {
-        if (isActive && err.name !== "AbortError") {
-          setMessagesError(err.message || "Failed to load messages.");
-          setMessages([]);
-        }
-      } finally {
-        if (isActive) setLoadingMessages(false);
-      }
-    };
+  const messages = messagesQuery.data?.messages ?? [];
+  const loadingMessages = messagesQuery.isLoading;
+  const messagesError = messagesQuery.error?.message ?? "";
 
-    loadMessages();
-    return () => {
-      isActive = false;
-      controller.abort();
-    };
-  }, [selectedThreadId, user?.id, authHeaders]);
+  const sendMessageMutation = useSendRfqMessageMutation({
+    userId: user?.id,
+    authHeaders,
+  });
+  const sendingMessage = sendMessageMutation.isPending;
 
   // Keep newest messages visible after load/send.
   useEffect(() => {
@@ -174,38 +123,13 @@ export default function Messages() {
     const body = draftMessage.trim();
     if (!selectedThreadId || !body || sendingMessage) return;
 
-    setSendingMessage(true);
-    setMessagesError("");
-
     try {
-      const response = await sendConversationMessage(selectedThreadId, body, { authHeaders });
-      const inserted = response?.message;
-      if (!inserted) return;
-
-      // Update messages immediately in selected thread.
-      setMessages((prev) => [...prev, inserted]);
-
-      // Update thread preview and reorder inbox by latest activity.
-      setThreads((prev) =>
-        sortThreadsByActivity(
-          prev.map((thread) =>
-            getConversationKey(thread) === selectedThreadId
-              ? {
-                  ...thread,
-                  last_message_preview: inserted.body,
-                  last_message_at: inserted.created_at,
-                }
-              : thread
-          )
-        )
-      );
-
+      await sendMessageMutation.mutateAsync({
+        conversationId: selectedThreadId,
+        body,
+      });
       setDraftMessage("");
-    } catch (err) {
-      setMessagesError(err.message || "Failed to send message.");
-    } finally {
-      setSendingMessage(false);
-    }
+    } catch {}
   };
 
   return (
@@ -252,9 +176,8 @@ export default function Messages() {
                       const isSelected = threadId === selectedThreadId;
 
                       return (
-                        <div
+                        <button
                           key={threadId}
-                          type="button"
                           onClick={() => setSelectedThreadId(threadId)}
                           className={`w-full rounded-xl border px-4 py-3 text-left shadow-sm transition   ${
                             isSelected
@@ -273,7 +196,7 @@ export default function Messages() {
                           <p className="mt-2 line-clamp-2 text-xs text-gray-500">
                             {getThreadPreview(thread)}
                           </p>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>

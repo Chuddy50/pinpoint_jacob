@@ -214,7 +214,6 @@ async def create_conversation_message(
         body = (payload.get("body") or payload.get("message") or "").strip()
         if not body:
             raise HTTPException(status_code=400, detail="Message body is required")
-
         user_id = _extract_user_id(user)
         _assert_conversation_belongs_to_user(conversation_id, user_id)
 
@@ -234,6 +233,29 @@ async def create_conversation_message(
 
         insert_response = supabase.table("rfq_messages").insert(insert_payload).execute()
         inserted = (insert_response.data or [None])[0]
+        
+        print("=============================================")
+        print() 
+        print() 
+        print() 
+        print() 
+        print() 
+        print("INSERT PAYLOAD      ", insert_payload)
+        print() 
+        print() 
+        print() 
+        print() 
+        print() 
+        print("=============================================")
+        print("=============================================")
+        print("=============================================")
+        print("=============================================")
+        print("=============================================")
+        print("=============================================")
+        print("=============================================")
+        
+        
+        
         if not inserted:
             raise HTTPException(status_code=500, detail="Failed to create message")
 

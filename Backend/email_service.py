@@ -57,8 +57,8 @@ def send_email(
     return response.json()
 
 
-send_email(
-    "u1354615@umail.utah.edu", 
-    "Test subject", 
-    "Hello this is a test email", 
-)
+# send_email(
+#     "u1354615@umail.utah.edu", 
+#     "Test subject", 
+#     "Hello this is a test email", 
+# )
