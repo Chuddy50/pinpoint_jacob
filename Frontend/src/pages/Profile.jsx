@@ -5,6 +5,7 @@ import LoginForm from "../components/LoginForm";
 import { useAuth } from "../contexts/AuthContext"
 import UserReviews from "../components/UserReviews";
 import SavedDesignsProfile from "../components/SavedDesignsProfile";
+import SavedManufacturers from "../components/SavedManufacturersProfile";
 
 
 export default function Profile() {
@@ -151,9 +152,12 @@ export default function Profile() {
 
             {/* Horizontal divider */}
             <hr className="border-t border-gray-400 mb-2 mx-2" />
-
+            
             {/* designs saved by this user */}
             <SavedDesignsProfile userId={user.id}/>
+
+            {/* manufacturers saved by this user */}
+            <SavedManufacturers />
 
             {/* reviews left by this user */}
             <UserReviews userId={user.id}/>

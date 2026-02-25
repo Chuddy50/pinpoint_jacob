@@ -4,15 +4,15 @@ import homeIcon from "../assets/home.svg";
 import profileIcon from "../assets/profileIcon.svg";
 import protoIcon from "../assets/protoIcon.svg";
 import messagesIcon from  "../assets/messagesIcon.svg";
-import consultantIcon from  "../assets/consultantIcon.svg";
+import techPackIcon from "../assets/techPackIcon.svg"
 
 const links = [
   { to: "/", label: "Home", icon: homeIcon },
   { to: "/profile", label: "Profile", icon: profileIcon},
   // { to: "/filter", label: "Filter" },
   { to: "/prototype", label: "Prototype", icon: protoIcon },
-  { to: "/consultant", label: "Consulting", icon: consultantIcon },
   { to: "/messages", label: "Messages", icon: messagesIcon },
+  { to: "/techpack", label: "Tech Pack", icon: techPackIcon},
   // { to: "/ratings", label: "Ratings"},
 ];
 
@@ -22,8 +22,7 @@ export default function NavBar() {
 
   return (
 
-    <nav className="h-screen fixed top-0 left-0 rounded-r-3xl bg-white border border-gray-200 shadow-sm px-6 pb-6 flex flex-col gap-4 justify-center">
-      <img src={logo} alt="logo" className="mt-5 w-40 mb-6 self-center" />
+    <nav className="h-screen fixed top-0 left-0 bg-white border-r border-gray-200 px-6 pb-6 flex flex-col gap-4 justify-center">      <img src={logo} alt="logo" className="mt-5 w-40 mb-6 self-center" />
       <div className="flex flex-col gap-2">
         {links.map(({ to, label, icon }) => (
           <NavLink

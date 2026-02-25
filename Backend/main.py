@@ -1,11 +1,11 @@
 """
 main.py
 
-Last Edited: 1/21/2026
+Last Edited: 2/14/2026
 Developers: Leo Plute, Jacob Nguyen, Luke Jones, Jacob Dietz
 Description: FastAPI application entry point. Configures CORS middleware,
              and includes all API routers for auth, manufacturers, reviews
-             consultant, and designs.
+             consultant, designs, rfq's, and tech packs.
 """
 
 from fastapi import FastAPI

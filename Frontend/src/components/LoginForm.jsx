@@ -25,8 +25,8 @@ export default function LoginForm() {
       setError('Login failed: ' + err.message);
     }
   }
-
-  async function userSignup(e) {
+    
+    async function userSignup(e) {
     e.preventDefault();
     setError(null);
 
