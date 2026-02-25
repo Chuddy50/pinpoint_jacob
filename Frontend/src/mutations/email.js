@@ -70,6 +70,7 @@ export function useSendRfqMessageMutation({ userId, authHeaders }) {
       postRfqConversationMessage(conversationId, body, { authHeaders }),
     onSuccess: (response, variables) => {
       const inserted = response?.message;
+      const manufacturer = response?.manufacturer;
       if (!inserted) return;
 
       queryClient.setQueryData(
@@ -93,6 +94,9 @@ export function useSendRfqMessageMutation({ userId, authHeaders }) {
             ...thread,
             last_message_preview: inserted.body,
             last_message_at: inserted.created_at,
+            manufacturer_id: thread.manufacturer_id ?? response?.manufacturer_id ?? null,
+            manufacturer_name:
+              thread.manufacturer_name || manufacturer?.name || "Unassigned manufacturer",
           };
         });
 

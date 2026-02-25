@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 from uuid import UUID
-
+from email_service import EmailSendError, send_email
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from config.database import supabase
@@ -48,6 +48,38 @@ def _assert_conversation_belongs_to_user(conversation_id: str, user_id: str) -> 
     )
     if not (convo_response.data or []):
         raise HTTPException(status_code=404, detail="Conversation not found")
+
+
+def _get_conversation_context(conversation_id: str, user_id: str) -> Dict[str, Any]:
+    convo_response = (
+        supabase.table("rfq_conversations")
+        .select("id,buyer_id,manufacturer_id")
+        .eq("id", conversation_id)
+        .eq("buyer_id", user_id)
+        .limit(1)
+        .execute()
+    )
+    convo = (convo_response.data or [None])[0]
+    if not convo:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    manufacturer = None
+    manufacturer_id = convo.get("manufacturer_id")
+    if manufacturer_id:
+        manufacturer_response = (
+            supabase.table("manufacturers")
+            .select("manufacturer_id,name,email,contactee,phone")
+            .eq("manufacturer_id", manufacturer_id)
+            .limit(1)
+            .execute()
+        )
+        manufacturer = (manufacturer_response.data or [None])[0]
+
+    return {
+        "conversation_id": convo.get("id"),
+        "manufacturer_id": manufacturer_id,
+        "manufacturer": manufacturer,
+    }
 
 
 @router.get("/conversations")
@@ -215,7 +247,8 @@ async def create_conversation_message(
         if not body:
             raise HTTPException(status_code=400, detail="Message body is required")
         user_id = _extract_user_id(user)
-        _assert_conversation_belongs_to_user(conversation_id, user_id)
+        context = _get_conversation_context(conversation_id, user_id)
+        manufacturer_email = (context.get("manufacturer") or {}).get("email")
 
         sender_type = payload.get("sender_type") or "buyer"
         source = payload.get("source") or "web"
@@ -233,27 +266,34 @@ async def create_conversation_message(
 
         insert_response = supabase.table("rfq_messages").insert(insert_payload).execute()
         inserted = (insert_response.data or [None])[0]
-        
-        print("=============================================")
-        print() 
-        print("INSERT PAYLOAD      ", insert_payload)
-        print() 
-        rint() 
-        print() 
-        print("=============================================")
-        print("=============================================")
-        print("=============================================")
-        print("=============================================")
-        print("=============================================")
-        print("=============================================")
-        print("=============================================")
-        
-        
-        
+        # This route is the send-message path; it persists the RFQ message and
+        # triggers templated outbound email (base template + footer) when an
+        # manufacturer email exists for the conversation.
+        if manufacturer_email:
+            try:
+                # send_email(
+                #     to=manufacturer_email,
+                #     subject="PinPoint Messaging Service",
+                #     text_body=body,
+                # )
+                send_email(
+                    to="jacobdietz2383@gmail.com",
+                    subject="PinPoint Messaging Service",
+                    text_body=body,
+                )
+            except EmailSendError as email_error:
+                # Do not fail message persistence if outbound email fails.
+                print(f"Email send failed for conversation {conversation_id}: {email_error}")
+
         if not inserted:
             raise HTTPException(status_code=500, detail="Failed to create message")
 
-        return {"message": inserted}
+        return {
+            "message": inserted,
+            "conversation_id": context.get("conversation_id"),
+            "manufacturer_id": context.get("manufacturer_id"),
+            "manufacturer": context.get("manufacturer"),
+        }
     except HTTPException:
         raise
     except Exception as e:
