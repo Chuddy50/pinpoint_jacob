@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException, Header
+from typing import Any, Dict, List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from config.database import supabase
 from uuid import UUID
+from security import get_current_user
 
 router = APIRouter()
 
@@ -22,45 +24,198 @@ def _parse_optional_int(value):
         return int(value)
     except Exception:
         return None
-    
+
+def _extract_user_id(user: Any) -> str:
+    user_id = getattr(user, "id", None)
+    if not user_id and isinstance(user, dict):
+        user_id = user.get("id") or user.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+    if not _looks_like_uuid(user_id):
+        raise HTTPException(status_code=400, detail="buyer_id must be a UUID")
+    return str(user_id)
+
+
+def fetch_details(conversation_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+    if not conversation_ids:
+        return {}
+    details_response = (
+        supabase.table("rfq_details")
+        .select(
+            "rfq_conversation_id,contact_name,contact_email,contact_phone,"
+            "clothing_type,quantity,material,color,size_range,deadline,notes,created_at"
+        )
+        .in_("rfq_conversation_id", conversation_ids)
+        .execute()
+    )
+    return {d["rfq_conversation_id"]: d for d in (details_response.data or [])}
+
+
+def fetch_manufacturers(manufacturer_ids: List[int]) -> Dict[int, str]:
+    if not manufacturer_ids:
+        return {}
+    manufacturer_response = (
+        supabase.table("manufacturers")
+        .select("manufacturer_id,name")
+        .in_("manufacturer_id", manufacturer_ids)
+        .execute()
+    )
+    return {
+        m["manufacturer_id"]: m["name"] for m in (manufacturer_response.data or [])
+    }
+
+
+def _extract_nested_details(value: Any) -> Optional[Dict[str, Any]]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, list):
+        return value[0] if value else None
+    return None
+
+
+def _extract_manufacturer_name(value: Any) -> Optional[str]:
+    if isinstance(value, dict):
+        return value.get("name")
+    if isinstance(value, list) and value and isinstance(value[0], dict):
+        return value[0].get("name")
+    return None
+
+
+def _extract_message_text(message: Dict[str, Any]) -> Optional[str]:
+    for key in ("message", "content", "text", "body"):
+        value = message.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    return None
+
+
+def fetch_last_messages(conversation_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+    if not conversation_ids:
+        return {}
+    try:
+        messages_response = (
+            supabase.table("rfq_messages")
+            .select("*")
+            .in_("rfq_conversation_id", conversation_ids)
+            .order("created_at", desc=True)
+            .execute()
+        )
+    except Exception:
+        return {}
+
+    latest_by_conversation: Dict[str, Dict[str, Any]] = {}
+    for message in (messages_response.data or []):
+        conversation_id = message.get("rfq_conversation_id")
+        if not conversation_id or conversation_id in latest_by_conversation:
+            continue
+        latest_by_conversation[conversation_id] = {
+            "last_message_preview": _extract_message_text(message),
+            "last_message_at": message.get("created_at"),
+        }
+    return latest_by_conversation
+
+
+def attach_details(
+    conversations: List[Dict[str, Any]],
+    details_map: Dict[int, Dict[str, Any]],
+    manufacturer_map: Dict[int, str],
+    last_message_map: Dict[int, Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    for conversation in conversations:
+        conversation_id = conversation.get("id")
+        detail = details_map.get(conversation_id)
+        conversation["manufacturer_name"] = manufacturer_map.get(
+            conversation.get("manufacturer_id")
+        )
+        conversation["details"] = detail
+        conversation["details_summary"] = {
+            "clothing_type": detail.get("clothing_type") if detail else None,
+            "quantity": detail.get("quantity") if detail else None,
+            "deadline": detail.get("deadline") if detail else None,
+        }
+        message_info = last_message_map.get(conversation_id) or {}
+        conversation["last_message_preview"] = message_info.get("last_message_preview")
+        conversation["last_message_at"] = message_info.get("last_message_at")
+    return conversations
+
+
+def fetch_conversations(
+    buyer_id: str,
+    limit: int,
+    before: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    nested_query = (
+        supabase.table("rfq_conversations")
+        .select(
+            "id,buyer_id,manufacturer_id,status,created_at,"
+            "rfq_details(*),manufacturers(name)"
+        )
+        .eq("buyer_id", buyer_id)
+        .order("created_at", desc=True)
+        .limit(limit)
+    )
+    if before:
+        nested_query = nested_query.lt("created_at", before)
+
+    try:
+        nested_response = nested_query.execute()
+        nested_conversations = nested_response.data or []
+        if nested_conversations:
+            normalized: List[Dict[str, Any]] = []
+            for item in nested_conversations:
+                details = _extract_nested_details(item.get("rfq_details"))
+                normalized.append(
+                    {
+                        "id": item.get("id"),
+                        "buyer_id": item.get("buyer_id"),
+                        "manufacturer_id": item.get("manufacturer_id"),
+                        "status": item.get("status"),
+                        "created_at": item.get("created_at"),
+                        "manufacturer_name": _extract_manufacturer_name(
+                            item.get("manufacturers")
+                        ),
+                        "details": details,
+                        "details_summary": {
+                            "clothing_type": details.get("clothing_type")
+                            if details
+                            else None,
+                            "quantity": details.get("quantity") if details else None,
+                            "deadline": details.get("deadline") if details else None,
+                        },
+                    }
+                )
+            return normalized
+    except Exception:
+        pass
+
+    conversations_query = (
+        supabase.table("rfq_conversations")
+        .select("id,buyer_id,manufacturer_id,status,created_at")
+        .eq("buyer_id", buyer_id)
+        .order("created_at", desc=True)
+        .limit(limit)
+    )
+    if before:
+        conversations_query = conversations_query.lt("created_at", before)
+
+    conversations_response = conversations_query.execute()
+    conversations = conversations_response.data or []
+    if not conversations:
+        return []
+
+    conversation_ids = [c["id"] for c in conversations if c.get("id")]
+    details_map = fetch_details(conversation_ids)
+    manufacturer_map = fetch_manufacturers(
+        list({c["manufacturer_id"] for c in conversations if c.get("manufacturer_id")})
+    )
+
+    return attach_details(conversations, details_map, manufacturer_map, {})
+
 
 @router.post("/submit")
-async def submit_rfq(payload: dict, authorization: str = Header(...)):
+async def submit_rfq(payload: dict, user=Depends(get_current_user)):
     try:
-
-        print("inside of submit rfq")
-
-        #new get buyer id:
-        #1 extract jwt
-        try:
-            token = authorization.replace("Bearer ", "")
-        except:
-            print("missing authorization header")
-            raise HTTPException(status_code=401, detail="Missing authorization header")
-        
-        #2 verify jwt
-        try:
-            user_response = supabase.auth.get_user(token)
-            buyer_id = user_response.user.id #extract user_id from VERIFIED token
-        except:
-            print("invalid token")
-            raise HTTPException(status_code=401, detail="Invalid token")
-        
-        #3 make sure looks like uuid
-        if not _looks_like_uuid(buyer_id):
-            print("buyer id must be a UUID")
-            raise HTTPException(status_code=400, detail="buyer_id must be a UUID")
-        
-        print("RFQ extracted buyer id")
-
-        """
-        # old get buyer id
-        buyer_id = payload.get("buyer_id")
-        if not buyer_id:
-            raise HTTPException(status_code=401, detail="User not authenticated")
-        if not _looks_like_uuid(buyer_id):
-            raise HTTPException(status_code=400, detail="buyer_id must be a UUID")
-        """
+        buyer_id = _extract_user_id(user)
 
         manufacturer_id = _parse_optional_int(payload.get("manufacturer_id"))
         status = payload.get("status") or "draft"
@@ -81,7 +236,6 @@ async def submit_rfq(payload: dict, authorization: str = Header(...)):
             missing_fields.append("quantity")
 
         if missing_fields:
-            print("RFQ missing fields")
             raise HTTPException(
                 status_code=400,
                 detail=f"Missing required fields: {', '.join(missing_fields)}",
@@ -102,16 +256,13 @@ async def submit_rfq(payload: dict, authorization: str = Header(...)):
             or conversations_response.data[0].get("rfq_conversation_id")
         )
         if not rfq_conversation_id:
-            print("RFQ convo id missing")
             raise HTTPException(status_code=500, detail="RFQ conversation id missing")
 
         try:
             quantity = int(quantity_raw)
         except ValueError:
-            print("quantity must be a num")
             raise HTTPException(status_code=400, detail="Quantity must be a number")
         if quantity <= 0:
-            print("quantity must be greater than 0")
             raise HTTPException(status_code=400, detail="Quantity must be greater than 0")
 
         details_payload = {
@@ -130,8 +281,33 @@ async def submit_rfq(payload: dict, authorization: str = Header(...)):
 
         details_response = supabase.table("rfq_details").insert(details_payload).execute()
         if details_response.data is None:
-            print("failed to save rfq details")
             raise HTTPException(status_code=500, detail="Failed to save RFQ details")
+
+        initial_message_parts = [
+            "Quote request",
+            f"Type: {clothing_type}",
+            f"Quantity: {quantity}",
+        ]
+        if payload.get("deadline"):
+            initial_message_parts.append(f"Deadline: {payload.get('deadline')}")
+        if payload.get("notes"):
+            initial_message_parts.append(f"Notes: {payload.get('notes')}")
+
+        initial_message = ". ".join(initial_message_parts)
+        message_response = (
+            supabase.table("rfq_messages")
+            .insert(
+                {
+                    "rfq_conversation_id": rfq_conversation_id,
+                    "sender_type": "buyer",
+                    "source": "web",
+                    "body": initial_message,
+                }
+            )
+            .execute()
+        )
+        if message_response.data is None:
+            raise HTTPException(status_code=500, detail="Failed to create initial RFQ message")
 
         return {
             "rfq_conversation_id": rfq_conversation_id,
@@ -139,78 +315,100 @@ async def submit_rfq(payload: dict, authorization: str = Header(...)):
     except HTTPException:
         raise
     except Exception as e:
-        print("failed to submit rfq")
         raise HTTPException(status_code=500, detail=f"Failed to submit RFQ: {e}")
 
 
 @router.get("/conversations")
-async def list_rfq_conversations(authorization: str = Header(...)):
+async def list_rfq_conversations(
+    user=Depends(get_current_user),
+    limit: int = Query(20, ge=1, le=100),
+    before: Optional[str] = Query(default=None),
+):
     try:
-
-        #1 extract jwt
-        try:
-            token = authorization.replace("Bearer ", "")
-        except:
-            raise HTTPException(status_code=401, detail="Missing authorization header")
-        
-        #2 verify jwt
-        try:
-            user_response = supabase.auth.get_user(token)
-            buyer_id = user_response.user.id #extract user_id from VERIFIED token
-        except:
-            raise HTTPException(status_code=401, detail="Invalid token")
-
-        if not _looks_like_uuid(buyer_id):
-            raise HTTPException(status_code=400, detail="buyer_id must be a UUID")
-
-        conversations_response = (
-            supabase.table("rfq_conversations")
-            .select("id,buyer_id,manufacturer_id,status,created_at")
-            .eq("buyer_id", buyer_id)
-            .order("created_at", desc=True)
-            .execute()
-        )
-        conversations = conversations_response.data or []
+        buyer_id = _extract_user_id(user)
+        conversations = fetch_conversations(buyer_id=buyer_id, limit=limit, before=before)
         if not conversations:
             return {"conversations": []}
 
         conversation_ids = [c["id"] for c in conversations if c.get("id")]
-        details_response = (
-            supabase.table("rfq_details")
-            .select(
-                "rfq_conversation_id,contact_name,contact_email,contact_phone,"
-                "clothing_type,quantity,material,color,size_range,deadline,notes,created_at"
-            )
-            .in_("rfq_conversation_id", conversation_ids)
-            .execute()
+        details_map = fetch_details(conversation_ids)
+        manufacturer_map = fetch_manufacturers(
+            list({c["manufacturer_id"] for c in conversations if c.get("manufacturer_id")})
         )
-        details_map = {
-            d["rfq_conversation_id"]: d for d in (details_response.data or [])
-        }
-
-        manufacturer_ids = list(
-            {c["manufacturer_id"] for c in conversations if c.get("manufacturer_id")}
+        last_message_map = fetch_last_messages(conversation_ids)
+        conversations = attach_details(
+            conversations=conversations,
+            details_map=details_map,
+            manufacturer_map=manufacturer_map,
+            last_message_map=last_message_map,
         )
-        manufacturer_map = {}
-        if manufacturer_ids:
-            manufacturer_response = (
-                supabase.table("manufacturers")
-                .select("manufacturer_id,name")
-                .in_("manufacturer_id", manufacturer_ids)
-                .execute()
-            )
-            manufacturer_map = {
-                m["manufacturer_id"]: m["name"] for m in (manufacturer_response.data or [])
-            }
-
-        for conversation in conversations:
-            conversation["manufacturer_name"] = manufacturer_map.get(
-                conversation.get("manufacturer_id")
-            )
-            conversation["details"] = details_map.get(conversation.get("id"))
-
         return {"conversations": conversations}
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load RFQs: {e}")
+
+
+@router.get("/conversations/{conversation_id}/messages")
+async def get_conversation_messages(
+    conversation_id: str,
+    user=Depends(get_current_user),
+    limit: int = Query(50, ge=1, le=200),
+    before: Optional[str] = Query(default=None),
+    order: str = Query(default="desc", pattern="^(asc|desc)$"),
+):
+    try:
+        if not _looks_like_uuid(conversation_id):
+            raise HTTPException(status_code=400, detail="Invalid conversation id")
+
+        buyer_id = _extract_user_id(user)
+        conversation_response = (
+            supabase.table("rfq_conversations")
+            .select("id")
+            .eq("id", conversation_id)
+            .eq("buyer_id", buyer_id)
+            .limit(1)
+            .execute()
+        )
+        if not (conversation_response.data or []):
+            raise HTTPException(status_code=404, detail="Conversation not found")
+
+        query = (
+            supabase.table("rfq_messages")
+            .select("*")
+            .eq("rfq_conversation_id", conversation_id)
+            .order("created_at", desc=(order == "desc"))
+            .limit(limit)
+        )
+        if before:
+            query = (
+                query.lt("created_at", before)
+                if order == "desc"
+                else query.gt("created_at", before)
+            )
+
+        messages_response = query.execute()
+        rows = messages_response.data or []
+        messages: List[Dict[str, Any]] = []
+        for row in rows:
+            messages.append(
+                {
+                    "id": row.get("id"),
+                    "rfq_conversation_id": row.get("rfq_conversation_id"),
+                    "sender_type": row.get("sender_type"),
+                    "source": row.get("source"),
+                    "message": _extract_message_text(row),
+                    "body": row.get("body"),
+                    "created_at": row.get("created_at"),
+                }
+            )
+
+        next_cursor = None
+        if len(rows) == limit:
+            next_cursor = rows[-1].get("created_at")
+
+        return {"messages": messages, "next_cursor": next_cursor, "order": order}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load messages: {e}")

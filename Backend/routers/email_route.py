@@ -1,14 +1,300 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import UploadFile, File
-import os
-from datetime import datetime, timezone
-from uuid import uuid4
+from typing import Any, Dict, List, Optional
+from uuid import UUID
+from email_service import EmailSendError, send_email
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from email_service import send_email
+from config.database import supabase
+from security import get_current_user
+
+router = APIRouter()
+ALLOWED_SOURCES = {"web", "email", "external"}
 
 
+def _looks_like_uuid(value: str) -> bool:
+    try:
+        UUID(str(value))
+        return True
+    except Exception:
+        return False
 
-@app.post("/email")
-async def send_email():
-    print("Sending email")
+
+def _extract_user_id(user: Any) -> str:
+    user_id = getattr(user, "id", None)
+    if not user_id and isinstance(user, dict):
+        user_id = user.get("id") or user.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+    if not _looks_like_uuid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid user id")
+    return str(user_id)
+
+
+def _extract_message_text(message: Dict[str, Any]) -> Optional[str]:
+    for key in ("message", "content", "text", "body"):
+        value = message.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    return None
+
+
+def _assert_conversation_belongs_to_user(conversation_id: str, user_id: str) -> None:
+    convo_response = (
+        supabase.table("rfq_conversations")
+        .select("id")
+        .eq("id", conversation_id)
+        .eq("buyer_id", user_id)
+        .limit(1)
+        .execute()
+    )
+    if not (convo_response.data or []):
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+
+def _get_conversation_context(conversation_id: str, user_id: str) -> Dict[str, Any]:
+    convo_response = (
+        supabase.table("rfq_conversations")
+        .select("id,buyer_id,manufacturer_id")
+        .eq("id", conversation_id)
+        .eq("buyer_id", user_id)
+        .limit(1)
+        .execute()
+    )
+    convo = (convo_response.data or [None])[0]
+    if not convo:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    manufacturer = None
+    manufacturer_id = convo.get("manufacturer_id")
+    if manufacturer_id:
+        manufacturer_response = (
+            supabase.table("manufacturers")
+            .select("manufacturer_id,name,email,contactee,phone")
+            .eq("manufacturer_id", manufacturer_id)
+            .limit(1)
+            .execute()
+        )
+        manufacturer = (manufacturer_response.data or [None])[0]
+
+    return {
+        "conversation_id": convo.get("id"),
+        "manufacturer_id": manufacturer_id,
+        "manufacturer": manufacturer,
+    }
+
+
+@router.get("/conversations")
+async def list_email_conversations(
+    user=Depends(get_current_user),
+    limit: int = Query(20, ge=1, le=100),
+    before: Optional[str] = Query(default=None),
+):
+    try:
+        buyer_id = _extract_user_id(user)
+
+        query = (
+            supabase.table("rfq_conversations")
+            .select(
+                "id,buyer_id,manufacturer_id,status,created_at,"
+                "rfq_details(clothing_type,quantity,deadline),manufacturers(name)"
+            )
+            .eq("buyer_id", buyer_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+        )
+        if before:
+            query = query.lt("created_at", before)
+
+        conversations = query.execute().data or []
+        if not conversations:
+            return {"conversations": []}
+
+        conversation_ids = [c.get("id") for c in conversations if c.get("id")]
+        manufacturer_ids = list(
+            {c.get("manufacturer_id") for c in conversations if c.get("manufacturer_id")}
+        )
+
+        messages_response = (
+            supabase.table("rfq_messages")
+            .select("rfq_conversation_id,body,created_at")
+            .in_("rfq_conversation_id", conversation_ids)
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        manufacturer_map: Dict[int, str] = {}
+        if manufacturer_ids:
+            manufacturer_response = (
+                supabase.table("manufacturers")
+                .select("manufacturer_id,name")
+                .in_("manufacturer_id", manufacturer_ids)
+                .execute()
+            )
+            manufacturer_map = {
+                row.get("manufacturer_id"): row.get("name")
+                for row in (manufacturer_response.data or [])
+            }
+
+        last_message_map: Dict[str, Dict[str, Any]] = {}
+        first_message_map: Dict[str, Dict[str, Any]] = {}
+        for row in (messages_response.data or []):
+            convo_id = row.get("rfq_conversation_id")
+            if not convo_id:
+                continue
+            if convo_id not in last_message_map:
+                last_message_map[convo_id] = row
+            # Rows are descending; last assignment becomes oldest/first message.
+            first_message_map[convo_id] = row
+
+        normalized: List[Dict[str, Any]] = []
+        for row in conversations:
+            details = row.get("rfq_details")
+            if isinstance(details, list):
+                details = details[0] if details else None
+
+            manufacturer = row.get("manufacturers")
+            manufacturer_name = None
+            if isinstance(manufacturer, dict):
+                manufacturer_name = manufacturer.get("name")
+            elif isinstance(manufacturer, list) and manufacturer and isinstance(manufacturer[0], dict):
+                manufacturer_name = manufacturer[0].get("name")
+            if not manufacturer_name:
+                manufacturer_name = manufacturer_map.get(row.get("manufacturer_id"))
+
+            conversation_id = row.get("id")
+            last_msg = last_message_map.get(conversation_id, {})
+            first_msg = first_message_map.get(conversation_id, {})
+            normalized.append(
+                {
+                    "conversation_id": conversation_id,
+                    "id": row.get("id"),
+                    "buyer_id": row.get("buyer_id"),
+                    "manufacturer_id": row.get("manufacturer_id"),
+                    "manufacturer_name": manufacturer_name,
+                    "status": row.get("status"),
+                    "created_at": row.get("created_at"),
+                    "preview_text": _extract_message_text(first_msg),
+                    "last_message_at": last_msg.get("created_at") or row.get("created_at"),
+                    "details_summary": {
+                        "clothing_type": details.get("clothing_type") if details else None,
+                        "quantity": details.get("quantity") if details else None,
+                        "deadline": details.get("deadline") if details else None,
+                    },
+                    "last_message_preview": _extract_message_text(last_msg),
+                }
+            )
+
+        normalized.sort(
+            key=lambda x: x.get("last_message_at") or x.get("created_at") or "",
+            reverse=True,
+        )
+        return {"conversations": normalized}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load conversations: {e}")
+
+
+@router.get("/conversations/{conversation_id}/messages")
+async def list_conversation_messages(
+    conversation_id: str,
+    user=Depends(get_current_user),
+    limit: int = Query(50, ge=1, le=200),
+    before: Optional[str] = Query(default=None),
+    order: str = Query(default="asc", pattern="^(asc|desc)$"),
+):
+    try:
+        if not _looks_like_uuid(conversation_id):
+            raise HTTPException(status_code=400, detail="Invalid conversation id")
+
+        user_id = _extract_user_id(user)
+        _assert_conversation_belongs_to_user(conversation_id, user_id)
+
+        query = (
+            supabase.table("rfq_messages")
+            .select("id,rfq_conversation_id,sender_type,source,body,created_at")
+            .eq("rfq_conversation_id", conversation_id)
+            .order("created_at", desc=(order == "desc"))
+            .limit(limit)
+        )
+        if before:
+            query = query.lt("created_at", before) if order == "desc" else query.gt("created_at", before)
+
+        rows = query.execute().data or []
+        next_cursor = rows[-1].get("created_at") if len(rows) == limit else None
+
+        return {
+            "messages": rows,
+            "next_cursor": next_cursor,
+            "order": order,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load messages: {e}")
+
+
+@router.post("/conversations/{conversation_id}/messages")
+async def create_conversation_message(
+    conversation_id: str,
+    payload: dict,
+    user=Depends(get_current_user),
+):
+    try:
+        if not _looks_like_uuid(conversation_id):
+            raise HTTPException(status_code=400, detail="Invalid conversation id")
+
+        body = (payload.get("body") or payload.get("message") or "").strip()
+        if not body:
+            raise HTTPException(status_code=400, detail="Message body is required")
+        user_id = _extract_user_id(user)
+        context = _get_conversation_context(conversation_id, user_id)
+        manufacturer_email = (context.get("manufacturer") or {}).get("email")
+
+        sender_type = payload.get("sender_type") or "buyer"
+        source = payload.get("source") or "web"
+        if source not in ALLOWED_SOURCES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid source '{source}'. Allowed: {sorted(ALLOWED_SOURCES)}",
+            )
+        insert_payload = {
+            "rfq_conversation_id": conversation_id,
+            "sender_type": sender_type,
+            "source": source,
+            "body": body,
+        }
+
+        insert_response = supabase.table("rfq_messages").insert(insert_payload).execute()
+        inserted = (insert_response.data or [None])[0]
+        # This route is the send-message path; it persists the RFQ message and
+        # triggers templated outbound email (base template + footer) when an
+        # manufacturer email exists for the conversation.
+        if manufacturer_email:
+            try:
+                # send_email(
+                #     to=manufacturer_email,
+                #     subject="PinPoint Messaging Service",
+                #     text_body=body,
+                # )
+                send_email(
+                    to="jacobdietz2383@gmail.com",
+                    subject="PinPoint Messaging Service",
+                    text_body=body,
+                )
+            except EmailSendError as email_error:
+                # Do not fail message persistence if outbound email fails.
+                print(f"Email send failed for conversation {conversation_id}: {email_error}")
+
+        if not inserted:
+            raise HTTPException(status_code=500, detail="Failed to create message")
+
+        return {
+            "message": inserted,
+            "conversation_id": context.get("conversation_id"),
+            "manufacturer_id": context.get("manufacturer_id"),
+            "manufacturer": context.get("manufacturer"),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send message: {e}")
