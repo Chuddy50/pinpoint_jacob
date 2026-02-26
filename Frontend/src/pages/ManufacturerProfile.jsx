@@ -172,6 +172,7 @@ export default function ManufacturerProfile() {
                   >
                     Add Rating
                   </button>
+                  {/* if signed in, show btn to let them save the manufacturer */}
                   {user && (
                     <button
                       onClick={handleToggleSave}
