@@ -12,6 +12,7 @@ import TechPack from "./pages/TechPack"
 import Messages from "./pages/Messages";
 import Ratings from "./pages/Ratings";
 import ManufacturerProfile from "./pages/ManufacturerProfile";
+import ManufacturerProfileCreator from "./pages/ManufacturerProfileCreator";
 import RequestQuote from "./pages/RequestQuote";
 import ChatWidget from "./components/ChatWidget";
 
@@ -33,6 +34,7 @@ export default function App() {
                 <Route path="/techpack" element={<TechPack />} />
                 <Route path="/ratings/:id" element={<Ratings />} />
                 <Route path="/request-quote" element={<RequestQuote />} />
+                <Route path="/manufacturer" element={<ManufacturerProfileCreator />} />
                 <Route path="/manufacturers/:id" element={<ManufacturerProfile />} />
               </Routes>
             </main>

@@ -1,5 +1,6 @@
 import { useState, useContext } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -9,6 +10,7 @@ export default function LoginForm() {
   const [isSignUp, setIsSignUp] = useState(false);
 
   const { login, signup, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
   async function userLogin(e) {
     e.preventDefault();
@@ -83,7 +85,10 @@ export default function LoginForm() {
             )}
 
             {/* main form */}
-            <form className="space-y-3">
+            <form
+              className="space-y-3"
+              onSubmit={isSignUp ? userSignup : userLogin}
+            >
               {/* username field - only show on signup */}
               {isSignUp && (
                 <div>
@@ -128,7 +133,6 @@ export default function LoginForm() {
 
               <button
                 type="submit"
-                onClick={isSignUp ? userSignup : userLogin}
                 className="w-full !bg-black border-0 !text-white py-3 rounded font-semibold !hover:text-blue-500"
               >
                 {isSignUp ? 'Sign Up' : 'Sign In'}
@@ -150,6 +154,19 @@ export default function LoginForm() {
                   : "Don't have an account? Sign up"}
               </button>
             </div>
+
+            {/* manufacturer profile button - only show on signup */}
+            {isSignUp && (
+              <div className="mt-3 text-center">
+                <button
+                  type="button"
+                  onClick={() => navigate('/manufacturer')}
+                  className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                >
+                  Create manufacturer account
+                </button>
+              </div>
+            )}
 
             {/* divider */}
             <div className="relative my-4">
