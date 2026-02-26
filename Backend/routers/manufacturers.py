@@ -500,7 +500,7 @@ async def create_manufacturer(request: ManufacturerCreateRequest):
     """
     try:
         print(f"Received manufacturer creation request:")
-        print(f"  User ID: {request.user_id}")
+        print(f"  User ID: {request.user_id}") # <-- This
         print(f"  Username: {request.username}")
         print(f"  Email: {request.email}")
         print(f"  Manufacturer Name: {request.manufacturer_name}")
