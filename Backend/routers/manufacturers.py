@@ -8,10 +8,37 @@ Description: FastAPI endpoints for fetching manufacturer data, including
              with pricing information.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Header
+from pydantic import BaseModel
 from config.database import supabase
 
 router = APIRouter()
+
+class ManufacturerCreateRequest(BaseModel):
+    """Request model for creating a new manufacturer account"""
+    # User ID from Supabase Auth
+    user_id: str
+    # Page 1 - Account info
+    username: str
+    email: str
+    password: str
+    # Page 2 - Manufacturer info
+    manufacturer_name: str
+    street: str
+    city: str
+    state: str
+    zip: str
+    phone: str
+    manufacturer_email: str
+    contactee: str
+    description: str
+    # Page 3 - Services
+    services: list[int]
+    # Page 4 - Product categories
+    product_categories: list[int]
+    # Page 5 - Price levels and minimums
+    price_levels: list[int]
+    minimums: list[int]
 
 '''
 Fetch all manufacturers with calculated average ratings
@@ -393,6 +420,84 @@ async def get_manufacturer_products(manufacturer_id: str):
     }
 
 
+@router.get("/saved", status_code=200)
+async def get_saved_manufacturers(authorization: str = Header(...)):
+
+    try:
+        token = authorization.replace("Bearer ", "")
+    except:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # EXAMPLE OF A QUERY JOINING TABLES 
+    result = supabase.table("saved_manufacturers").select(
+        "manufacturer_id, manufacturers(name, location, average_rating)"
+    ).eq("user_id", user_id).execute()
+
+    manufacturers = []
+    for row in result.data:
+        m = row.get("manufacturers", {})
+        manufacturers.append({
+            "manufacturer_id": row["manufacturer_id"],
+            "name": m.get("name"),
+            "location": m.get("location"),
+            "average_rating": m.get("average_rating"),
+        })
+
+    return {"manufacturers": manufacturers}
+
+
+@router.post("/{manufacturer_id}/save")
+async def toggle_save_manufacturer(manufacturer_id: int, authorization: str = Header(...)):
+    
+    try:
+        token = authorization.replace("Bearer ", "")
+    except:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # check if already saved
+    existing = supabase.table("saved_manufacturers").select("user_id").eq("user_id", user_id).eq("manufacturer_id", manufacturer_id).execute()
+
+    if existing.data:
+        # unsave
+        supabase.table("saved_manufacturers").delete().eq("user_id", user_id).eq("manufacturer_id", manufacturer_id).execute()
+        return {"saved": False}
+    else:
+        # save
+        supabase.table("saved_manufacturers").insert({"user_id": user_id, "manufacturer_id": manufacturer_id}).execute()
+        return {"saved": True}
+    
+
+@router.get("/{manufacturer_id}/save_status")
+async def get_save_status(manufacturer_id: int, authorization: str = Header(...)):
+    
+    try:
+        token = authorization.replace("Bearer ", "")
+    except:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    existing = supabase.table("saved_manufacturers").select("user_id").eq("user_id", user_id).eq("manufacturer_id", manufacturer_id).execute()
+
+    return {"saved": bool(existing.data)}
+
+
 '''
 Fetch detailed profile for a specific manufacturer
 Retrieves manufacturer info, calculated rating average, and price range data
@@ -449,3 +554,69 @@ async def get_manufacturer(manufacturer_id: str):
     except Exception as e:
         # this except block is for unexpected exceptions
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+
+
+@router.post("/create")
+async def create_manufacturer(request: ManufacturerCreateRequest):
+    """
+    Create a new manufacturer account with all details from the multi-page form.
+    
+    Steps:
+    1. Update user role to "manufacturer" in users table
+    2. Create manufacturer record in manufacturers table
+    3. Link services, product categories, price levels, and MOQ options
+    """
+    try:
+        # Step 1: Update user role to manufacturer
+        supabase.table("users").update({"role": "manufacturer"}).eq("user_id", request.user_id).execute()
+        
+        # Step 2: Create manufacturer record
+        address = f"{request.street}, {request.state}, {request.zip}"
+        
+        manufacturer_data = {
+            "name": request.manufacturer_name,
+            "address": address,
+            "location": request.city,
+            "phone": request.phone,
+            "email": request.manufacturer_email,
+            "contactee": request.contactee,
+            "description": request.description,
+        }
+        
+        manufacturer_response = supabase.table("manufacturers").insert(manufacturer_data).execute()
+        
+        if not manufacturer_response.data:
+            raise Exception("Failed to create manufacturer record")
+        
+        manufacturer_id = manufacturer_response.data[0]["manufacturer_id"]
+        
+        # Step 3: Link user to manufacturer
+        supabase.table("user_manufacturers").insert({"user_id": request.user_id, "manufacturer_id": manufacturer_id}).execute()
+        
+        # Step 4: Link services
+        if request.services:
+            service_records = [{"manufacturer_id": manufacturer_id, "service_id": service_id} for service_id in request.services]
+            supabase.table("manufacturer_services").insert(service_records).execute()
+        
+        # Step 5: Link product categories
+        if request.product_categories:
+            category_records = [{"manufacturer_id": manufacturer_id, "category_id": category_id} for category_id in request.product_categories]
+            supabase.table("manufacturer_categories").insert(category_records).execute()
+        
+        # Step 6: Link price levels
+        if request.price_levels:
+            price_records = [{"manufacturer_id": manufacturer_id, "price_id": price_id} for price_id in request.price_levels]
+            supabase.table("manufacturer_prices").insert(price_records).execute()
+        
+        # Step 7: Link MOQ options
+        if request.minimums:
+            minimum_records = [{"manufacturer_id": manufacturer_id, "minimum_id": minimum_id} for minimum_id in request.minimums]
+            supabase.table("manufacturer_minimums").insert(minimum_records).execute()
+
+        print("It is done.")
+        
+        return {"message": "Manufacturer created successfully", "manufacturer_id": manufacturer_id}
+    
+    except Exception as e:
+        print(f"Error in manufacturer creation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create manufacturer: {str(e)}")
