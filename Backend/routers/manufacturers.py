@@ -16,6 +16,8 @@ router = APIRouter()
 
 class ManufacturerCreateRequest(BaseModel):
     """Request model for creating a new manufacturer account"""
+    # User ID from Supabase Auth
+    user_id: str
     # Page 1 - Account info
     username: str
     email: str
@@ -498,6 +500,7 @@ async def create_manufacturer(request: ManufacturerCreateRequest):
     """
     try:
         print(f"Received manufacturer creation request:")
+        print(f"  User ID: {request.user_id}")
         print(f"  Username: {request.username}")
         print(f"  Email: {request.email}")
         print(f"  Manufacturer Name: {request.manufacturer_name}")
