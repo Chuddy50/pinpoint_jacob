@@ -10,7 +10,7 @@ Description: FastAPI application entry point. Configures CORS middleware,
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth, manufacturers, reviews, consultant, designs, rfq, email_route
+from routers import auth, manufacturers, reviews, consultant, designs, rfq, email_route, tech_pack
 
 # Create FastAPI application instance
 app = FastAPI()
@@ -36,6 +36,4 @@ app.include_router(consultant.router, prefix="/consultant", tags=["consultant"])
 app.include_router(designs.router, prefix="/designs", tags=["designs"])
 app.include_router(rfq.router, prefix="/rfq", tags=["rfq"])
 app.include_router(email_route.router, prefix="/email", tags=["email"])
-
-
-# app.include_router(webhook_router)
+app.include_router(tech_pack.router, prefix="/techpack", tags=["techpack"])
