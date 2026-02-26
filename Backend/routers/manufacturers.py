@@ -8,7 +8,7 @@ Description: FastAPI endpoints for fetching manufacturer data, including
              with pricing information.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Header
 from config.database import supabase
 
 router = APIRouter()
@@ -391,6 +391,84 @@ async def get_manufacturer_products(manufacturer_id: str):
     return {
         "products": list(products_by_category.values())
     }
+
+
+@router.get("/saved", status_code=200)
+async def get_saved_manufacturers(authorization: str = Header(...)):
+
+    try:
+        token = authorization.replace("Bearer ", "")
+    except:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # EXAMPLE OF A QUERY JOINING TABLES 
+    result = supabase.table("saved_manufacturers").select(
+        "manufacturer_id, manufacturers(name, location, average_rating)"
+    ).eq("user_id", user_id).execute()
+
+    manufacturers = []
+    for row in result.data:
+        m = row.get("manufacturers", {})
+        manufacturers.append({
+            "manufacturer_id": row["manufacturer_id"],
+            "name": m.get("name"),
+            "location": m.get("location"),
+            "average_rating": m.get("average_rating"),
+        })
+
+    return {"manufacturers": manufacturers}
+
+
+@router.post("/{manufacturer_id}/save")
+async def toggle_save_manufacturer(manufacturer_id: int, authorization: str = Header(...)):
+    
+    try:
+        token = authorization.replace("Bearer ", "")
+    except:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # check if already saved
+    existing = supabase.table("saved_manufacturers").select("user_id").eq("user_id", user_id).eq("manufacturer_id", manufacturer_id).execute()
+
+    if existing.data:
+        # unsave
+        supabase.table("saved_manufacturers").delete().eq("user_id", user_id).eq("manufacturer_id", manufacturer_id).execute()
+        return {"saved": False}
+    else:
+        # save
+        supabase.table("saved_manufacturers").insert({"user_id": user_id, "manufacturer_id": manufacturer_id}).execute()
+        return {"saved": True}
+    
+
+@router.get("/{manufacturer_id}/save_status")
+async def get_save_status(manufacturer_id: int, authorization: str = Header(...)):
+    
+    try:
+        token = authorization.replace("Bearer ", "")
+    except:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    existing = supabase.table("saved_manufacturers").select("user_id").eq("user_id", user_id).eq("manufacturer_id", manufacturer_id).execute()
+
+    return {"saved": bool(existing.data)}
 
 
 '''
