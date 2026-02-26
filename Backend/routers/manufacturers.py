@@ -491,7 +491,6 @@ async def create_manufacturer(request: ManufacturerCreateRequest):
     - Page 5: Price levels and MOQ options (list of price level IDs and minimum IDs)
     
     TODO: Implement actual creation logic
-    - Create user account in Supabase Auth
     - Create manufacturer record in database
     - Link services to manufacturer
     - Link product categories to manufacturer
@@ -500,7 +499,7 @@ async def create_manufacturer(request: ManufacturerCreateRequest):
     """
     try:
         print(f"Received manufacturer creation request:")
-        print(f"  User ID: {request.user_id}") # <-- This
+        print(f"  User ID: {request.user_id}")
         print(f"  Username: {request.username}")
         print(f"  Email: {request.email}")
         print(f"  Manufacturer Name: {request.manufacturer_name}")
