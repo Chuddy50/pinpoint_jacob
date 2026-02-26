@@ -6,7 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function ManufacturerProfileCreator() {
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, user } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -276,6 +276,7 @@ export default function ManufacturerProfileCreator() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          user_id: user.id,
           username: formData.username,
           email: formData.email,
           password: formData.password,
