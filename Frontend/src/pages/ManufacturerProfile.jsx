@@ -30,7 +30,7 @@ function InfoRow({ label, value }) {
 export default function ManufacturerProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { authHeaders } = useAuth();
+  const { authHeaders, user } = useAuth();
   const [manufacturer, setManufacturer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -73,6 +73,7 @@ export default function ManufacturerProfile() {
           headers: authHeaders,
         });
         const data = await res.json();
+        console.log('manufactuerer saved?: ', data)
         if (isActive) setIsSaved(data.saved);
       } catch (err) {
         console.error("Failed to fetch save status:", err);
@@ -171,17 +172,20 @@ export default function ManufacturerProfile() {
                   >
                     Add Rating
                   </button>
-                  <button
-                    onClick={handleToggleSave}
-                    disabled={saveLoading}
-                    className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
-                      isSaved
-                        ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
-                        : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    {isSaved ? "★ Saved" : "☆ Save"}
-                  </button>
+                  {/* if signed in, show btn to let them save the manufacturer */}
+                  {user && (
+                    <button
+                      onClick={handleToggleSave}
+                      disabled={saveLoading}
+                      className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
+                        isSaved
+                          ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+                          : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {isSaved ? "★ Saved" : "☆ Save"}
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
