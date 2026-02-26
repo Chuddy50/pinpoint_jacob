@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function ManufacturerProfileCreator() {
   const navigate = useNavigate();
+  const { signup } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -264,6 +266,9 @@ export default function ManufacturerProfileCreator() {
     setError(null);
 
     try {
+      // Sign up the user
+      await signup(formData.username, formData.email, formData.password);
+
       // Call backend to create the manufacturer account
       const response = await fetch("http://127.0.0.1:8000/manufacturers/create", {
         method: "POST",
