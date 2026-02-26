@@ -483,42 +483,58 @@ async def create_manufacturer(request: ManufacturerCreateRequest):
     """
     Create a new manufacturer account with all details from the multi-page form.
     
-    This endpoint receives data from all 5 pages of the manufacturer creation form:
-    - Page 1: Account credentials (username, email, password)
-    - Page 2: Manufacturer basic info (name, street, city, state, zip, phone, email, contactee, description)
-    - Page 3: Services provided (list of service IDs)
-    - Page 4: Product categories supported (list of category IDs)
-    - Page 5: Price levels and MOQ options (list of price level IDs and minimum IDs)
-    
-    TODO: Implement actual creation logic
-    - Create manufacturer record in database
-    - Link services to manufacturer
-    - Link product categories to manufacturer
-    - Link price levels to manufacturer
-    - Link MOQ options to manufacturer
+    Steps:
+    1. Update user role to "manufacturer" in users table
+    2. Create manufacturer record in manufacturers table
+    3. Link services, product categories, price levels, and MOQ options
     """
     try:
-        print(f"Received manufacturer creation request:")
-        print(f"  User ID: {request.user_id}")
-        print(f"  Username: {request.username}")
-        print(f"  Email: {request.email}")
-        print(f"  Manufacturer Name: {request.manufacturer_name}")
-        print(f"  Street: {request.street}")
-        print(f"  City: {request.city}")
-        print(f"  State: {request.state}")
-        print(f"  Zip: {request.zip}")
-        print(f"  Phone: {request.phone}")
-        print(f"  Manufacturer Email: {request.manufacturer_email}")
-        print(f"  Contactee: {request.contactee}")
-        print(f"  Description: {request.description}")
-        print(f"  Services: {request.services}")
-        print(f"  Product Categories: {request.product_categories}")
-        print(f"  Price Levels: {request.price_levels}")
-        print(f"  Minimums: {request.minimums}")
+        # Step 1: Update user role to manufacturer
+        supabase.table("users").update({"role": "manufacturer"}).eq("user_id", request.user_id).execute()
         
-        # TODO: Implement actual creation logic here
+        # Step 2: Create manufacturer record
+        address = f"{request.street}, {request.state}, {request.zip}"
         
-        return {"message": "Manufacturer creation endpoint received data successfully"}
+        manufacturer_data = {
+            "name": request.manufacturer_name,
+            "address": address,
+            "location": request.city,
+            "phone": request.phone,
+            "email": request.manufacturer_email,
+            "contactee": request.contactee,
+            "description": request.description,
+        }
+        
+        manufacturer_response = supabase.table("manufacturers").insert(manufacturer_data).execute()
+        
+        if not manufacturer_response.data:
+            raise Exception("Failed to create manufacturer record")
+        
+        manufacturer_id = manufacturer_response.data[0]["manufacturer_id"]
+        
+        # Step 3: Link services
+        if request.services:
+            service_records = [{"manufacturer_id": manufacturer_id, "service_id": service_id} for service_id in request.services]
+            supabase.table("manufacturer_services").insert(service_records).execute()
+        
+        # Step 4: Link product categories
+        if request.product_categories:
+            category_records = [{"manufacturer_id": manufacturer_id, "category_id": category_id} for category_id in request.product_categories]
+            supabase.table("manufacturer_categories").insert(category_records).execute()
+        
+        # Step 5: Link price levels
+        if request.price_levels:
+            price_records = [{"manufacturer_id": manufacturer_id, "price_id": price_id} for price_id in request.price_levels]
+            supabase.table("manufacturer_prices").insert(price_records).execute()
+        
+        # Step 6: Link MOQ options
+        if request.minimums:
+            minimum_records = [{"manufacturer_id": manufacturer_id, "minimum_id": minimum_id} for minimum_id in request.minimums]
+            supabase.table("manufacturer_minimums").insert(minimum_records).execute()
+
+        print("It is done.")
+        
+        return {"message": "Manufacturer created successfully", "manufacturer_id": manufacturer_id}
     
     except Exception as e:
         print(f"Error in manufacturer creation: {str(e)}")
