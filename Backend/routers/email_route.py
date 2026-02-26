@@ -451,20 +451,20 @@ async def create_conversation_message(
                         f"{POSTMARK_INBOUND_LOCAL_PART}+{conversation_id}"
                         f"@{POSTMARK_INBOUND_DOMAIN}"
                     )
-                # send_email(
-                #     to=manufacturer_email,
-                #     subject=f"PinPoint Messaging Service [rfq:{conversation_id}]",
-                #     text_body=body,
-                #     reply_to=reply_to,
-                #     custom_headers={"X-RFQ-Conversation-ID": conversation_id},
-                # )
                 send_email(
-                    to="jacobdietz2383@gmail.com",
+                    to=manufacturer_email,
                     subject=f"PinPoint Messaging Service [rfq:{conversation_id}]",
                     text_body=body,
                     reply_to=reply_to,
                     custom_headers={"X-RFQ-Conversation-ID": conversation_id},
                 )
+                # send_email(
+                #     to="jacobdietz2383@gmail.com",
+                #     subject=f"PinPoint Messaging Service [rfq:{conversation_id}]",
+                #     text_body=body,
+                #     reply_to=reply_to,
+                #     custom_headers={"X-RFQ-Conversation-ID": conversation_id},
+                # )
             except EmailSendError as email_error:
                 # Do not fail message persistence if outbound email fails.
                 print(f"Email send failed for conversation {conversation_id}: {email_error}")

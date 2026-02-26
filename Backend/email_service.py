@@ -72,6 +72,7 @@ def send_email(
     html = render_email_html(
         body_html=resolve_email_body_html(text_body=text_body, html_body=html_body)
     )
+    # change this to be to (for the to email address)
     payload = {
         "From": FROM_EMAIL,
         "To": "jacobdietz2383@gmail.com",
