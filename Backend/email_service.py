@@ -1,6 +1,6 @@
 import os
 import requests
-from typing import Optional
+from typing import Dict, Optional
 from dotenv import load_dotenv
 from html import escape
 
@@ -56,6 +56,8 @@ def send_email(
     subject: str,
     text_body: Optional[str] = None,
     html_body: Optional[str] = None,
+    reply_to: Optional[str] = None,
+    custom_headers: Optional[Dict[str, str]] = None,
 ):
     """Send a Postmark email with a shared HTML wrapper + footer template."""
     if not POSTMARK_API_TOKEN:
@@ -70,14 +72,23 @@ def send_email(
     html = render_email_html(
         body_html=resolve_email_body_html(text_body=text_body, html_body=html_body)
     )
+    # change this to be to (for the to email address)
     payload = {
         "From": FROM_EMAIL,
-        "To": to,
+        "To": "jacobdietz2383@gmail.com",
         "Subject": subject,
         "TextBody": text_body,
         "HtmlBody": html,
         "MessageStream": "outbound",  # default transactional stream
     }
+    if reply_to and reply_to.strip():
+        payload["ReplyTo"] = reply_to.strip()
+    if custom_headers:
+        payload["Headers"] = [
+            {"Name": str(name), "Value": str(value)}
+            for name, value in custom_headers.items()
+            if str(name).strip() and str(value).strip()
+        ]
 
     headers = {
         "X-Postmark-Server-Token": POSTMARK_API_TOKEN,
