@@ -512,22 +512,25 @@ async def create_manufacturer(request: ManufacturerCreateRequest):
         
         manufacturer_id = manufacturer_response.data[0]["manufacturer_id"]
         
-        # Step 3: Link services
+        # Step 3: Link user to manufacturer
+        supabase.table("user_manufacturers").insert({"user_id": request.user_id, "manufacturer_id": manufacturer_id}).execute()
+        
+        # Step 4: Link services
         if request.services:
             service_records = [{"manufacturer_id": manufacturer_id, "service_id": service_id} for service_id in request.services]
             supabase.table("manufacturer_services").insert(service_records).execute()
         
-        # Step 4: Link product categories
+        # Step 5: Link product categories
         if request.product_categories:
             category_records = [{"manufacturer_id": manufacturer_id, "category_id": category_id} for category_id in request.product_categories]
             supabase.table("manufacturer_categories").insert(category_records).execute()
         
-        # Step 5: Link price levels
+        # Step 6: Link price levels
         if request.price_levels:
             price_records = [{"manufacturer_id": manufacturer_id, "price_id": price_id} for price_id in request.price_levels]
             supabase.table("manufacturer_prices").insert(price_records).execute()
         
-        # Step 6: Link MOQ options
+        # Step 7: Link MOQ options
         if request.minimums:
             minimum_records = [{"manufacturer_id": manufacturer_id, "minimum_id": minimum_id} for minimum_id in request.minimums]
             supabase.table("manufacturer_minimums").insert(minimum_records).execute()
