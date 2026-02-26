@@ -8,7 +8,7 @@ Description: FastAPI endpoints for fetching manufacturer data, including
              with pricing information.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Header
 from pydantic import BaseModel
 from config.database import supabase
 
