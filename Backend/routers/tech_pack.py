@@ -199,6 +199,8 @@ async def generate_techpack(
     packet = io.BytesIO()
     can = canvas.Canvas(packet, pagesize=letter)
 
+    HEIGHT = 683  # the offset that was working before
+
     for field, (x, y) in elementCoordinates.items():
         if field in ['front', 'back']:
             continue
@@ -208,15 +210,16 @@ async def generate_techpack(
             continue
 
         text = str(value)
+        adjusted_y = HEIGHT - y  # convert from top-origin to ReportLab bottom-origin
 
         if field in ['description', 'specialInstructions']:
             can.setFont("Helvetica", 8)
             lines = text.split('\n')[:5]
             for i, line in enumerate(lines):
-                can.drawString(x, y - (i * 12), line[:80])
+                can.drawString(x, adjusted_y - (i * 12), line[:80])
         else:
             can.setFont("Helvetica", 10)
-            can.drawString(x, y, text[:50])
+            can.drawString(x, adjusted_y, text[:50])
 
     can.save()
     packet.seek(0)
