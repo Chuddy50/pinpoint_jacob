@@ -10,171 +10,29 @@ import os
 
 router = APIRouter()
 
-page_height = 792
+# PDF is 1400x900 points - must match template
+PAGE_SIZE = (1400, 900)
 
-# x,y coords on pdf of where to write 
 elementCoordinates = {
-    "brandName": (846, 20),
-    "productName": (1202, 20),
-    "productType": (982, 131),
-    "primaryColor": (982, 172),
-    "accentColors": (982, 217),
-    "material": (982, 263),
-    "weight": (982, 310),
-    "finishTexture": (982, 354),
-    "printMethod": (982, 400),
-    "specialFeatures": (982, 445),
-    "measurements": (982, 491),
-    "sizes": (982, 535),
-    "sampleQuantity": (982, 577),
-    "orderQuantity": (982, 621),
-    "targetPrice": (982, 665),
-    "description": (8, 770),
-    "specialInstructions": (704, 770),
-    "front": (8, 128),
-    "back": (354, 128)
+    "brandName":           (920,  863),
+    "productName":         (1210, 863),
+    "productType":         (970,  765),
+    "primaryColor":        (970,  720),
+    "accentColors":        (970,  675),
+    "material":            (970,  635),
+    "weight":              (970,  590),
+    "finishTexture":       (970,  545),
+    "printMethod":         (970,  500),
+    "specialFeatures":     (970,  455),
+    "measurements":        (970,  410),
+    "sizes":               (970,  365),
+    "sampleQuantity":      (970,  320),
+    "orderQuantity":       (970,  275),
+    "targetPrice":         (970,  235),
+    "description":         (10,   135),
+    "specialInstructions": (710,  135),
 }
 
-@router.post("/changed")
-async def generate_techpack_changed(data: dict):
-    # Path to blank template
-    template_path = os.path.join(
-        os.path.dirname(__file__), 
-        "../../Frontend/public/TechPack.pdf"
-    )
-    
-    if not os.path.exists(template_path):
-        raise FileNotFoundError(f"Template not found at {template_path}")
-    
-    # Read blank template
-    reader = PdfReader(template_path)
-    writer = PdfWriter()
-    
-    # Create overlay with user data
-    packet = io.BytesIO()
-    can = canvas.Canvas(packet, pagesize=letter)
-    
-    # Set font
-    can.setFont("Helvetica", 10)
-    
-    '''
-    # Draw each field at its coordinate
-    for field, (x, y) in elementCoordinates.items():
-        if field in data and data[field]:
-            text = str(data[field])
-            
-            # Handle multiline text for description/instructions
-            if field in ['description', 'specialInstructions']:
-                can.setFont("Helvetica", 8)
-                lines = text.split('\n')[:5]  # Max 5 lines
-                for i, line in enumerate(lines):
-                    can.drawString(x, y - (i * 12), line[:80])  # Truncate long lines
-                can.setFont("Helvetica", 10)
-            else:
-                can.drawString(x, y, text[:50])  # Truncate to 50 chars
-
-     # Just draw test text - change these coordinates to see where it appears
-    can.drawString(100, 200, "I hate this")
-    can.drawString(100, 100, "Test text 2")
-    can.drawString(200, 100, "Another test")
-
-    can.setFillColorRGB(1, 1, 1)  # White background
-    can.rect(200-2, 200-2, 200, 15, fill=1, stroke=0)  # White rectangle
-    can.setFillColorRGB(0, 0, 0)  # Black text
-    can.drawString(200, 200, "I hate this")
-
-    '''
-
-    height = 683
-
-    #brand test
-    can.drawString(600, height - 15, "MY BRAND")
-
-    #style test
-    can.drawString(850, height - 15, "MY SHIRT")
-
-    #prod type test
-    can.drawString(700, height - 91, "TSHIRT")
-
-        
-    can.save()
-    packet.seek(0)
-    
-    # Merge overlay with template
-    overlay = PdfReader(packet)
-    page = reader.pages[0]
-    page.merge_page(overlay.pages[0])
-    writer.add_page(page)
-    
-    # Write to temp file
-    output_path = "/tmp/filled_techpack.pdf"
-    with open(output_path, "wb") as output_file:
-        writer.write(output_file)
-    
-    return FileResponse(
-        output_path, 
-        filename="techpack.pdf",
-        media_type="application/pdf"
-    )
-
-'''
-@router.post("/generate")
-async def generate_techpack(data: dict):
-    template_path = os.path.join(
-        os.path.dirname(__file__), 
-        "../../Frontend/public/BlankTechPack.pdf"
-    )
-    
-    if not os.path.exists(template_path):
-        raise FileNotFoundError(f"Template not found at {template_path}")
-    
-    reader = PdfReader(template_path)
-    writer = PdfWriter()
-    
-    # Get the template page
-    template_page = reader.pages[0]
-    
-    # Create text overlay
-    packet = io.BytesIO()
-    can = canvas.Canvas(packet, pagesize=letter)
-    can.setFont("Helvetica", 16)
-    can.drawString(100, 700, "I hate this")
-    can.drawString(100, 650, "Test text 2")
-
-    height = 683
-
-    #brand test
-    can.drawString(600, height - 15, "MY BRAND")
-
-    #style test
-    can.drawString(850, height - 15, "MY SHIRT")
-
-    #prod type test
-    can.drawString(700, height - 91, "TSHIRT")
-
-    can.save()
-    packet.seek(0)
-    
-    # Get text overlay
-    overlay = PdfReader(packet)
-    overlay_page = overlay.pages[0]
-    
-    # CRITICAL: Merge template ONTO overlay (not the other way)
-    # This puts template below, text on top
-    template_page.merge_page(overlay_page)
-    
-    writer.add_page(template_page)
-    
-    output_path = "/tmp/filled_techpack.pdf"
-    with open(output_path, "wb") as output_file:
-        writer.write(output_file)
-    
-    return FileResponse(
-        output_path, 
-        filename="techpack.pdf",
-        media_type="application/pdf"
-    )
-'''
 
 @router.post("/generate")
 async def generate_techpack(
@@ -197,29 +55,42 @@ async def generate_techpack(
     template_page = reader.pages[0]
     
     packet = io.BytesIO()
-    can = canvas.Canvas(packet, pagesize=letter)
+    can = canvas.Canvas(packet, pagesize=(1400, 900))
 
-    HEIGHT = 683  # the offset that was working before
-
+    # Draw text fields
     for field, (x, y) in elementCoordinates.items():
-        if field in ['front', 'back']:
-            continue
-        
         value = parsed_data.get(field, "")
         if not value:
             continue
 
         text = str(value)
-        adjusted_y = HEIGHT - y  # convert from top-origin to ReportLab bottom-origin
 
         if field in ['description', 'specialInstructions']:
-            can.setFont("Helvetica", 8)
+            can.setFont("Helvetica", 18)
             lines = text.split('\n')[:5]
             for i, line in enumerate(lines):
-                can.drawString(x, adjusted_y - (i * 12), line[:80])
+                can.drawString(x, y - (i * 14), line[:80])
         else:
-            can.setFont("Helvetica", 10)
-            can.drawString(x, adjusted_y, text[:50])
+            can.setFont("Helvetica", 18)
+            can.drawString(x, y, text[:50])
+
+    # Draw front sketch image
+    if frontSketch:
+        front_bytes = await frontSketch.read()
+        front_buffer = io.BytesIO(front_bytes)
+        from reportlab.lib.utils import ImageReader
+        front_img = ImageReader(front_buffer)
+        # Front sketch area: x=10, y=100 from top -> y=790 reportlab, width~330, height~590
+        can.drawImage(front_img, 10, 180, width=330, height=580, preserveAspectRatio=True, mask='auto')
+
+    # Draw back sketch image
+    if backSketch:
+        back_bytes = await backSketch.read()
+        back_buffer = io.BytesIO(back_bytes)
+        from reportlab.lib.utils import ImageReader
+        back_img = ImageReader(back_buffer)
+        # Back sketch area: x=350, same y
+        can.drawImage(back_img, 350, 180, width=330, height=580, preserveAspectRatio=True, mask='auto')
 
     can.save()
     packet.seek(0)
