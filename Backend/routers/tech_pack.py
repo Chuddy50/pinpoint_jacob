@@ -1,4 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, File, UploadFile, Form
+from typing import Optional
+import json
 from fastapi.responses import FileResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -9,30 +11,6 @@ import os
 router = APIRouter()
 
 page_height = 792
-
-'''
-COORDS? 
- x ,y 
-Brand: 600, 15
-Style: 850, 15
-prod type: 700 ,91
-color: 700, 121
-a color: 700, 154
-material: 700, 188
-weight: 700, 221
-texture: 700, 249
-print: 700, 279
-special feat: 700, 311
-measure: 700, 344
-sizes: 700, 377
-sample: 700, 407
-order: 700, 430
-Target: 700, 470
-Decription: 7, 549
-special instructions: 502, 549
-front: 7, 93
-back: 252, 91
-'''
 
 # x,y coords on pdf of where to write 
 elementCoordinates = {
@@ -139,6 +117,7 @@ async def generate_techpack_changed(data: dict):
         media_type="application/pdf"
     )
 
+'''
 @router.post("/generate")
 async def generate_techpack(data: dict):
     template_path = os.path.join(
@@ -184,6 +163,67 @@ async def generate_techpack(data: dict):
     # This puts template below, text on top
     template_page.merge_page(overlay_page)
     
+    writer.add_page(template_page)
+    
+    output_path = "/tmp/filled_techpack.pdf"
+    with open(output_path, "wb") as output_file:
+        writer.write(output_file)
+    
+    return FileResponse(
+        output_path, 
+        filename="techpack.pdf",
+        media_type="application/pdf"
+    )
+'''
+
+@router.post("/generate")
+async def generate_techpack(
+    data: str = Form(...),
+    frontSketch: Optional[UploadFile] = File(None),
+    backSketch: Optional[UploadFile] = File(None)
+):
+    parsed_data = json.loads(data)
+
+    template_path = os.path.join(
+        os.path.dirname(__file__), 
+        "../../Frontend/public/BlankTechPack.pdf"
+    )
+    
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(f"Template not found at {template_path}")
+    
+    reader = PdfReader(template_path)
+    writer = PdfWriter()
+    template_page = reader.pages[0]
+    
+    packet = io.BytesIO()
+    can = canvas.Canvas(packet, pagesize=letter)
+
+    for field, (x, y) in elementCoordinates.items():
+        if field in ['front', 'back']:
+            continue
+        
+        value = parsed_data.get(field, "")
+        if not value:
+            continue
+
+        text = str(value)
+
+        if field in ['description', 'specialInstructions']:
+            can.setFont("Helvetica", 8)
+            lines = text.split('\n')[:5]
+            for i, line in enumerate(lines):
+                can.drawString(x, y - (i * 12), line[:80])
+        else:
+            can.setFont("Helvetica", 10)
+            can.drawString(x, y, text[:50])
+
+    can.save()
+    packet.seek(0)
+    
+    overlay = PdfReader(packet)
+    overlay_page = overlay.pages[0]
+    template_page.merge_page(overlay_page)
     writer.add_page(template_page)
     
     output_path = "/tmp/filled_techpack.pdf"
