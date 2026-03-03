@@ -27,6 +27,7 @@ POSTMARK_INBOUND_LOCAL_PART = os.getenv(
 
 
 def _looks_like_uuid(value: str) -> bool:
+    """Return True when a value can be parsed as a UUID."""
     try:
         UUID(str(value))
         return True
@@ -35,6 +36,7 @@ def _looks_like_uuid(value: str) -> bool:
 
 
 def _extract_user_id(user: Any) -> str:
+    """Read and validate the authenticated user's UUID."""
     user_id = getattr(user, "id", None)
     if not user_id and isinstance(user, dict):
         user_id = user.get("id") or user.get("user_id")
@@ -46,6 +48,7 @@ def _extract_user_id(user: Any) -> str:
 
 
 def _extract_message_text(message: Dict[str, Any]) -> Optional[str]:
+    """Pick the first non-empty text-like field from a message record."""
     for key in ("message", "content", "text", "body"):
         value = message.get(key)
         if isinstance(value, str) and value.strip():
@@ -54,6 +57,7 @@ def _extract_message_text(message: Dict[str, Any]) -> Optional[str]:
 
 
 def _extract_sender_email(payload: Dict[str, Any]) -> Optional[str]:
+    """Extract and normalize the sender email from a Postmark payload."""
     from_full = payload.get("FromFull")
     if isinstance(from_full, dict):
         sender = from_full.get("Email")
@@ -68,43 +72,73 @@ def _extract_sender_email(payload: Dict[str, Any]) -> Optional[str]:
 
 
 def _extract_inbound_body(payload: Dict[str, Any]) -> str:
+    """Extract the best available plain-text body from inbound email fields."""
     def _html_to_text(raw: str) -> str:
+        """Convert basic HTML email content to readable plain text."""
         text = re.sub(r"<br\s*/?>", "\n", raw, flags=re.IGNORECASE)
         text = re.sub(r"<[^>]+>", " ", text)
         text = unescape(text)
         return re.sub(r"\s+", " ", text).strip()
 
+    def _cleanup_reply_text(raw: str) -> str:
+        """Remove common quoted-reply artifacts from plain text email bodies."""
+        text = raw.replace("\r\n", "\n").replace("\r", "\n")
+        lines = []
+        for line in text.split("\n"):
+            if line.lstrip().startswith(">"):
+                continue
+            lines.append(line)
+        text = "\n".join(lines)
+
+        marker_match = re.search(
+            r"^\s*On .+ wrote:\s*$",
+            text,
+            flags=re.IGNORECASE | re.MULTILINE,
+        )
+        if marker_match:
+            text = text[: marker_match.start()]
+
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip()
+
     candidates: List[str] = []
 
     stripped_reply = payload.get("StrippedTextReply")
     if isinstance(stripped_reply, str) and stripped_reply.strip():
-        candidates.append(stripped_reply.strip())
+        cleaned = _cleanup_reply_text(stripped_reply.strip())
+        if cleaned:
+            return cleaned
 
     text_body = payload.get("TextBody")
     if isinstance(text_body, str) and text_body.strip():
-        candidates.append(text_body.strip())
+        cleaned = _cleanup_reply_text(text_body.strip())
+        if cleaned:
+            candidates.append(cleaned)
 
     stripped_html = payload.get("StrippedHtmlBody")
     if isinstance(stripped_html, str) and stripped_html.strip():
         parsed = _html_to_text(stripped_html)
         if parsed:
-            candidates.append(parsed)
+            cleaned = _cleanup_reply_text(parsed)
+            if cleaned:
+                candidates.append(cleaned)
 
     html_body = payload.get("HtmlBody")
     if isinstance(html_body, str) and html_body.strip():
         parsed = _html_to_text(html_body)
         if parsed:
-            candidates.append(parsed)
+            cleaned = _cleanup_reply_text(parsed)
+            if cleaned:
+                candidates.append(cleaned)
 
     if not candidates:
         return ""
 
-    # Prefer the richest content; avoid accidental subject-only stubs.
-    candidates.sort(key=lambda value: len(value), reverse=True)
     return candidates[0]
 
 
 def _extract_uuid_from_text(value: str) -> Optional[str]:
+    """Find and validate the first UUID present in free-form text."""
     if not isinstance(value, str) or not value:
         return None
     match = UUID_PATTERN.search(value)
@@ -115,6 +149,7 @@ def _extract_uuid_from_text(value: str) -> Optional[str]:
 
 
 def _extract_conversation_id_from_recipient(value: str) -> Optional[str]:
+    """Parse a conversation UUID from recipient address local-part patterns."""
     if not isinstance(value, str) or "@" not in value:
         return None
     local_part = value.split("@", 1)[0].strip().lower()
@@ -133,6 +168,7 @@ def _extract_conversation_id_from_recipient(value: str) -> Optional[str]:
 
 
 def _extract_conversation_id_from_payload(payload: Dict[str, Any]) -> Optional[str]:
+    """Resolve a conversation UUID from structured inbound email metadata."""
     mailbox_hash = payload.get("MailboxHash")
     if isinstance(mailbox_hash, str) and _looks_like_uuid(mailbox_hash):
         return mailbox_hash
@@ -182,6 +218,7 @@ def _extract_conversation_id_from_payload(payload: Dict[str, Any]) -> Optional[s
 
 
 def _find_latest_conversation_for_manufacturer(sender_email: str) -> Optional[str]:
+    """Look up the newest RFQ conversation for a manufacturer email."""
     if not sender_email:
         return None
     manufacturer_response = (
@@ -212,6 +249,7 @@ def _find_latest_conversation_for_manufacturer(sender_email: str) -> Optional[st
 
 
 def _assert_conversation_belongs_to_user(conversation_id: str, user_id: str) -> None:
+    """Raise 404 when the conversation does not belong to the buyer."""
     convo_response = (
         supabase.table("rfq_conversations")
         .select("id")
@@ -225,6 +263,7 @@ def _assert_conversation_belongs_to_user(conversation_id: str, user_id: str) -> 
 
 
 def _get_conversation_context(conversation_id: str, user_id: str) -> Dict[str, Any]:
+    """Return conversation and manufacturer context for a buyer-owned thread."""
     convo_response = (
         supabase.table("rfq_conversations")
         .select("id,buyer_id,manufacturer_id")
@@ -262,6 +301,7 @@ async def list_email_conversations(
     limit: int = Query(20, ge=1, le=100),
     before: Optional[str] = Query(default=None),
 ):
+    """List buyer conversations with summary metadata and message previews."""
     try:
         buyer_id = _extract_user_id(user)
 
@@ -376,6 +416,7 @@ async def list_conversation_messages(
     before: Optional[str] = Query(default=None),
     order: str = Query(default="asc", pattern="^(asc|desc)$"),
 ):
+    """List messages for a conversation with cursor-style pagination."""
     try:
         if not _looks_like_uuid(conversation_id):
             raise HTTPException(status_code=400, detail="Invalid conversation id")
@@ -413,6 +454,7 @@ async def create_conversation_message(
     payload: dict,
     user=Depends(get_current_user),
 ):
+    """Store a new buyer message and optionally send manufacturer email."""
     try:
         if not _looks_like_uuid(conversation_id):
             raise HTTPException(status_code=400, detail="Invalid conversation id")
@@ -488,6 +530,7 @@ async def create_conversation_message(
 @router.post("/webhooks/postmark/inbound")
 @router.post("/webhooks/postmark/inbound/")
 async def postmark_inbound(request: Request):
+    """Process inbound Postmark mail and persist it as a manufacturer message."""
     try:
         payload = await request.json()
 
