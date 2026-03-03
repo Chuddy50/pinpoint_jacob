@@ -118,6 +118,12 @@ export default function Messages() {
   );
 
   const sortedThreads = useMemo(() => sortThreadsByActivity(threads), [threads]);
+  const newestIncomingIndex = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i]?.sender_type !== "buyer") return i;
+    }
+    return -1;
+  }, [messages]);
 
   const handleSendMessage = async () => {
     const body = draftMessage.trim();
@@ -261,23 +267,34 @@ export default function Messages() {
                     </div>
                   ) : (
                     <div className="space-y-3 pb-2">
-                      {messages.map((messageItem) => {
+                      {messages.map((messageItem, index) => {
                         const isBuyer = messageItem.sender_type === "buyer";
                         return (
                           <div
                             key={messageItem.id ?? `${messageItem.created_at}-${messageItem.body}`}
-                            className={`max-w-[85%] rounded-lg px-4 py-3 ${
-                              isBuyer
-                                ? "ml-auto bg-blue-500 text-white"
-                                : "mr-auto border border-gray-200 bg-gray-50 text-gray-800"
-                            }`}
                           >
-                            <p className="text-sm">
-                              {messageItem.body || messageItem.message || "(empty message)"}
-                            </p>
-                            <p className={`mt-1 text-xs ${isBuyer ? "text-gray-300" : "text-gray-500"}`}>
-                              {formatDateTime(messageItem.created_at)}
-                            </p>
+                            {index === newestIncomingIndex ? (
+                              <div className="my-4 flex items-center gap-3">
+                                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                  New
+                                </span>
+                                <div className="h-px flex-1 bg-gray-300" />
+                              </div>
+                            ) : null}
+                            <div
+                              className={`max-w-[85%] rounded-lg px-4 py-3 ${
+                                isBuyer
+                                  ? "ml-auto bg-blue-500 text-white"
+                                  : "mr-auto border border-gray-200 bg-gray-50 text-gray-800"
+                              }`}
+                            >
+                              <p className="text-sm">
+                                {messageItem.body || messageItem.message || "(empty message)"}
+                              </p>
+                              <p className={`mt-1 text-xs ${isBuyer ? "text-gray-300" : "text-gray-500"}`}>
+                                {formatDateTime(messageItem.created_at)}
+                              </p>
+                            </div>
                           </div>
                         );
                       })}
