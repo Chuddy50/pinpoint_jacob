@@ -80,33 +80,60 @@ def _extract_inbound_body(payload: Dict[str, Any]) -> str:
         text = unescape(text)
         return re.sub(r"\s+", " ", text).strip()
 
+    def _cleanup_reply_text(raw: str) -> str:
+        """Remove common quoted-reply artifacts from plain text email bodies."""
+        text = raw.replace("\r\n", "\n").replace("\r", "\n")
+        lines = []
+        for line in text.split("\n"):
+            if line.lstrip().startswith(">"):
+                continue
+            lines.append(line)
+        text = "\n".join(lines)
+
+        marker_match = re.search(
+            r"^\s*On .+ wrote:\s*$",
+            text,
+            flags=re.IGNORECASE | re.MULTILINE,
+        )
+        if marker_match:
+            text = text[: marker_match.start()]
+
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip()
+
     candidates: List[str] = []
 
     stripped_reply = payload.get("StrippedTextReply")
     if isinstance(stripped_reply, str) and stripped_reply.strip():
-        candidates.append(stripped_reply.strip())
+        cleaned = _cleanup_reply_text(stripped_reply.strip())
+        if cleaned:
+            return cleaned
 
     text_body = payload.get("TextBody")
     if isinstance(text_body, str) and text_body.strip():
-        candidates.append(text_body.strip())
+        cleaned = _cleanup_reply_text(text_body.strip())
+        if cleaned:
+            candidates.append(cleaned)
 
     stripped_html = payload.get("StrippedHtmlBody")
     if isinstance(stripped_html, str) and stripped_html.strip():
         parsed = _html_to_text(stripped_html)
         if parsed:
-            candidates.append(parsed)
+            cleaned = _cleanup_reply_text(parsed)
+            if cleaned:
+                candidates.append(cleaned)
 
     html_body = payload.get("HtmlBody")
     if isinstance(html_body, str) and html_body.strip():
         parsed = _html_to_text(html_body)
         if parsed:
-            candidates.append(parsed)
+            cleaned = _cleanup_reply_text(parsed)
+            if cleaned:
+                candidates.append(cleaned)
 
     if not candidates:
         return ""
 
-    # Prefer the richest content; avoid accidental subject-only stubs.
-    candidates.sort(key=lambda value: len(value), reverse=True)
     return candidates[0]
 
 
