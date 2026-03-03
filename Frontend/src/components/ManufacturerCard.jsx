@@ -60,7 +60,7 @@ export default function ManufacturerCard({
           {"☆".repeat(5 - Math.floor(rating))}
         </div>
         
-        <div className="w-full h-40 bg-[#EDEDED] flex items-center justify-center text-sm text-gray-500">
+        <div className="w-full h-40 bg-white flex items-center justify-center text-sm text-gray-500">
           {imageUrl ? (
             <img 
               src={imageUrl} 
